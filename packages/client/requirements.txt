@@ -1,0 +1,20 @@
+# Core dependencies
+requests>=2.25.0
+requests-cache>=0.9.0
+websocket-client>=1.2.0
+sseclient-py>=1.7.2
+pyjwt>=2.4.0
+
+# Agent URI dependencies
+# These would typically be installed locally with -e flag
+# during development or as published packages in production
+agent-uri          # URI Parser
+agent-descriptor   # Descriptor handling
+agent-resolver     # Resolution
+agent-transport    # Transport binding
+
+# Development dependencies
+pytest>=7.0.0
+pytest-cov>=3.0.0
+black>=22.1.0
+isort>=5.10.0

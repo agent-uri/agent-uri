@@ -1,0 +1,276 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Agent Descriptor Schema",
+  "description": "JSON Schema for the agent.json descriptor format in the agent:// protocol",
+  "type": "object",
+  "required": ["name", "version", "capabilities"],
+  "properties": {
+    "@context": {
+      "type": "string",
+      "description": "JSON-LD context URL for semantic interoperability"
+    },
+    "name": {
+      "type": "string",
+      "description": "Unique name of the agent"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of the agent"
+    },
+    "url": {
+      "type": "string",
+      "description": "Base URL or URI of the agent",
+      "format": "uri"
+    },
+    "provider": {
+      "type": "object",
+      "description": "Information about the provider of this agent",
+      "properties": {
+        "organization": {
+          "type": "string",
+          "description": "Name of the organization providing the agent"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Organization URL"
+        }
+      }
+    },
+    "documentationUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL to the agent's documentation"
+    },
+    "interactionModel": {
+      "type": "string",
+      "description": "Primary interaction model this agent follows",
+      "enum": ["agent2agent", "fipa-acl", "kqml", "contract-net", "emergent"]
+    },
+    "orchestration": {
+      "type": "string",
+      "description": "Orchestration pattern supported by this agent",
+      "enum": ["delegation", "composition", "choreography", "standalone"]
+    },
+    "envelopeSchemas": {
+      "type": "array",
+      "description": "List of message envelope formats supported by this agent",
+      "items": {
+        "type": "string"
+      }
+    },
+    "version": {
+      "type": ["string", "number"],
+      "description": "Semantic version of the agent"
+    },
+    "supportedVersions": {
+      "type": "object",
+      "description": "Map of supported older versions and their endpoints",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "description": "List of capabilities this agent provides",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Unique identifier for this capability"
+          },
+          "version": {
+            "type": ["string", "number"],
+            "description": "Version of this capability"
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of the capability"
+          },
+          "input": {
+            "type": "object",
+            "description": "Input schema for this capability"
+          },
+          "output": {
+            "type": "object",
+            "description": "Output schema for this capability"
+          },
+          "isDeterministic": {
+            "type": "boolean",
+            "description": "Whether identical inputs yield identical outputs"
+          },
+          "expectedOutputVariability": {
+            "type": "string",
+            "description": "Expected variability in outputs",
+            "enum": ["none", "low", "medium", "high"]
+          },
+          "contentTypes": {
+            "type": "object",
+            "description": "Content type information for this capability",
+            "properties": {
+              "inputFormat": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "outputFormat": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "requiresContext": {
+            "type": "boolean",
+            "description": "Whether the capability requires additional context beyond the direct input"
+          },
+          "memoryEnabled": {
+            "type": "boolean",
+            "description": "Whether the capability maintains state between invocations"
+          },
+          "responseLatency": {
+            "type": "string",
+            "description": "Expected response time",
+            "enum": ["low", "medium", "high"]
+          },
+          "streaming": {
+            "type": "boolean",
+            "description": "Whether this capability supports streaming responses"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tags for categorizing this capability"
+          },
+          "deprecated": {
+            "type": "boolean",
+            "description": "Whether this capability is deprecated"
+          },
+          "deprecatedReason": {
+            "type": "string",
+            "description": "Reason for deprecation if deprecated is true"
+          },
+          "examples": {
+            "type": "array",
+            "description": "Example invocations of this capability",
+            "items": {
+              "type": "object",
+              "properties": {
+                "input": {
+                  "type": "object",
+                  "description": "Example input"
+                },
+                "output": {
+                  "type": "object",
+                  "description": "Example output"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Description of this example"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "authentication": {
+      "type": "object",
+      "description": "Authentication methods supported by this agent",
+      "properties": {
+        "schemes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["None", "Bearer", "API Key", "OAuth2", "JWT", "mTLS"]
+          }
+        },
+        "details": {
+          "type": "object",
+          "description": "Additional authentication details"
+        }
+      }
+    },
+    "skills": {
+      "type": "array",
+      "description": "Skills this agent possesses, which may map to multiple capabilities",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for this skill"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name for this skill"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of this skill"
+          }
+        },
+        "required": ["id", "name"]
+      }
+    },
+    "endpoints": {
+      "type": "object",
+      "description": "Transport-specific endpoints for this agent",
+      "properties": {
+        "https": {
+          "type": "string",
+          "format": "uri",
+          "description": "HTTPS endpoint"
+        },
+        "wss": {
+          "type": "string",
+          "format": "uri",
+          "description": "WebSocket secure endpoint"
+        },
+        "local": {
+          "type": "string",
+          "description": "Local endpoint identifier"
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "description": "Status of this agent",
+      "enum": ["active", "deprecated", "experimental", "beta"]
+    },
+    "termsOfService": {
+      "type": "string",
+      "format": "uri",
+      "description": "URI to the terms of service"
+    },
+    "privacy": {
+      "type": "string",
+      "format": "uri",
+      "description": "URI to the privacy policy"
+    },
+    "contact": {
+      "type": "object",
+      "description": "Contact information for the agent provider",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    }
+  }
+}

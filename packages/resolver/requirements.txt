@@ -1,0 +1,5 @@
+requests>=2.25.0
+requests-cache>=0.9.0
+# Below would need to be installed from local packages
+# agent-uri-parser
+# agent-descriptor
