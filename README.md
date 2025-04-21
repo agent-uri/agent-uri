@@ -1,6 +1,6 @@
 # Agent URI Reference Implementation
 
-This repository contains a reference implementation of the `agent://` protocol as defined in the [protocol specification](docs/rfc/draft.md).
+This repository contains a reference implementation of the `agent://` protocol as defined in the [protocol specification](docs/rfc/draft-narvaneni-agent-uri-00.md).
 
 ## Overview
 
@@ -54,7 +54,7 @@ agent-uri/
 - [Architecture Overview](docs/architecture.md)
 - [API Reference](docs/api-reference.md)
 - [Usage Examples](docs/examples.md)
-- [Protocol Specification](docs/rfc/draft.md)
+- [Protocol Specification](docs/rfc/draft-narvaneni-agent-uri-00.md)
 
 ## License
 
