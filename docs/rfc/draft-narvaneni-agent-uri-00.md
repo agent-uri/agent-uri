@@ -1,12 +1,14 @@
 ---
-title: "The agent:// Protocol — A URI-Based Framework for Interoperable Agents"
+title: "The agent:// Protocol -- A URI-Based Framework for Interoperable Agents"
 abbrev: "agent-uri"
-category: std
+category: exp
 docName: draft-narvaneni-agent-uri-00
 ipr: trust200902
 area: Applications
 workgroup: Independent Submission
 keyword: Internet-Draft
+submissionType: independent
+date: 2025-04-21
 
 stand_alone: yes
 pi: [toc, sortrefs, symrefs]
@@ -20,13 +22,13 @@ author:
     city: London
 
 normative:
-  RFC2119:
   RFC3986:
+  RFC2119:
   RFC6570:
-  RFC7231:
+  RFC9110:
   RFC6750:
   RFC7519:
-  RFC7807:
+  RFC9457:
   RFC8705:
   RFC8174:
   RFC7595:
@@ -44,7 +46,7 @@ normative:
       -
         ins: P. Champin
       -
-        ins: N. Lindström
+        ins: N. Lindstrom
     date: 2020-07
     seriesinfo:
       W3C: Recommendation
@@ -125,6 +127,20 @@ informative:
         ins: OpenAPI Initiative
     date: 2024-10
     target: https://spec.openapis.org/oas/latest.html
+  JSON-RPC:
+    title: "JSON-RPC 2.0 Specification"
+    author:
+      -
+        ins: JSON-RPC Working Group
+    date: 2013-01-04
+    target: https://www.jsonrpc.org/specification
+  Matrix:
+    title: "Matrix Specification v1.14"
+    author:
+      -
+        ins: The Matrix.org Foundation
+    date: 2014
+    target: https://spec.matrix.org/
   GraphQL:
     title: "GraphQL: A Query Language for APIs"
     author:
@@ -139,6 +155,13 @@ informative:
         ins: Foundation for Intelligent Physical Agents
     date: 2002
     target: http://www.fipa.org/specs/fipa00061/SC00061G.html
+  FIPA-CNP:
+    title: "FIPA Contract Net Interaction Protocol Specification"
+    author:
+      -
+        ins: Foundation for Intelligent Physical Agents
+    date: 2002
+    target: http://www.fipa.org/specs/fipa00029/SC00029H.html
   AGENT-URI-REPO:
     title: "Agent URI Protocol Reference Implementation"
     date: 2025
@@ -147,30 +170,39 @@ informative:
     target: https://github.com/agent-uri/agent-uri
 --- abstract
 
-This document defines the `agent://` protocol, a URI-based framework for addressing, invoking, and interoperating with autonomous and semi-autonomous software agents. It introduces a layered architecture that supports minimal implementations (addressing and transport) and extensible features (capability discovery, contracts, orchestration). The protocol aims to foster interoperability among agents across ecosystems, platforms, and modalities, enabling composable and collaborative intelligent systems.
+This document defines the `agent://` protocol, a URI template-based framework as described in RFC 6570 for addressing, invoking, and interoperating with autonomous and semi-autonomous software agents. It introduces a layered architecture that supports minimal implementations (addressing and transport) and extensible features (capability discovery, contracts, orchestration). The protocol aims to foster interoperability among agents across ecosystems, platforms, and modalities, enabling composable and collaborative intelligent systems.
 
 --- middle
 
 # Introduction    {#introduction}
 
-The rise of intelligent software agents necessitates a standardized way to identify, invoke, and coordinate them across diverse platforms. While protocols like HTTP provide a transport mechanism for static APIs, agents differ significantly in behavior, output variability, and interaction patterns. The `agent://` proposes a URI scheme and resolution model designed to complement existing agent communication protocol like Agent2Agent(A2A), FIPA ACL, Contract Net Protocol (CNP), LangChain etc. It serves as an addressing and discovery layer that works alongside these communication protocol.
+The rise of intelligent software agents necessitates a standardized way to identify, invoke, and coordinate them across diverse platforms. While protocols like [HTTP](#RFC9110) provide a transport mechanism for static APIs, agents differ significantly in behavior, output variability, and interaction patterns. The `agent://` proposes a URI scheme and resolution model designed to complement existing agent communication protocols and libraries like [Agent2Agent](#Agent2Agent), [FIPA-ACL](#FIPA-ACL), [Contract Net Protocol](#FIPA-CNP), [LangChain](#LangChain), [Model Context Protocol](#MCP), [AutoGen](#AutoGen), [SemanticKernel](#SemanticKernel) etc. It serves as an addressing and discovery layer that works alongside these communication protocol.
+
+The `agent://` protocol supports diverse agent deployment models through a unified addressing scheme:
+
+- Cloud-based agents accessible via standard web protocols
+- Local agents running on the user's device through the `agent+local://` scheme
+- On-premises agents within organizational boundaries
+- Decentralized agents operating across distributed networks
+
+This flexibility addresses a critical gap in current agent ecosystems, enabling applications (including browsers) to discover and invoke agents consistently regardless of where they're hosted. By providing standardized URI[RFC6570] patterns for both remote and local agents, the protocol simplifies previously complex integration scenarios like browser-to-local-agent delegation for privileged operations.
 
 ~~~
 +------------------+
 | Agent Applications|
 +------------------+
-        ↓  ↑
+       <-> 
 +------------------+
-|   agent:// URI   | ← Addressing, Resolution, Discovery
+|   agent:// URI   | <- Addressing, Resolution, Discovery
 +------------------+
-        ↓  ↑
-+------------------+     +------------------+
-|  Agent2Agent     |     |    CNP,. etc     | ← Communication Protocols
-+------------------+     +------------------+
-        ↓  ↑                    ↓  ↑
-+------------------+     +------------------+
-| Transport Layer  |     | Transport Layer  | ← HTTP, WebSockets, etc.
-+------------------+     +------------------+
+       <-> 
++------------------+  +------------------+
+|  Agent2Agent     |  |    CNP,. etc     | <- Communication Protocols
++------------------+  +------------------+
+        <->                   <-> 
++------------------+  +------------------+
+| Transport Layer  |  | Transport Layer  | <- HTTP, WebSockets, etc.
++------------------+  +------------------+
 ~~~
 {: #fig-protocol-stack title="Agent Protocol Stack Architecture"}
 
@@ -189,12 +221,14 @@ A reference implementation of the `agent://` protocol is available to demonstrat
 # Terminology    {#terminology}
 
 - **Agent**: An autonomous or semi-autonomous software entity that can receive instructions and perform actions.
-- **Agent Descriptor (agent.json)**: A machine-readable document that describes an agent’s identity, capabilities, and behavior.
+- **Agent Descriptor (agent.json)**: A machine-readable document that describes an agent's identity, capabilities, and behavior.
 - **Capability**: A self-contained function or behavior an agent offers.
 - **Resolver**: A service or mechanism that maps a URI to a network endpoint or metadata.
 - **Invocation**: The act of calling a capability on an agent with input parameters.
 
-The key words “MUST”, “MUST NOT”, “REQUIRED”, “SHALL”, “SHALL NOT”, “SHOULD”, “SHOULD NOT”, “RECOMMENDED”, “NOT RECOMMENDED”, “MAY”, and “OPTIONAL” in this document are to be interpreted as described in BCP 14 RFC2119 and RFC8174 when, and only when, they appear in all capitals, as shown here.
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+"SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in 
+RFC 2119, BCP 14 {{RFC2119}}, {{RFC8174}} when, and only when, they appear in all capitals, as shown here.
 
 # Protocol Scope and Layering    {#protocol-scope}
 
@@ -223,11 +257,11 @@ agent+<protocol>://[authority]/[path]
 
 Examples:
 
-- `agent://acme.ai/planning/generate-itinerary?city=Paris`
-- `agent://planner.acme.ai/claude?text=Hello`
-- `agent+https://acme.com/assistants/chatgpt?query=hello`
-- `agent+local://claude`
-- `agent://did:web:acme.com:agent:researcher/get-article?doi=...`
+- `agent://example.com/planning/gen-iti?city=Paris`
+- `agent://planner.example.com/claude?text=Hello`
+- `agent+https://example.com/assistants/chatgpt?query=hello`
+- `agent+local://examplelocalagent`
+- `agent://did:web:example.com:agent:researcher/get-article?doi=...`
 
 ## Components        {#uri-components}
 
@@ -242,20 +276,27 @@ Examples:
 
 ~~~abnf
 
-agent-uri      = "agent" [ "+" protocol ] "://" authority [ "/" path ] [ "?" query ] [ "#" fragment ]
+agent-uri      = "agent" ["+" protocol] "://" authority ["/" path]
+                 [ "?" query ] [ "#" fragment ]
 
 protocol       = 1*( ALPHA / DIGIT / "-" )
-authority      = [ userinfo "@" ] host [ ":" port ] ; <authority, defined in RFC3986, Section 3.2>
-path           = path-abempty    ; begins with "/" or is empty. Defined in RFC3986, Section 3.3
-query          = *( pchar / "/" / "?" ) ; <query, defined in RFC3986, Section 3.4>
-fragment       = *( pchar / "/" / "?" ) ; <fragment, defined in RFC3986, Section 3.5>
+authority      = [ userinfo "@" ] host [ ":" port ]
+                 ; <authority, defined in RFC3986, Section 3.2>
+path           = path-abempty    
+                 ; begins with "/" or is empty.
+                 ; Defined in RFC3986, Section 3.3
+query          = *( pchar / "/" / "?" )
+                 ; <query, defined in RFC3986, Section 3.4>
+fragment       = *( pchar / "/" / "?" )
+                 ; <fragment, defined in RFC3986, Section 3.5>
 
 pchar          = unreserved / pct-encoded / sub-delims / ":" / "@"
 unreserved     = ALPHA / DIGIT / "-" / "." / "_" / "~"
 pct-encoded    = "%" HEXDIG HEXDIG
-sub-delims     = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
+sub-delims     = "!" / "$" / "&" / "'" / "(" / ")" /
+                 "*" / "+" / "," / ";" / "="
 
-; Character sets like pchar, unreserved, etc. are also defined in RFC3986
+; Character sets like pchar, unreserved, etc. are defined in RFC3986
 
 ~~~
 {: #fig-abnf-grammar title="ABNF Grammar for agent:// URI Scheme"}
@@ -272,14 +313,14 @@ Every agent MAY expose a self-describing document at:
 
 If a single agent is deployed at the top level then it should be under `/.well-known` to be compatible with Agent2Agent protocol.
 
-- `/.well-known/agent.json` — For single-agent deployments (compatible with Agent2Agent)
-- `/.well-known/agents.json` — For multi-agent domains (maps agent names → descriptors)
+- `/.well-known/agent.json` -- For single-agent deployments (compatible with Agent2Agent)
+- `/.well-known/agents.json` -- For multi-agent domains (maps agent names -> descriptors)
 
 This descriptor is OPTIONAL but RECOMMENDED. It enables capability discovery, transport resolution, and compatibility with ecosystem tools.
 
-When present, the descriptor MAY use the AgentCard (as defined by Agent2Agent protocol by Google as of April 2025) schema as one possible format, or any equivalent JSON-LD–based structure that expresses the agent’s identity, capabilities, and behavioral metadata.
+When present, the descriptor MAY use the [AgentCard](#AgentCard) (as defined by Agent2Agent protocol by Google as of April 2025) schema as one possible format, or any equivalent [JSON-LD11] based structure that expresses the agent's identity, capabilities, and behavioral metadata.
 
-If the agent is deployed at a subdomain (e.g., `planner.acme.ai`), the agent descriptor SHOULD be published at `/.well-known/agent.json` on that domain.
+If the agent is deployed at a subdomain (e.g., `planner.example.org`), the agent descriptor SHOULD be published at `/.well-known/agent.json` on that domain.
 
 ## Ecosystem Registries        {#ecosystem-registries}
 
@@ -318,8 +359,8 @@ Resolvers SHOULD support caching and capability introspection where applicable.
 
 {
   "agents": {
-    "planner": "https://planner.acme.ai/.well-known/agent.json",
-    "translator": "https://acme.ai/translator/agent.json"
+    "planner": "https://planner.example.com/.well-known/agent.json",
+    "translator": "https://example.com/translator/agent.json"
   }
 }
 
@@ -363,6 +404,8 @@ agent+local://<agent-name>
 
 This allows agent runtimes to register their presence using a local resolver (e.g., via IPC, sockets, or service registry). The transport mechanism is implementation-specific.
 
+The `agent+local://` scheme specifically addresses the current lack of standardized methods for browser-based applications to invoke locally installed agents. This enables web applications to delegate tasks to local agents that can perform privileged operations such as file system access, desktop automation, or hardware interaction - capabilities that are typically restricted in browser environments. Security considerations for such invocations are discussed in [](#security-and-privacy).
+
 ## Default Fallback Behavior        {#fallback-behavior}
 
 If the protocol is omitted (i.e., `agent://` is used), clients:
@@ -405,8 +448,8 @@ Agents SHOULD expose a descriptor document at:
 
 This descriptor MAY follow:
 
-- The AgentCard structure (as defined by Google’s Agent2Agent protocol as of April 2025), or another equivalent format
-- Any format other than AgentCard SHOULD be expressed in JSON-LD to enable semantic discovery
+- The AgentCard structure (as defined by Google's Agent2Agent protocol as of April 2025), or another equivalent format
+- Any format other than AgentCard SHOULD be expressed in [JSON-LD11] to enable semantic discovery
 
 Agent descriptors SHOULD include:
 
@@ -430,9 +473,9 @@ Agent descriptors SHOULD include:
 
 Agents MAY expose `inputFormats` and `outputFormats` per capability using standard MIME types (e.g., `application/json`, `application/ld+json`, `application/fipa-acl`).
 
-Agent descriptors SHOULD include input/output schemas (e.g., JSON Schema) and MAY document content negotiation support via the `contentTypes` field per capability. This allows clients to understand and negotiate payload encoding, enabling interoperability across ecosystems that use JSON, JSON-LD, RDF/XML, FIPA ACL, or other formats.
+Agent descriptors SHOULD include input/output schemas (e.g., JSON Schema) and MAY document content negotiation support via the `contentTypes` field per capability. This allows clients to understand and negotiate payload encoding, enabling interoperability across ecosystems that use JSON, [JSON-LD11], RDF/XML, [FIPA-ACL], or other formats.
 
-Clients MAY use standard negotiation mechanisms such as `Content-Type` and Accept headers (in HTTP), or envelope metadata (in protocols like JSON-RPC, Matrix, etc.).
+Clients MAY use standard negotiation mechanisms such as `Content-Type` and Accept headers (in HTTP), or envelope metadata (in protocols like [JSON-RPC](#JSON-RPC), [Matrix](#Matrix), etc.).
 
 Implementations MAY advertise protocol compatility via metadata fields such as `interactionModel`, `orchestration`, or supported `envelopeSchemas` etc. These metadata fields enable clients and agent runtimes to interoperate across heterogeneous ecosystems and communication models.
 
@@ -444,7 +487,7 @@ Clients SHOULD explicitly specify the agent version either as a URI path segment
 
 While `.well-known/agents.json` MAY be used to enumerate all available agents under a domain, the individual `agent.json` files serve as the canonical source of truth.
 
-Expressing descriptors in JSON-LD enables semantic interoperability and supports alignment with common web-based data models.
+Expressing descriptors in [JSON-LD11] enables semantic interoperability and supports alignment with common web-based data models.
 
 Implementers MAY choose to embed, proxy, or map to other protocols within the `agent.json` descriptor or transport bindings, allowing for seamless orchestration and hybrid deployments.
 
@@ -464,7 +507,7 @@ Agents SHOULD include status and confidence metadata in responses where applicab
 
 ## Stateful Interactions        {# stateful-interactions}
 
-The `agent://` protocol leverages HTTP’s established mechanisms for state management. Clients and agents SHOULD use standard HTTP headers or query parameters to pass identifiers such as `sessionId` or `taskId`. Agents MAY maintain state across interactions using these identifiers. Clients and agents SHOULD agree on session semantics via capability descriptors or invocation headers.
+The `agent://` protocol leverages HTTP's established mechanisms for state management. Clients and agents SHOULD use standard HTTP headers or query parameters to pass identifiers such as `sessionId` or `taskId`. Agents MAY maintain state across interactions using these identifiers. Clients and agents SHOULD agree on session semantics via capability descriptors or invocation headers.
 
 Non-HTTP transports SHOULD include session or task identifiers within message envelopes (e.g., JSON-RPC headers, WebSocket message metadata, Matrix events). These fields SHOULD follow naming conventions similar to `sessionId`, `taskId`, etc.
 
@@ -482,7 +525,7 @@ When content negotiation fails or the requested format is not supported, agents 
 ~~~http
 
 GET /tasks/1234 HTTP/1.1
-Host: planner.acme.ai
+Host: planner.example.com
 X-Session-ID: abcde-12345
 
 ~~~
@@ -512,11 +555,11 @@ A typical user-driven invocation of an agent using the `agent://` protocol follo
      |                | Retrieves capabilities
      |                |                    |
      |                | Constructs request |
-     |                | --> agent://planner.acme.ai/generate-itinerary?city=Paris
+     |                | --> agent://plan.example.com/gen-iti?city=Rio
      |                |                    |
-     |                |                    | Agent validates input
-     |                |                    | Invokes internal logic or tools
-     |                |                    | May call sub-agents (see below)
+     |                |                    | Validate input 
+     |                |                    | Process logic/call tools
+     |                |                    | May call sub-agents
      |                |                    |
      |                | Receives response  |
      |                | <== itinerary JSON |
@@ -538,28 +581,30 @@ Agents MAY interact with each other using `agent://` URIs to delegate tasks or c
 **Example: A planning agent invoking a translation agent**:
 
 ~~~art
-
-+-----------------+         +------------------+         +-------------------+
-|  Planning Agent |  --->   |  Resolver / URI  |  --->   |  Translation Agent|
-+-----------------+         +------------------+         +-------------------+
-        |                            |                            |
-        | Receives input:            |                            |
-        | {"city": "Paris", ...}     |                            |
-        |                            |                            |
-        | Needs translated output    |                            |
-        | for international users    |                            |
-        |                            | Resolves URI:              |
-        | --> agent://translator.acme.ai/translate?text=Bonjour   |
-        |                            |                            |
-        |                            | --> Fetch agent.json       |
-        |                            | --> Determine transport    |
-        |                            |                            |
-        |                            |                            | Processes translation
-        |                            |                            | Returns JSON { "text": "Hello" }
-        | <--------------------------|<---------------------------|
-        | Merges result, returns to  |
-        | user/client or continues   |
-
++----------+       +----------+       +------------+
+|Planning  |------>|Resolver/ |------>|Translation |
+|Agent     |       |URI       |       |Agent       |
++----------+       +----------+       +------------+
+     |                  |                   |
+     | Input:           |                   |
+     | {"city":"Paris"} |                   |
+     |                  |                   |
+     | Needs translation|                   |
+     |                  |                   |
+     |                  | Resolves URI:     |
+     |--agent://translator.example/translate?text=Bonjour-->|
+     |                  |                   |
+     |                  | --> Get           |
+     |                  |     agent.json    |
+     |                  | --> Determine     |
+     |                  |     transport     |
+     |                  |                   |
+     |                  |                   | Process translation
+     |                  |                   | Return translated JSON
+     |<-----------------|<------------------|
+     | Merge & return   |                   |
+     | to user/client   |                   |
+     | or continues     |                   |
 ~~~
 {: #fig-agent-interaction title="Agent-to-Agent Interaction Flow"}
 
@@ -570,7 +615,7 @@ Agents MAY interact with each other using `agent://` URIs to delegate tasks or c
 
 # Error Handling        {# error-handling}
 
-The `agent://` protocol MAY leverage HTTP standard status codes for signaling errors. Implementations MAY return errors using standard HTTP status codes along with structured JSON error responses conforming to RFC7807 ("Problem Details for HTTP APIs").
+The `agent://` protocol MAY leverage HTTP standard status codes for signaling errors. Implementations MAY return errors using standard HTTP status codes along with structured JSON error responses conforming to [RFC9457](#RFC9457) ("Problem Details for HTTP APIs").
 
 **Recommended HTTP status codes include (but are not limited to)
 
@@ -594,11 +639,11 @@ HTTP/1.1 404 Not Found
 Content-Type: application/problem+json
 
 {
-  "type": "https://acme.ai/errors/capability-not-found",
+  "type": "https://example.com/errors/capability-not-found",
   "title": "Capability Not Found",
   "status": 404,
-  "detail": "The requested capability 'generate-itinerary' was not found.",
-  "instance": "/planner/generate-itinerary"
+  "detail": "The requested capability 'gen-iti' was not found.",
+  "instance": "/planner/gen-iti"
 }
 {: #fig-error-response title="Example HTTP Error Response"}
 
@@ -606,13 +651,13 @@ Content-Type: application/problem+json
 
 This format is not prescriptive but aims to encourage consistency. Implementations MAY adapt the error schema based on their transport layer (e.g., JSON-RPC, HTTP status + body, WebSocket messages).
 
-For non-HTTP transports (e.g., WebSockets, Matrix), agents SHOULD still return structured errors using similar JSON structures (`type`, `title`, `detail`, `status`), encapsulated within the transport’s native message envelope (e.g., JSON-RPC `error` objects, Matrix event content fields). Implementers SHOULD document chosen structures clearly in their capability descriptors.
+For non-HTTP transports (e.g., WebSockets, Matrix), agents SHOULD still return structured errors using similar JSON structures (`type`, `title`, `detail`, `status`), encapsulated within the transport's native message envelope (e.g., JSON-RPC `error` objects, Matrix event content fields). Implementers SHOULD document chosen structures clearly in their capability descriptors.
 
 Where applicable, implementations SHOULD align with existing conventions such as:
 
 - JSON-RPC `error` objects (`code`, `message`, `data`)
-- OpenAPI/REST error payloads
-- GraphQL `errors` array format
+- [OpenAPI](#OpenAPI) or REST error payloads
+- [GraphQL](#GraphQL) `errors` array format
 
 Recommended error categories:
 
@@ -630,16 +675,16 @@ The `agent://` protocol explicitly relies on widely-adopted HTTP authentication 
 
 Security extensions MAY include:
 
-- OAuth2 Bearer Tokens (RFC6750)
-- JSON Web Tokens (JWT) (RFC7519)
-- Mutual TLS (mTLS) authentication (RFC8705)
+- [OAuth2](#RFC6750) Bearer Tokens
+- JSON Web Tokens ([JWT](#RFC7519))
+- Mutual TLS ([mTLS](#RFC8705)) authentication
 - API Keys via HTTP headers (e.g., `X-API-Key`)
 - Capability-based access control
 - Delegation chains
 
 For non-HTTP transports (e.g., WebSocket, Matrix), agents SHOULD leverage native authentication mechanisms, such as WebSocket protocol-level authentication tokens or Matrix homeserver authentication flows. Agents MUST clearly document supported security mechanisms per transport binding.
 
-When using Decentralized Identifiers (DIDs) as authority, agent descriptors MAY be cryptographically signed. Clients SHOULD verify such signatures against the corresponding DID Document.
+When using [Decentralized Identifiers](#DID-CORE) as authority, agent descriptors MAY be cryptographically signed. Clients SHOULD verify such signatures against the corresponding DID Document.
 
 For agent-to-agent delegation, agents SHOULD include delegation metadata (e.g., `X-Delegation-Chain`) that identifies prior actors. These chains SHOULD be signed or verifiable via claims (e.g., using JWT, Verifiable Credentials, or DID-linked proofs).
 
@@ -688,9 +733,9 @@ This document requests the registration of the `agent` URI scheme in the IANA "U
   The author or a relevant standards body such as the IETF if adopted.
 
 - **References**:  
-  This document (Internet-Draft): *agent:// Protocol — A URI-Based Framework for Interoperable Agents*  
-  [RFC3986] — Uniform Resource Identifier (URI): Generic Syntax  
-  [RFC7595] — Guidelines and Registration Procedures for URI Schemes
+  This document (Internet-Draft): *agent:// Protocol -- A URI-Based Framework for Interoperable Agents*  
+  [RFC3986] - Uniform Resource Identifier (URI): Generic Syntax  
+  [RFC7595] - Guidelines and Registration Procedures for URI Schemes
 
 - **URI Syntax**:  
   The general form of an `agent` URI is:
@@ -722,13 +767,13 @@ Following is an example of `agent.json`.
 
 {
   "@context": "https://example.org/agent-context.jsonld",
-  "name": "planner.acme.ai",
-  "description": "Planning agent helps in researching, generating and managing itineraries",
-  "url": "agent://planner.acme.ai/",
+  "name": "planner.example.com",
+  "description": "Agent helps in researching & planning itineraries",
+  "url": "agent://planner.example.com/",
   "provider": {
-    "organization": "ACME AI"
+    "organization": "Example AI Org"
   },
-  "documentationUrl": "https://planner.acme.ai/docs",
+  "documentationUrl": "https://planner.example.com/docs",
   "interactionModel": "agent2agent",
   "orchestration": "delegation",
   "envelopeSchemas": ["fipa-acl"],
@@ -740,7 +785,7 @@ Following is an example of `agent.json`.
   },
   "capabilities": [
     {
-      "name": "generate-itinerary",
+      "name": "gen-iti",
       "version": "2.1.5",
       "description": "Creates a travel itinerary for a given city.",
       "input": { "city": "string" },
@@ -776,6 +821,8 @@ A JSON-LD context is added to support semantic querying and graph-based processi
 - Facilitating human-in-the-loop workflows with agent transparency
 - Building knowledge-based agents that invoke retrieval agents
 - Real-time collaboration among specialized agents
+- Browser-to-local-agent delegation for privileged operations and desktop automation
+- Consistent addressing for agents across network boundaries and security contexts
 
 # Appendix C. Reference Implementation        {#reference-implementation}
 

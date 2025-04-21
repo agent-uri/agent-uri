@@ -12,9 +12,9 @@
 ]>
 
 
-<rfc ipr="trust200902" docName="draft-narvaneni-agent-uri-00" category="std" consensus="true" tocInclude="true" sortRefs="true" symRefs="true">
+<rfc ipr="trust200902" docName="draft-narvaneni-agent-uri-00" category="exp" submissionType="independent" tocInclude="true" sortRefs="true" symRefs="true">
   <front>
-    <title abbrev="agent-uri">The agent:// Protocol — A URI-Based Framework for Interoperable Agents</title>
+    <title abbrev="agent-uri">The agent:// Protocol -- A URI-Based Framework for Interoperable Agents</title>
 
     <author initials="Y." surname="Narvaneni" fullname="Yaswanth Narvaneni">
       <organization>Independent Researcher</organization>
@@ -35,9 +35,9 @@
     <abstract>
 
 
-<?line 148?>
+<?line 171?>
 
-<t>This document defines the <spanx style="verb">agent://</spanx> protocol, a URI-based framework for addressing, invoking, and interoperating with autonomous and semi-autonomous software agents. It introduces a layered architecture that supports minimal implementations (addressing and transport) and extensible features (capability discovery, contracts, orchestration). The protocol aims to foster interoperability among agents across ecosystems, platforms, and modalities, enabling composable and collaborative intelligent systems.</t>
+<t>This document defines the <spanx style="verb">agent://</spanx> protocol, a URI template-based framework as described in RFC 6570 for addressing, invoking, and interoperating with autonomous and semi-autonomous software agents. It introduces a layered architecture that supports minimal implementations (addressing and transport) and extensible features (capability discovery, contracts, orchestration). The protocol aims to foster interoperability among agents across ecosystems, platforms, and modalities, enabling composable and collaborative intelligent systems.</t>
 
 
 
@@ -50,28 +50,39 @@
   <middle>
 
 
-<?line 152?>
+<?line 175?>
 
 <section anchor="introduction"><name>Introduction</name>
 
-<t>The rise of intelligent software agents necessitates a standardized way to identify, invoke, and coordinate them across diverse platforms. While protocols like HTTP provide a transport mechanism for static APIs, agents differ significantly in behavior, output variability, and interaction patterns. The <spanx style="verb">agent://</spanx> proposes a URI scheme and resolution model designed to complement existing agent communication protocol like Agent2Agent(A2A), FIPA ACL, Contract Net Protocol (CNP), LangChain etc. It serves as an addressing and discovery layer that works alongside these communication protocol.</t>
+<t>The rise of intelligent software agents necessitates a standardized way to identify, invoke, and coordinate them across diverse platforms. While protocols like <xref target="RFC9110">HTTP</xref> provide a transport mechanism for static APIs, agents differ significantly in behavior, output variability, and interaction patterns. The <spanx style="verb">agent://</spanx> proposes a URI scheme and resolution model designed to complement existing agent communication protocols and libraries like <xref target="Agent2Agent"></xref>, <xref target="FIPA-ACL"></xref>, <xref target="FIPA-CNP">Contract Net Protocol</xref>, <xref target="LangChain"></xref>, <xref target="MCP">Model Context Protocol</xref>, <xref target="AutoGen"></xref>, <xref target="SemanticKernel"></xref> etc. It serves as an addressing and discovery layer that works alongside these communication protocol.</t>
+
+<t>The <spanx style="verb">agent://</spanx> protocol supports diverse agent deployment models through a unified addressing scheme:</t>
+
+<t><list style="symbols">
+  <t>Cloud-based agents accessible via standard web protocols</t>
+  <t>Local agents running on the user's device through the <spanx style="verb">agent+local://</spanx> scheme</t>
+  <t>On-premises agents within organizational boundaries</t>
+  <t>Decentralized agents operating across distributed networks</t>
+</list></t>
+
+<t>This flexibility addresses a critical gap in current agent ecosystems, enabling applications (including browsers) to discover and invoke agents consistently regardless of where they're hosted. By providing standardized URI<xref target="RFC6570"></xref> patterns for both remote and local agents, the protocol simplifies previously complex integration scenarios like browser-to-local-agent delegation for privileged operations.</t>
 
 <figure title="Agent Protocol Stack Architecture" anchor="fig-protocol-stack"><artwork><![CDATA[
 +------------------+
 | Agent Applications|
 +------------------+
-        ↓  ↑
+       <-> 
 +------------------+
-|   agent:// URI   | ← Addressing, Resolution, Discovery
+|   agent:// URI   | <- Addressing, Resolution, Discovery
 +------------------+
-        ↓  ↑
-+------------------+     +------------------+
-|  Agent2Agent     |     |    CNP,. etc     | ← Communication Protocols
-+------------------+     +------------------+
-        ↓  ↑                    ↓  ↑
-+------------------+     +------------------+
-| Transport Layer  |     | Transport Layer  | ← HTTP, WebSockets, etc.
-+------------------+     +------------------+
+       <-> 
++------------------+  +------------------+
+|  Agent2Agent     |  |    CNP,. etc     | <- Communication Protocols
++------------------+  +------------------+
+        <->                   <-> 
++------------------+  +------------------+
+| Transport Layer  |  | Transport Layer  | <- HTTP, WebSockets, etc.
++------------------+  +------------------+
 ]]></artwork></figure>
 
 <t>The <spanx style="verb">agent://</spanx> protocol supports:</t>
@@ -92,13 +103,15 @@
 
 <t><list style="symbols">
   <t><strong>Agent</strong>: An autonomous or semi-autonomous software entity that can receive instructions and perform actions.</t>
-  <t><strong>Agent Descriptor (agent.json)</strong>: A machine-readable document that describes an agent’s identity, capabilities, and behavior.</t>
+  <t><strong>Agent Descriptor (agent.json)</strong>: A machine-readable document that describes an agent's identity, capabilities, and behavior.</t>
   <t><strong>Capability</strong>: A self-contained function or behavior an agent offers.</t>
   <t><strong>Resolver</strong>: A service or mechanism that maps a URI to a network endpoint or metadata.</t>
   <t><strong>Invocation</strong>: The act of calling a capability on an agent with input parameters.</t>
 </list></t>
 
-<t>The key words “MUST”, “MUST NOT”, “REQUIRED”, “SHALL”, “SHALL NOT”, “SHOULD”, “SHOULD NOT”, “RECOMMENDED”, “NOT RECOMMENDED”, “MAY”, and “OPTIONAL” in this document are to be interpreted as described in BCP 14 RFC2119 and RFC8174 when, and only when, they appear in all capitals, as shown here.</t>
+<t>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+"SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in 
+RFC 2119, BCP 14 <xref target="RFC2119"/>, <xref target="RFC8174"/> when, and only when, they appear in all capitals, as shown here.</t>
 
 </section>
 <section anchor="protocol-scope"><name>Protocol Scope and Layering</name>
@@ -141,11 +154,11 @@ agent+<protocol>://[authority]/[path]
 <t>Examples:</t>
 
 <t><list style="symbols">
-  <t><spanx style="verb">agent://acme.ai/planning/generate-itinerary?city=Paris</spanx></t>
-  <t><spanx style="verb">agent://planner.acme.ai/claude?text=Hello</spanx></t>
-  <t><spanx style="verb">agent+https://acme.com/assistants/chatgpt?query=hello</spanx></t>
-  <t><spanx style="verb">agent+local://claude</spanx></t>
-  <t><spanx style="verb">agent://did:web:acme.com:agent:researcher/get-article?doi=...</spanx></t>
+  <t><spanx style="verb">agent://example.com/planning/gen-iti?city=Paris</spanx></t>
+  <t><spanx style="verb">agent://planner.example.com/claude?text=Hello</spanx></t>
+  <t><spanx style="verb">agent+https://example.com/assistants/chatgpt?query=hello</spanx></t>
+  <t><spanx style="verb">agent+local://examplelocalagent</spanx></t>
+  <t><spanx style="verb">agent://did:web:example.com:agent:researcher/get-article?doi=...</spanx></t>
 </list></t>
 
 <section anchor="uri-components"><name>Components</name>
@@ -163,20 +176,27 @@ agent+<protocol>://[authority]/[path]
 <section anchor="uri-abnf"><name>ABNF for <spanx style="verb">agent://</spanx> URI</name>
 
 <figure title="ABNF Grammar for agent:// URI Scheme" anchor="fig-abnf-grammar"><sourcecode type="abnf"><![CDATA[
-agent-uri      = "agent" [ "+" protocol ] "://" authority [ "/" path ] [ "?" query ] [ "#" fragment ]
+agent-uri      = "agent" ["+" protocol] "://" authority ["/" path]
+                 [ "?" query ] [ "#" fragment ]
 
 protocol       = 1*( ALPHA / DIGIT / "-" )
-authority      = [ userinfo "@" ] host [ ":" port ] ; <authority, defined in RFC3986, Section 3.2>
-path           = path-abempty    ; begins with "/" or is empty. Defined in RFC3986, Section 3.3
-query          = *( pchar / "/" / "?" ) ; <query, defined in RFC3986, Section 3.4>
-fragment       = *( pchar / "/" / "?" ) ; <fragment, defined in RFC3986, Section 3.5>
+authority      = [ userinfo "@" ] host [ ":" port ]
+                 ; <authority, defined in RFC3986, Section 3.2>
+path           = path-abempty    
+                 ; begins with "/" or is empty.
+                 ; Defined in RFC3986, Section 3.3
+query          = *( pchar / "/" / "?" )
+                 ; <query, defined in RFC3986, Section 3.4>
+fragment       = *( pchar / "/" / "?" )
+                 ; <fragment, defined in RFC3986, Section 3.5>
 
 pchar          = unreserved / pct-encoded / sub-delims / ":" / "@"
 unreserved     = ALPHA / DIGIT / "-" / "." / "_" / "~"
 pct-encoded    = "%" HEXDIG HEXDIG
-sub-delims     = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
+sub-delims     = "!" / "$" / "&" / "'" / "(" / ")" /
+                 "*" / "+" / "," / ";" / "="
 
-; Character sets like pchar, unreserved, etc. are also defined in RFC3986
+; Character sets like pchar, unreserved, etc. are defined in RFC3986
 
 ]]></sourcecode></figure>
 
@@ -194,15 +214,15 @@ sub-delims     = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
 <t>If a single agent is deployed at the top level then it should be under <spanx style="verb">/.well-known</spanx> to be compatible with Agent2Agent protocol.</t>
 
 <t><list style="symbols">
-  <t><spanx style="verb">/.well-known/agent.json</spanx> — For single-agent deployments (compatible with Agent2Agent)</t>
-  <t><spanx style="verb">/.well-known/agents.json</spanx> — For multi-agent domains (maps agent names → descriptors)</t>
+  <t><spanx style="verb">/.well-known/agent.json</spanx> -- For single-agent deployments (compatible with Agent2Agent)</t>
+  <t><spanx style="verb">/.well-known/agents.json</spanx> -- For multi-agent domains (maps agent names -&gt; descriptors)</t>
 </list></t>
 
 <t>This descriptor is OPTIONAL but RECOMMENDED. It enables capability discovery, transport resolution, and compatibility with ecosystem tools.</t>
 
-<t>When present, the descriptor MAY use the AgentCard (as defined by Agent2Agent protocol by Google as of April 2025) schema as one possible format, or any equivalent JSON-LD–based structure that expresses the agent’s identity, capabilities, and behavioral metadata.</t>
+<t>When present, the descriptor MAY use the <xref target="AgentCard"></xref> (as defined by Agent2Agent protocol by Google as of April 2025) schema as one possible format, or any equivalent <xref target="JSON-LD11"></xref> based structure that expresses the agent's identity, capabilities, and behavioral metadata.</t>
 
-<t>If the agent is deployed at a subdomain (e.g., <spanx style="verb">planner.acme.ai</spanx>), the agent descriptor SHOULD be published at <spanx style="verb">/.well-known/agent.json</spanx> on that domain.</t>
+<t>If the agent is deployed at a subdomain (e.g., <spanx style="verb">planner.example.org</spanx>), the agent descriptor SHOULD be published at <spanx style="verb">/.well-known/agent.json</spanx> on that domain.</t>
 
 <section anchor="ecosystem-registries"><name>Ecosystem Registries</name>
 
@@ -239,8 +259,8 @@ https://<domain>/.well-known/agents.json
 <figure><sourcecode type="json"><![CDATA[
 {
   "agents": {
-    "planner": "https://planner.acme.ai/.well-known/agent.json",
-    "translator": "https://acme.ai/translator/agent.json"
+    "planner": "https://planner.example.com/.well-known/agent.json",
+    "translator": "https://example.com/translator/agent.json"
   }
 }
 
@@ -296,6 +316,8 @@ agent+local://<agent-name>
 ]]></sourcecode></figure>
 
 <t>This allows agent runtimes to register their presence using a local resolver (e.g., via IPC, sockets, or service registry). The transport mechanism is implementation-specific.</t>
+
+<t>The <spanx style="verb">agent+local://</spanx> scheme specifically addresses the current lack of standardized methods for browser-based applications to invoke locally installed agents. This enables web applications to delegate tasks to local agents that can perform privileged operations such as file system access, desktop automation, or hardware interaction - capabilities that are typically restricted in browser environments. Security considerations for such invocations are discussed in <xref target="security-and-privacy"></xref>.</t>
 
 </section>
 <section anchor="fallback-behavior"><name>Default Fallback Behavior</name>
@@ -353,8 +375,8 @@ agent+local://<agent-name>
 <t>This descriptor MAY follow:</t>
 
 <t><list style="symbols">
-  <t>The AgentCard structure (as defined by Google’s Agent2Agent protocol as of April 2025), or another equivalent format</t>
-  <t>Any format other than AgentCard SHOULD be expressed in JSON-LD to enable semantic discovery</t>
+  <t>The AgentCard structure (as defined by Google's Agent2Agent protocol as of April 2025), or another equivalent format</t>
+  <t>Any format other than AgentCard SHOULD be expressed in <xref target="JSON-LD11"></xref> to enable semantic discovery</t>
 </list></t>
 
 <t>Agent descriptors SHOULD include:</t>
@@ -385,9 +407,9 @@ agent+local://<agent-name>
 
 <t>Agents MAY expose <spanx style="verb">inputFormats</spanx> and <spanx style="verb">outputFormats</spanx> per capability using standard MIME types (e.g., <spanx style="verb">application/json</spanx>, <spanx style="verb">application/ld+json</spanx>, <spanx style="verb">application/fipa-acl</spanx>).</t>
 
-<t>Agent descriptors SHOULD include input/output schemas (e.g., JSON Schema) and MAY document content negotiation support via the <spanx style="verb">contentTypes</spanx> field per capability. This allows clients to understand and negotiate payload encoding, enabling interoperability across ecosystems that use JSON, JSON-LD, RDF/XML, FIPA ACL, or other formats.</t>
+<t>Agent descriptors SHOULD include input/output schemas (e.g., JSON Schema) and MAY document content negotiation support via the <spanx style="verb">contentTypes</spanx> field per capability. This allows clients to understand and negotiate payload encoding, enabling interoperability across ecosystems that use JSON, <xref target="JSON-LD11"></xref>, RDF/XML, <xref target="FIPA-ACL"></xref>, or other formats.</t>
 
-<t>Clients MAY use standard negotiation mechanisms such as <spanx style="verb">Content-Type</spanx> and Accept headers (in HTTP), or envelope metadata (in protocols like JSON-RPC, Matrix, etc.).</t>
+<t>Clients MAY use standard negotiation mechanisms such as <spanx style="verb">Content-Type</spanx> and Accept headers (in HTTP), or envelope metadata (in protocols like <xref target="JSON-RPC"></xref>, <xref target="Matrix"></xref>, etc.).</t>
 
 <t>Implementations MAY advertise protocol compatility via metadata fields such as <spanx style="verb">interactionModel</spanx>, <spanx style="verb">orchestration</spanx>, or supported <spanx style="verb">envelopeSchemas</spanx> etc. These metadata fields enable clients and agent runtimes to interoperate across heterogeneous ecosystems and communication models.</t>
 
@@ -399,7 +421,7 @@ agent+local://<agent-name>
 
 <t>While <spanx style="verb">.well-known/agents.json</spanx> MAY be used to enumerate all available agents under a domain, the individual <spanx style="verb">agent.json</spanx> files serve as the canonical source of truth.</t>
 
-<t>Expressing descriptors in JSON-LD enables semantic interoperability and supports alignment with common web-based data models.</t>
+<t>Expressing descriptors in <xref target="JSON-LD11"></xref> enables semantic interoperability and supports alignment with common web-based data models.</t>
 
 <t>Implementers MAY choose to embed, proxy, or map to other protocols within the <spanx style="verb">agent.json</spanx> descriptor or transport bindings, allowing for seamless orchestration and hybrid deployments.</t>
 
@@ -422,7 +444,7 @@ agent+local://<agent-name>
 
 <section anchor="stateful-interactions-stateful-interactions"><name>Stateful Interactions        {# stateful-interactions}</name>
 
-<t>The <spanx style="verb">agent://</spanx> protocol leverages HTTP’s established mechanisms for state management. Clients and agents SHOULD use standard HTTP headers or query parameters to pass identifiers such as <spanx style="verb">sessionId</spanx> or <spanx style="verb">taskId</spanx>. Agents MAY maintain state across interactions using these identifiers. Clients and agents SHOULD agree on session semantics via capability descriptors or invocation headers.</t>
+<t>The <spanx style="verb">agent://</spanx> protocol leverages HTTP's established mechanisms for state management. Clients and agents SHOULD use standard HTTP headers or query parameters to pass identifiers such as <spanx style="verb">sessionId</spanx> or <spanx style="verb">taskId</spanx>. Agents MAY maintain state across interactions using these identifiers. Clients and agents SHOULD agree on session semantics via capability descriptors or invocation headers.</t>
 
 <t>Non-HTTP transports SHOULD include session or task identifiers within message envelopes (e.g., JSON-RPC headers, WebSocket message metadata, Matrix events). These fields SHOULD follow naming conventions similar to <spanx style="verb">sessionId</spanx>, <spanx style="verb">taskId</spanx>, etc.</t>
 
@@ -441,7 +463,7 @@ agent+local://<agent-name>
 
 <figure><sourcecode type="http"><![CDATA[
 GET /tasks/1234 HTTP/1.1
-Host: planner.acme.ai
+Host: planner.example.com
 X-Session-ID: abcde-12345
 
 ]]></sourcecode></figure>
@@ -473,11 +495,11 @@ X-Session-ID: abcde-12345
      |                | Retrieves capabilities
      |                |                    |
      |                | Constructs request |
-     |                | --> agent://planner.acme.ai/generate-itinerary?city=Paris
+     |                | --> agent://plan.example.com/gen-iti?city=Rio
      |                |                    |
-     |                |                    | Agent validates input
-     |                |                    | Invokes internal logic or tools
-     |                |                    | May call sub-agents (see below)
+     |                |                    | Validate input 
+     |                |                    | Process logic/call tools
+     |                |                    | May call sub-agents
      |                |                    |
      |                | Receives response  |
      |                | <== itinerary JSON |
@@ -501,27 +523,30 @@ X-Session-ID: abcde-12345
 <t><strong>Example: A planning agent invoking a translation agent</strong>:</t>
 
 <figure title="Agent-to-Agent Interaction Flow" anchor="fig-agent-interaction"><sourcecode type="art"><![CDATA[
-+-----------------+         +------------------+         +-------------------+
-|  Planning Agent |  --->   |  Resolver / URI  |  --->   |  Translation Agent|
-+-----------------+         +------------------+         +-------------------+
-        |                            |                            |
-        | Receives input:            |                            |
-        | {"city": "Paris", ...}     |                            |
-        |                            |                            |
-        | Needs translated output    |                            |
-        | for international users    |                            |
-        |                            | Resolves URI:              |
-        | --> agent://translator.acme.ai/translate?text=Bonjour   |
-        |                            |                            |
-        |                            | --> Fetch agent.json       |
-        |                            | --> Determine transport    |
-        |                            |                            |
-        |                            |                            | Processes translation
-        |                            |                            | Returns JSON { "text": "Hello" }
-        | <--------------------------|<---------------------------|
-        | Merges result, returns to  |
-        | user/client or continues   |
-
++----------+       +----------+       +------------+
+|Planning  |------>|Resolver/ |------>|Translation |
+|Agent     |       |URI       |       |Agent       |
++----------+       +----------+       +------------+
+     |                  |                   |
+     | Input:           |                   |
+     | {"city":"Paris"} |                   |
+     |                  |                   |
+     | Needs translation|                   |
+     |                  |                   |
+     |                  | Resolves URI:     |
+     |--agent://translator.example/translate?text=Bonjour-->|
+     |                  |                   |
+     |                  | --> Get           |
+     |                  |     agent.json    |
+     |                  | --> Determine     |
+     |                  |     transport     |
+     |                  |                   |
+     |                  |                   | Process translation
+     |                  |                   | Return translated JSON
+     |<-----------------|<------------------|
+     | Merge & return   |                   |
+     | to user/client   |                   |
+     | or continues     |                   |
 ]]></sourcecode></figure>
 
 <t><strong>Chaining Behavior</strong>:</t>
@@ -536,7 +561,7 @@ X-Session-ID: abcde-12345
 </section>
 <section anchor="error-handling-error-handling"><name>Error Handling        {# error-handling}</name>
 
-<t>The <spanx style="verb">agent://</spanx> protocol MAY leverage HTTP standard status codes for signaling errors. Implementations MAY return errors using standard HTTP status codes along with structured JSON error responses conforming to RFC7807 ("Problem Details for HTTP APIs").</t>
+<t>The <spanx style="verb">agent://</spanx> protocol MAY leverage HTTP standard status codes for signaling errors. Implementations MAY return errors using standard HTTP status codes along with structured JSON error responses conforming to <xref target="RFC9457"></xref> ("Problem Details for HTTP APIs").</t>
 
 <t>**Recommended HTTP status codes include (but are not limited to)</t>
 
@@ -568,11 +593,11 @@ HTTP/1.1 404 Not Found
 Content-Type: application/problem+json
 
 {
-  "type": "https://acme.ai/errors/capability-not-found",
+  "type": "https://example.com/errors/capability-not-found",
   "title": "Capability Not Found",
   "status": 404,
-  "detail": "The requested capability 'generate-itinerary' was not found.",
-  "instance": "/planner/generate-itinerary"
+  "detail": "The requested capability 'gen-iti' was not found.",
+  "instance": "/planner/gen-iti"
 }
 {: #fig-error-response title="Example HTTP Error Response"}
 
@@ -580,14 +605,14 @@ Content-Type: application/problem+json
 
 <t>This format is not prescriptive but aims to encourage consistency. Implementations MAY adapt the error schema based on their transport layer (e.g., JSON-RPC, HTTP status + body, WebSocket messages).</t>
 
-<t>For non-HTTP transports (e.g., WebSockets, Matrix), agents SHOULD still return structured errors using similar JSON structures (<spanx style="verb">type</spanx>, <spanx style="verb">title</spanx>, <spanx style="verb">detail</spanx>, <spanx style="verb">status</spanx>), encapsulated within the transport’s native message envelope (e.g., JSON-RPC <spanx style="verb">error</spanx> objects, Matrix event content fields). Implementers SHOULD document chosen structures clearly in their capability descriptors.</t>
+<t>For non-HTTP transports (e.g., WebSockets, Matrix), agents SHOULD still return structured errors using similar JSON structures (<spanx style="verb">type</spanx>, <spanx style="verb">title</spanx>, <spanx style="verb">detail</spanx>, <spanx style="verb">status</spanx>), encapsulated within the transport's native message envelope (e.g., JSON-RPC <spanx style="verb">error</spanx> objects, Matrix event content fields). Implementers SHOULD document chosen structures clearly in their capability descriptors.</t>
 
 <t>Where applicable, implementations SHOULD align with existing conventions such as:</t>
 
 <t><list style="symbols">
   <t>JSON-RPC <spanx style="verb">error</spanx> objects (<spanx style="verb">code</spanx>, <spanx style="verb">message</spanx>, <spanx style="verb">data</spanx>)</t>
-  <t>OpenAPI/REST error payloads</t>
-  <t>GraphQL <spanx style="verb">errors</spanx> array format</t>
+  <t><xref target="OpenAPI"></xref> or REST error payloads</t>
+  <t><xref target="GraphQL"></xref> <spanx style="verb">errors</spanx> array format</t>
 </list></t>
 
 <t>Recommended error categories:</t>
@@ -610,9 +635,9 @@ Content-Type: application/problem+json
 <t>Security extensions MAY include:</t>
 
 <t><list style="symbols">
-  <t>OAuth2 Bearer Tokens (RFC6750)</t>
-  <t>JSON Web Tokens (JWT) (RFC7519)</t>
-  <t>Mutual TLS (mTLS) authentication (RFC8705)</t>
+  <t><xref target="RFC6750">OAuth2</xref> Bearer Tokens</t>
+  <t>JSON Web Tokens (<xref target="RFC7519">JWT</xref>)</t>
+  <t>Mutual TLS (<xref target="RFC8705">mTLS</xref>) authentication</t>
   <t>API Keys via HTTP headers (e.g., <spanx style="verb">X-API-Key</spanx>)</t>
   <t>Capability-based access control</t>
   <t>Delegation chains</t>
@@ -620,7 +645,7 @@ Content-Type: application/problem+json
 
 <t>For non-HTTP transports (e.g., WebSocket, Matrix), agents SHOULD leverage native authentication mechanisms, such as WebSocket protocol-level authentication tokens or Matrix homeserver authentication flows. Agents MUST clearly document supported security mechanisms per transport binding.</t>
 
-<t>When using Decentralized Identifiers (DIDs) as authority, agent descriptors MAY be cryptographically signed. Clients SHOULD verify such signatures against the corresponding DID Document.</t>
+<t>When using <xref target="DID-CORE">Decentralized Identifiers</xref> as authority, agent descriptors MAY be cryptographically signed. Clients SHOULD verify such signatures against the corresponding DID Document.</t>
 
 <t>For agent-to-agent delegation, agents SHOULD include delegation metadata (e.g., <spanx style="verb">X-Delegation-Chain</spanx>) that identifies prior actors. These chains SHOULD be signed or verifiable via claims (e.g., using JWT, Verifiable Credentials, or DID-linked proofs).</t>
 
@@ -672,9 +697,9 @@ Yaswanth Narvaneni<br />
   <t><strong>Change Controller</strong>:<br />
 The author or a relevant standards body such as the IETF if adopted.</t>
   <t><strong>References</strong>:<br />
-This document (Internet-Draft): <em>agent:// Protocol — A URI-Based Framework for Interoperable Agents</em><br />
-<xref target="RFC3986"></xref> — Uniform Resource Identifier (URI): Generic Syntax<br />
-<xref target="RFC7595"></xref> — Guidelines and Registration Procedures for URI Schemes</t>
+This document (Internet-Draft): <em>agent:// Protocol -- A URI-Based Framework for Interoperable Agents</em><br />
+<xref target="RFC3986"></xref> - Uniform Resource Identifier (URI): Generic Syntax<br />
+<xref target="RFC7595"></xref> - Guidelines and Registration Procedures for URI Schemes</t>
   <t><strong>URI Syntax</strong>:<br />
 The general form of an <spanx style="verb">agent</spanx> URI is:</t>
 </list></t>
@@ -707,13 +732,13 @@ The <spanx style="verb">agent</spanx> scheme does not introduce new transport-la
 <figure title="Example Agent Descriptor in JSON-LD" anchor="fig-agent-descriptor"><sourcecode type="json-ld"><![CDATA[
 {
   "@context": "https://example.org/agent-context.jsonld",
-  "name": "planner.acme.ai",
-  "description": "Planning agent helps in researching, generating and managing itineraries",
-  "url": "agent://planner.acme.ai/",
+  "name": "planner.example.com",
+  "description": "Agent helps in researching & planning itineraries",
+  "url": "agent://planner.example.com/",
   "provider": {
-    "organization": "ACME AI"
+    "organization": "Example AI Org"
   },
-  "documentationUrl": "https://planner.acme.ai/docs",
+  "documentationUrl": "https://planner.example.com/docs",
   "interactionModel": "agent2agent",
   "orchestration": "delegation",
   "envelopeSchemas": ["fipa-acl"],
@@ -725,7 +750,7 @@ The <spanx style="verb">agent</spanx> scheme does not introduce new transport-la
   },
   "capabilities": [
     {
-      "name": "generate-itinerary",
+      "name": "gen-iti",
       "version": "2.1.5",
       "description": "Creates a travel itinerary for a given city.",
       "input": { "city": "string" },
@@ -762,6 +787,8 @@ The <spanx style="verb">agent</spanx> scheme does not introduce new transport-la
   <t>Facilitating human-in-the-loop workflows with agent transparency</t>
   <t>Building knowledge-based agents that invoke retrieval agents</t>
   <t>Real-time collaboration among specialized agents</t>
+  <t>Browser-to-local-agent delegation for privileged operations and desktop automation</t>
+  <t>Consistent addressing for agents across network boundaries and security contexts</t>
 </list></t>
 
 </section>
@@ -803,20 +830,6 @@ The <spanx style="verb">agent</spanx> scheme does not introduce new transport-la
 
 
 
-<reference anchor="RFC2119">
-  <front>
-    <title>Key words for use in RFCs to Indicate Requirement Levels</title>
-    <author fullname="S. Bradner" initials="S." surname="Bradner"/>
-    <date month="March" year="1997"/>
-    <abstract>
-      <t>In many standards track documents several words are used to signify the requirements in the specification. These words are often capitalized. This document defines these words as they should be interpreted in IETF documents. This document specifies an Internet Best Current Practices for the Internet Community, and requests discussion and suggestions for improvements.</t>
-    </abstract>
-  </front>
-  <seriesInfo name="BCP" value="14"/>
-  <seriesInfo name="RFC" value="2119"/>
-  <seriesInfo name="DOI" value="10.17487/RFC2119"/>
-</reference>
-
 <reference anchor="RFC3986">
   <front>
     <title>Uniform Resource Identifier (URI): Generic Syntax</title>
@@ -831,6 +844,20 @@ The <spanx style="verb">agent</spanx> scheme does not introduce new transport-la
   <seriesInfo name="STD" value="66"/>
   <seriesInfo name="RFC" value="3986"/>
   <seriesInfo name="DOI" value="10.17487/RFC3986"/>
+</reference>
+
+<reference anchor="RFC2119">
+  <front>
+    <title>Key words for use in RFCs to Indicate Requirement Levels</title>
+    <author fullname="S. Bradner" initials="S." surname="Bradner"/>
+    <date month="March" year="1997"/>
+    <abstract>
+      <t>In many standards track documents several words are used to signify the requirements in the specification. These words are often capitalized. This document defines these words as they should be interpreted in IETF documents. This document specifies an Internet Best Current Practices for the Internet Community, and requests discussion and suggestions for improvements.</t>
+    </abstract>
+  </front>
+  <seriesInfo name="BCP" value="14"/>
+  <seriesInfo name="RFC" value="2119"/>
+  <seriesInfo name="DOI" value="10.17487/RFC2119"/>
 </reference>
 
 <reference anchor="RFC6570">
@@ -850,18 +877,21 @@ The <spanx style="verb">agent</spanx> scheme does not introduce new transport-la
   <seriesInfo name="DOI" value="10.17487/RFC6570"/>
 </reference>
 
-<reference anchor="RFC7231">
+<reference anchor="RFC9110">
   <front>
-    <title>Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content</title>
+    <title>HTTP Semantics</title>
     <author fullname="R. Fielding" initials="R." role="editor" surname="Fielding"/>
+    <author fullname="M. Nottingham" initials="M." role="editor" surname="Nottingham"/>
     <author fullname="J. Reschke" initials="J." role="editor" surname="Reschke"/>
-    <date month="June" year="2014"/>
+    <date month="June" year="2022"/>
     <abstract>
-      <t>The Hypertext Transfer Protocol (HTTP) is a stateless \%application- level protocol for distributed, collaborative, hypertext information systems. This document defines the semantics of HTTP/1.1 messages, as expressed by request methods, request header fields, response status codes, and response header fields, along with the payload of messages (metadata and body content) and mechanisms for content negotiation.</t>
+      <t>The Hypertext Transfer Protocol (HTTP) is a stateless application-level protocol for distributed, collaborative, hypertext information systems. This document describes the overall architecture of HTTP, establishes common terminology, and defines aspects of the protocol that are shared by all versions. In this definition are core protocol elements, extensibility mechanisms, and the "http" and "https" Uniform Resource Identifier (URI) schemes.</t>
+      <t>This document updates RFC 3864 and obsoletes RFCs 2818, 7231, 7232, 7233, 7235, 7538, 7615, 7694, and portions of 7230.</t>
     </abstract>
   </front>
-  <seriesInfo name="RFC" value="7231"/>
-  <seriesInfo name="DOI" value="10.17487/RFC7231"/>
+  <seriesInfo name="STD" value="97"/>
+  <seriesInfo name="RFC" value="9110"/>
+  <seriesInfo name="DOI" value="10.17487/RFC9110"/>
 </reference>
 
 <reference anchor="RFC6750">
@@ -893,18 +923,20 @@ The <spanx style="verb">agent</spanx> scheme does not introduce new transport-la
   <seriesInfo name="DOI" value="10.17487/RFC7519"/>
 </reference>
 
-<reference anchor="RFC7807">
+<reference anchor="RFC9457">
   <front>
     <title>Problem Details for HTTP APIs</title>
     <author fullname="M. Nottingham" initials="M." surname="Nottingham"/>
     <author fullname="E. Wilde" initials="E." surname="Wilde"/>
-    <date month="March" year="2016"/>
+    <author fullname="S. Dalal" initials="S." surname="Dalal"/>
+    <date month="July" year="2023"/>
     <abstract>
-      <t>This document defines a "problem detail" as a way to carry machine- readable details of errors in a HTTP response to avoid the need to define new error response formats for HTTP APIs.</t>
+      <t>This document defines a "problem detail" to carry machine-readable details of errors in HTTP response content to avoid the need to define new error response formats for HTTP APIs.</t>
+      <t>This document obsoletes RFC 7807.</t>
     </abstract>
   </front>
-  <seriesInfo name="RFC" value="7807"/>
-  <seriesInfo name="DOI" value="10.17487/RFC7807"/>
+  <seriesInfo name="RFC" value="9457"/>
+  <seriesInfo name="DOI" value="10.17487/RFC9457"/>
 </reference>
 
 <reference anchor="RFC8705">
@@ -972,7 +1004,7 @@ The <spanx style="verb">agent</spanx> scheme does not introduce new transport-la
     <author initials="P." surname="Champin">
       <organization></organization>
     </author>
-    <author initials="N." surname="Lindström">
+    <author initials="N." surname="Lindstrom">
       <organization></organization>
     </author>
     <date year="2020" month="July"/>
@@ -1082,6 +1114,24 @@ The <spanx style="verb">agent</spanx> scheme does not introduce new transport-la
     <date year="2024" month="October"/>
   </front>
 </reference>
+<reference anchor="JSON-RPC" target="https://www.jsonrpc.org/specification">
+  <front>
+    <title>JSON-RPC 2.0 Specification</title>
+    <author initials="" surname="JSON-RPC Working Group">
+      <organization></organization>
+    </author>
+    <date year="2013" month="January" day="04"/>
+  </front>
+</reference>
+<reference anchor="Matrix" target="https://spec.matrix.org/">
+  <front>
+    <title>Matrix Specification v1.14</title>
+    <author initials="" surname="The Matrix org Foundation">
+      <organization></organization>
+    </author>
+    <date year="2014"/>
+  </front>
+</reference>
 <reference anchor="GraphQL" target="https://spec.graphql.org/October2021/">
   <front>
     <title>GraphQL: A Query Language for APIs</title>
@@ -1094,6 +1144,15 @@ The <spanx style="verb">agent</spanx> scheme does not introduce new transport-la
 <reference anchor="FIPA-ACL" target="http://www.fipa.org/specs/fipa00061/SC00061G.html">
   <front>
     <title>FIPA ACL Message Structure Specification</title>
+    <author initials="" surname="Foundation for Intelligent Physical Agents">
+      <organization></organization>
+    </author>
+    <date year="2002"/>
+  </front>
+</reference>
+<reference anchor="FIPA-CNP" target="http://www.fipa.org/specs/fipa00029/SC00029H.html">
+  <front>
+    <title>FIPA Contract Net Interaction Protocol Specification</title>
     <author initials="" surname="Foundation for Intelligent Physical Agents">
       <organization></organization>
     </author>
@@ -1120,274 +1179,290 @@ The <spanx style="verb">agent</spanx> scheme does not introduce new transport-la
   </back>
 
 <!-- ##markdown-source:
-H4sIAAAAAAAAA71923LbWLbYu6r0Dzt0khHbBCnZ7ukZTds9siS7dcYXjSSf
-nimX6xAkNkmMQYADgJI5bU/N03lOcvKSquQ38gP5k/6SrOveGyApy+nO8YMs
-Afu+1/2GKIp2d+q0zuyh6VzNrImnNq8PBwNzXhZ1MS4y89M//rs5Mm8uzqKn
-cWUT86yM5/amKN+bSVGas7y2ZbGwZTzKrDnC3lVndycejUp7DWPSeNGyTOHh
-OK7ttChXh6aqk92dpBi/gqEOTVLGkzrK4/I6zm2eRq5PtL+/u5MuykNTl8uq
-frC//9v9BzB4aeNDc7RYZCkMmRZ5tbuDC5qWxXJxCEtK7MLCj7w2l8vRPK0q
-aLO7896uoFVyyGvObR2d4MS7O7s7VR3nyb/EWZHDclYWxlukh+YtHEDPVEVZ
-l3ZSwW+rOf7yDnvEy3pWlIe7OwYO0MC/NK8OzZ/75pVugx/ntMM/x9VNnNez
-9tuinMZ5+jfaRHPhF7aycTme2ZJb2nmcZrA2Gej3U/y7Py7m/Hqc1nCsL4o8
-wZ3u7uRFOYdRry2u0Fw8O35wcPBb/f3hb3/za/39119/s6+/f/Pg4YF7/s3X
-/vnXvu83v9n/Rn//zTf7X7vfD7555Nv/lp//0+XrV9GLkwMe1RgFNHluDvoH
-cI/cbETAdWnLNM7kRAjAXqT5e3hxEtdxh0fxR0//IqO/ySW87JvLRVHmK9ei
-1eCkjyc1zezWFs/75g82y4rp9LZZXuBNxJle0fow531zPIvnizTf1uJVHzeY
-VHX5f/63XGUCWHJoHuw/2I/2v+FHFZyKrdJ8Urhd//Dw+BCABABgDhBDxyVn
-HJdTWx+aWV0vKkDkm5ub/s3DPkDa4Opi8JeqyKMsOTgYYOuTs5Po+PXFaet6
-TuwYQLDEe4CTP0N4TCepLSuzBz2qrrk+6O//+10GDhGP4gQv5JZRLqxNtr1+
-DUPU1mZ2W4PjvjnKMpu3ruDB/4crSNIkGhelHSCe4oAhpl7a+T/bsnkf8AwA
-LR0beIOULM2n5kF/v7+/+QZaO7vqAym3VQ33/gNSvbK5xYOHm9dc2fm1LWnN
-2IAI+wP62Vxc8MKxjDut63lRwKWbFy+OW2f+dbT/aPOapmk9W46Q6A2m1Htw
-9ODIre44BtreBGReFr4wl0BK57GZlMV845o7W1exBuEbl3+ntQ5GWTEaAOXO
-B9XCjgGpmH8RWg7iB3Eff8EBXx6fN/fysgD4N8cFsK4PftVmDxp273TeR0Cr
-gFEDGJ0/3XDkW8BgjtOOedaFTNpPi9bysS8QwykQuzRvrts9NifFeAmIUgeI
-8pkl+75XNm5Txy0wsljBkHk/g65j7Eo3cL3ffzgAcaMaCI4RPv0B0SHbgmv8
-0lye/OFOS32ZjsuiKlCauMsqA+iYa09EOZo7ek9zE2Av6+K5zdtgLU/NaQ5S
-F5KDFy9eNuQhcwMTmJfLrE4jQYIiB3yu+PUW2r1tT04Yudvm3I76sk2AF5iq
-gHXQ+b8GGefo/Ky1KXkK3CKALHP9sL+d17SJvIxwlqd1SiS1vd7oYH8LtYNJ
-+yDF5vEirYjoFXE1yKBjVfdn9Zwu43kZL2Z/fNFatz4FOeaPS1uuCGqXIMKS
-9ALrueNpyzjmWbFsMBO3+oPbVz/F/n/NaPGvx3UxsiV2ohN/dnZ+FB0dt5eO
-jw08Ni9tVeGKL0HMHtfL0jZv4W4b8At3ikGWpUxkZ6sKxspEP2huDCX69q6E
-aU7SRUwbwh1WA/xzf3//1weDy2P6/7m7m6Pnp6+uIlRSLk7PX29kA/DS080L
-O7GlzcfWnM0XmXV0aY0N3MYD1qX9W/DcKTX+t92dKIpMPALpLx6THnI1SyuT
-CKE0iZ2kua1MDXrZUBWzoVE63DMxqWUsOU8aalmcJMD0QV6Z9mCt18V7+g2U
-HPhLFbYaKQcRCsTOvJgXy4qaACECJcw/Q1y+AaWLlcOqb85qHKYskuUYlheb
-LF7BaSYGaURaWwYhEI1rUy0XIP3VlZmneToHCEgbxw0SpV8pzQ1HkVfYpUt/
-AtuxeZWibjmxMY4LXcbxIh6lGag8JkmrcQGEbdUzyKXwHEFRK1BxwlPFObp9
-g4qtnpqJ0zkcaQHHVMFJBOchQ8bzAtdCWzUxkrLKgJBXraD5HAZfAFlAoa3i
-8wQOCYJyDcJhz1ilx3Dhi6IilRjbwLRZPCpKIko0o2KGjNrHy0dgmKdJglLq
-7s49xCA6YkIp+PfjvTR48onhxZoyrawpJs1hmzdmcpDo4YxrJGhwX6TuglRE
-8v1NvMLjSFnMXwm82J6sHDTmNId+CIVzPY8kRWZi/Vn0zQ+zNPOnXJksfW/N
-91dX5/jsGkaHed3lmrkF7pyn1ZygtUJoGBOx7OmSk3QCKGqqdJoTIcrrbAVL
-MyM7i6/TooRbXtaLZW2uY1AZ+e4CCI/52BZxjbp+xTDQRCK4IToNJAwViod8
-WQBiRbak3iT9ABriIuCk4JTwYhl+ATTTilCIBsU382WufMtBGx1DIHDugRjY
-7RklvT0S6XC15pUN5brjV+fQzEtAth4T3oEeco2rRkw1LdxxyMAIyRiIJAEa
-ZwDUFd4CXCNc3ObVEhj+/e9/3925H639u7+785F30hA1Pm5rrMzhp3/9N/zx
-X7cParzVCe/CmI/Q/r+Yo4CGXbhL6ZkT3ebPm5mabF1SqCMYWpL7CVfT6+OF
-yCNc63HjPPUaqy+eub10s+Hfz9jWlUPAFwQhblsbXuC2EH975gc7uizG7y2S
-VoTDL56YQOrHQ3Nvkk4jBbYIsH78npn0405TGwNJBN8dBfykQwSPSd4GZug4
-zSGRUvMmT/+6DBD6momxRxigmLFIIxGIjnhvwJ4qm00iQPhxmY6IkCurSS01
-BGytAO1xrUgm5b5Vcq8MwqWnDI7eUV/Y3JRmBx4gqxVeDSLEGOiLEismGkB6
-7DRmkA8YCP6Ju2rwuHXZAYhj5oSHhrZGc24VKUZ2mua5kwxSoMQt+kgsOaHt
-gUK5nM5MyI/p6Ba8TE/u4Syxh7BMZercxZFo3MQR3JZKZk1RAS9sy6oNbDy+
-jtOM7hiodGKBh9PZ2ICcb17QZmFi7YQDTuIkRrSIYcM4KRb0B3ApAyIbcAq8
-C/shxpbtfcQgH75tyqvvmOFf2RLEpCIrpivm97V/8InB+quvCFG++goV+lBu
-Qy66TWxDxg7bI3aASyxBGmBBpCKBnwQx3AhIQcjNDTNPvBE3ozmRm4WJ9ugK
-yFbRpZWYeQyImtuotHFCl+DgkCYVhLLMtLDzT//4H5WIHMi2QzTjw1c2L2s4
-drfEExKeosQHvBGF32XO/B5Wpz3dXAA5AFK6G+IkcMk6TnmdAqxBcy+S0Jrn
-8UKFA4CoGESomqRrgP1FkeKo2KWG/daxDH3mKAIOTt6UMc4O28tILIxDaENQ
-0BUyruUozixiFORrXjCTu/d2hWw8qcxP//ifL99cXv30j//V09/Nq9fu74vT
-P745uzg90b8vvz968aLxR9j68vvXb16cNP9qjnb8+uXL01cnfkB4azY8fnn0
-Z/oVLw7+fH1+dfb61RHOjBJb3SBMCJBwoCOWg8tFCXtNUJ5RIEEBzjw9PjcH
-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
-N04g4Jf4vCfZ73x/ynHzn/zUFA1fdU6/Dinf6dYvxFK6felqGARl8vZCHt9r
-pKcP/QfZyEZ5tV4W0JsUxVOz5hdgqwyXeTs7P27VagqLjwWfN4+Dos0ORzwq
-kF1pLR27ndRDwUjyPTACaHI0auSTy7gNk+N6YVUu/nQS5y1RyrP3CfGghtaL
-zQIZT76U3nbqqGGuBQn0gSubR6IHssiS6qc+pQzbpkrTzQ+z0odPJXogkQB4
-ltlj+QY62xLc1zw9aIKWKFCUlu3V2ckEbYdKecYOFdk67PAgbr2h8Illni+x
-dJFNAsMVqtY4eUZe5mKEThsxfZEsXS1SNYVB2xvJdqRqP17y82U/yLAyQkpB
-7k+2yoWlIp1w2AssfAhpS/IF60d6yRaL3LZM/e49cYrQMU2mRqdm6CcXKMMn
-0Y9hUriJOJ7o231UsKqkAkNzteo36FF/5/8C7iAWOpeOAAA=
+H4sIAAAAAAAAA819+1PbWLrg71TxP5x1dqdxYtlAku7bTJIeAiTNHZIwQKZn
+ikpdy9axrY4suSUZ2pNk/vb7vc5Llgndt3drqRQx8nmf7/1SFEXbW3VaZ/pA
+da5mWsVTndcHg4E6L4u6GBeZiiJ1qN5fnEYv40on6lUZz/VtUX5Uk6JUp3mt
+y2Khy3iUaXWInavO9lY8GpX6Boak4aJlmcLDcVzraVGuDpT+dbG9lRTjtzDU
+gUrKeFJHeVzexLnO08j2iXZ3t7fSRXmg6nJZ1fu7u9/v7sPgpY4P1OFikaUw
+ZFrk1fYWLmhaFsvFASwp0QsNv/JaXS5H87SqoM321ke9glbJAa8513V0jBNv
+b1W20dVqAetJ3QCwSlj0gdrf3X8a7T6J9ve2t6BDHefJf8VZkcNXKw3TL9ID
+dQ3H1VNVUdalnlTwaTXHDx+wR7ysZ0V5sL2l4LgV/KR5daD+2Vdvza75cU4H
+8s+4uo3zetb8tiincZ7+i/Yc7vNCVzouxzNdcks9j9MM1iYD/WWKf/fHxZy/
+Hqc13MJZkSd4MNtbeVHOYdQbjStUF6+OHn//H9+az/t7e9+bz98+/W7XfP5+
+b89+/va7p/bzd09d+++fPP3OfP6P73af2s973z1x7b/n5/95+e5tdHa8t3fA
+qzRgKc/VXn8Prp2bjQgWL3WZxpmcCMHjWZp/hC+O4zru8Cju6OknUuaTXMKb
+vrpcFGW+si0aDY77eFLTTG9s8bqv/qqzrJhO75rlDG8izswVrQ9z3ldHs3i+
+SPNNLd72cYNJVZfmJi147ka73/GjCg5FV2k+Keymf3p8dAAwAvc/B4Ch05Ij
+jsuprg/UrK4XFWD97e1t//ZxHwBtcHUx+Lkq8ihL9vYG2Pr49Dg6endx0rid
+Yz0GCCzxGuDgTxEc00mqy0rtQI+qq272+rv/7+4Ch4hHcYL3cccoF1onm75+
+B0PUWmd6U4OjvjrMMp03rmD//8IVJGkSjYtSDxBNcUAfUS/1/O+6DO8DngGc
+pWMF3yBJS/Op2u/v9nfbb6Cxs6s+0H1d1XDvPyGNLMMt7j1uX3Ol5ze6pDVj
+A2ID+/Q7XJz3heUv91rX66KAS1dnZ0eNM0eq3L6maVrPliOkeYMp9R4c7h/a
+1R3FwAlCQOZl4RfqEijpPFYTQLPWNXc2rmINwluXf6+1DkZZMRoA4c4H1UKP
+AamY2xFaDuL9uI8fcMA3R+fhXt4UAP/qqABG96tbtdqBht17nfchkCpg6wBG
+5y9bjnwDGMxx2jHPupBJ+2nRWD72BVo4BVqX5uG67WN1XIyXgCi1hyhfWbLr
+e6XjJnXcACOLFQyZ9zPoOsaudAM3u/3HAxBOqoHgGOHTXxEdsg24xl+qy+O/
+3mupb9JxWVQFyh73WaUHHXPTE1GO5o4+0twE2Mu6eK3zJljLU3WSg4yG5ODs
+7E0gPalbmEC9WWZ1GgkSFDngc8Vfb6Ddm/ZkZZH7bc7uqC/bBHiBqQpYB53/
+OxBxDs9PG5uSp8AtPMhSN4/7m3lNk8jLCKd5WqdEUpvrjfZ2N1A7mLQPMm8e
+L9KKiF4RV4MMOlZ1f1bPMyvMXJwftcky8Bhpcrj6+y3b9v8JBF68zNco9Dap
+dLS7t5EuIn9BwlEuxrT2ADmJmsR1mf7aWDc/bJ43SGRP7rduVC14DJxUvSqW
+ARO0S9+waDryue1PkPG6jBezv501FmqegqD4t6UuV0QXlqBSkHgIN35PeJZx
+Nq50f+9u+Jhi/18yWu27cV2MdImdaOWvTs8Po8Oj5tLxsYLH6o2uKlzxJag9
+43pZ6t8DKW7hVlHLspTZ2GxVwViZ6GvhxlDDau5KwGaSLmILM9UA/9zd3f12
+b3B5RP+/ttBPOzx6e962Q2RLZTyu1Vtdsy4Gf+AyLZ/6/3m3+9/zbve//9Hu
+9vD1ydurCFXki5Pzd61iBXzp9nehJ7rU+Vir0/ki05bPrYkVd8kU68rjHXzD
+qtTu0/ZWBJp9PKroMlC8vJqllUqE8apET9JcV6oGzB0aq8BQGb7eUzFtqtaw
+BViwaGQTax2IYSxdjct0BI+BK4Omp1B9pPuJkwTETJCQpz347qb4SJ9Aq4a/
+jEGhRvJGrAn5QV7Mi2VFTYD1pZH3DLnHbVyK7aLqq9MahymLZDmGDcQqi1dw
+3olCrpTWmlEKdLFaVcsF6Bt1peZpns4BRtLgQkCHcSulueGw8gq7dOlPEHR0
+XqVo+5joGMeFLuN4EY/SDHRslaTVuABWuuqpsYB91QM9HuRLPHeco9sn4mjO
+VcXpHA69gGOq4CS885Ah43mBa6GtqhiZZ6VArahW0HwOg+NtoJpQ8XmCTAaq
+WQ3qSE9pIwEASCyKikw22AamzeJRURIbpBkN7siofQQPBJd5miSoF21vPUAc
+oyMmpIOfTw9S78kXhiityrTSqpiEw4Y3pnLQIeGMa2ShcF9kXwE5nDTK23iF
+x5GyYrkSeNE9WXkBzXLoh3A6N+eRpCi+aHcWffXTLM3cKVcqSz9qdf3j1dX5
+h50HYs3o4vc3MBOswV60mmuQDfO0mhPkVggZY2IkPbP8JJ0AQqsqneZEtvI6
+WyHIj/QsvkmLEm58WS+WtbqJy1Tu0YN2IX+LuEa7VMXwEKIc3BadDGJchcoJ
+XxyAW5EtqTfJ3ohxsAg4NTgxvGSGZQDTtCJ0okHxm/kyN1zcnQkOmaWjMkbt
+VU7IU3/goLy/uj11bRgZfGM+4uOAwhuqZ9oAV8A2VlyH5/YzftGuu0ArVF7g
+e5FncTH8CR+GUjp8Fz7oKl2PiS6AZn6DJ4mbVQ3ctsjKBIMpBNIyaJwB0lUI
+GQBmAFjtJ9g3MN9CLx2pMcDJd5HoRVas6JboCpHggkg3BaqnlghOSLfcOvny
+Dwgf1VFWLBMhvJYgECYhZt+kDpPUrR65i8a+ZwWyROlVLnMyFMBekNwv4ZS+
+QfJ9k461XY9jBI8y7Ezb4/XggO/yaFECZSZA5WGReAMa+GZLmHNErBpBDLuF
+5iPp6Oi/RWggl+loWUObXNd0KZZlTTKAb0Md+agIWYD31MT4p/EC0XG8LEs8
+Zz54n2Zawhj7atFOmo+zZYLPR2VxC4dSdRGxDJwIBiM1MgsHIl/BUjVRgFJP
+4egzWA7Sv9uZJq6jV9/A/zOk7klfvVwJzaHL9ekeoPq1WFw/WNpAJGhUAE+E
+oy5qpgKZd5U9uiYHdMjPEIgqeAbXCewSFsaU4VeiPlPmQnCRcAhlWgjey4aj
+uoho+MhAawabsmLWokxvgKxOYblyZbB/woJ///vf21uPorWfR9tbn1kQC1TQ
+z5sai4z3LHqhNo+nnNcCCaRSn6GDOvRkjAtLKHvq2KD5755TqY0r8a1FilaC
+/5QCqtfrIxWSp7C+o4CGnDvk/C1TKm+x6z+/ZwtXlvGdERXkLbQ8hS0g++yp
+n/Toshh/1Ah9SGd/24wEKZ8O1INJOo0M4EaACuOPLEM/74TGN1CL8LtDT5jr
+kLTxddordPN9nv6y9DjoDUtCjsoCusaiLABhWwjhqnQ2iUSmJSnKyHlCyo4s
+8hNVkIs1hhogAkgzLCu2Agb1hc1NaXYQwGS1IiiDhD8G/LIUgNDT4WHPl97w
+T9xVIGCui/YgjWRWtg/0f5pzo8Q/0tOUGQWJ5SkQvIZAQvIw0TLDNXxhmI5u
+wct08hWcJfYQedVI1NzFykS4iUO4LaM4hXI6XtiGVSvYeHwTpxndMVJvIJw5
+nY325Kf2BbVL8msn7IluVqFDBwg2jJNiQX+AWKhAowLRDO9C/xpjy+Y+YlDf
+rkN18gNL21e6BB2lyIrpioXt2j34wmD98CEhysOHaL/1lSYUWzfpTChVw/ZI
+1sEllsCPWQuoyPpAnBA3AvQdRWnF0ireiJ0RmDjfLEy0Q1dAFqYurUTNY0DU
+XEeljhO6BAuHNKlRElkiw84gerC0j1Kyj2R89EaqlhUc2Tvi6QhLUdkCeRIV
+0mXO4jUyTulpZwK4AYAyeyEmAVdsxilJ/IHmTgOgFc/jhZHFAZ5iI5DAUSaL
+IsVRsUsNu61jGfrU0gMcnPzsY5wdtpex4OHDGgKCWSFjWo7awyJG5brmBTOx
++6hXKKEmleq8eX951enx/+rtO/p8cfK396cXJ8f4+fLHw7Mz+4FbbG/BX+/e
+n0kD/OS6Hr178+bk7TH3hqeq8ejN4T87fCOdd+dXp+/eHp51UMyqA1qDMAan
+NGK9sgQpBGW4pnFgewvNA+hp7qmXR+dq74n69El8z1++9PgPdBp/+YKClCFz
+OQgz/CfKVSi96RhVZpDXMzxQ0CgzhBqA91lxmysUwfqMT46bjEF0oeGIs+Fl
+EH45VoQNvtzFXtLKKV6xb3Cw1hBiPJ8N72z9+azOlyXqeRu+3/zzWb1BuRGw
+b6U+4zTrfNb+qDu/vfPH68nTIAJcMu1vWZNhso6r3nc3/wRaIJ9DgeQlE+Zw
+64F27vHdHd2f9ntGRLm87In9uadOz4+669OsUbJgmssG72fkJJCexOPNd/bZ
+iQ88jZNEvUga7yIXoj3h6ZIdyFCVauMcbdN4wrV1U9ntqstZjOCJZzWic/OI
+Tx7PN15WYxqU2up45KQ2gvvKiG0WxSxiWYN254uVSjLzJeAs6BxrFjgkschD
+rYkOljtZZlkkBjc0AuUgOy5F/egpDotx+mxaAonWSSWY74Ft6M5QiPYYdsQC
+TRRIRpYAsAseabdHCuiyUpYvSaA1X12z8RYO9sPgGsSE2Ycfrn9Bv8SHB9dA
+Haa40Q9K2j96Zk7yRWvXhrCMS5XVBIIybvAVPedjPmFZw0i/dtkig5CBeJHF
+JNkN4LsImO0PGCL0/Bw0wmoYdKKGuuz7ncdZvEz0D2iwef4jBl54XR4Za7Tf
+Ia5QUAagrAaAvfV0Uf9Ah/J81uxtLA3Sm/6kb8JVJWlycKtHB94kB/xdaSOj
+YGt1FJeACJn+ISnS5/1+f0gg8QB1sUWRaw/LGBLG9rmTscytICdnIofWPhP3
+wkK1SBelfMCwrmqBdEKo0vHbS/z2+PS4KxLCOVwwjiggGYwz0gjMbGlIxDzI
+EDFE3lMsYqS0gCgeRJJ1lOS5BR4BGjxAkkCjhbcaWEKSgsRXewRA1kPOM1zQ
+EYtSFQW1iJnGk0TEy+aeKJEjgOO/vziLQFovEuaLIKw8v4kzWOoiTrHr6UTN
+i1Jbe0RlyENFYgMirU5ABMxSuhkZeAksEqm6Gp6/u7wawg5h95WYm+AIHOWj
+SImhGhUJnifQhxlb9XKFNrNvn/Di8GwX8SorYhCjgNAW6pfGluRIXgm+4qlY
+OuhUEqKjYrZEiXs5ihqnihdXmI5DD9uHGHOIi9aoGeD603pdIaEx4MzyojZa
+m388eC6eQRjJJIpBI1KkCzqySzEWOjbZFwQ4fPn2Fe0gJGohNsSjfPJFSBx+
+pshG40/ihs8l5LOjrjuPOlZE+qA6MGRHWZIGX8OfQtXW+My16vzQkWv4gH89
+6ChDLRUpRFb2MtPuPdxRh2fnPx6qAaDV69Mr+L8TdVTXBF/ipNL2miycGE2l
+On/pwAxojcNpDmBJeOBta/qzemYH6ol3zDi2MFyyB3yWNY3H/f0XsELYm9f9
+OW0WjlDPF7yS1jlIxRZQxhNCmQZgAvv0Wzsc37mQx9tbfIreOuCgFkB1Szwg
+mGFAZ91t3zF1/tpun8Bu7e38nllM569N9PQFXT0N621omSOFK2+g3wAmrS3N
+GRASJjpDl9qArneAN7695XXhMdpAB3736fd/0e9/d3BuNzr16/yfjvrx5B/Q
+Tf6jcGIzp7T5X9T/f9PvP9Hvb+j3Dv3uwu+Wc+k8pG8f0e8e/f4z/X7ewVP4
+M8aKopMFHU+6FrsQnU3POxG2yBE5XT9bK60YiQKROpoC2ZvDCRuZAinDa3k2
+MSzN2FpZkGI548Gdwu2nB444RVYxYgGFnC7M60CrRBKIelC8ZnFzWmVtRK36
+V/JdP2OZDeWmZ0mBQXMvBs8I4+qCbdcvBs4yYTe+vQX0FOZJMabUCPWVOGWQ
+a9XEhutioTJ9ozP8K1dAnEGfXGZoi4CzTuAKhoP+Lcgu0ccc9MyhaLzI14DK
+os2DENo3Dgc+oyjs7610iOH3r5Cd0BKtGd44jdDdvHmW7oahq3DsOYV+ydB0
+eDDs3KkiJDCo6IW14BVl1XVmRacywV/GFKBGy9q3GJD3jfwsutpgV3MMz7fL
+sZuXt8hdaJfWfQNnXWQs2/+ElyPiDjtCvLUhYCGLxMfXNgbU+DTxc1ftkF2C
+0WS0ar0vfC7hnDH5dQ4XZZpRtEaXLaExfZEDMhbiiWMhvUfyYL5SIK+kIAfh
+qNc25v2DYtZsZSC2NQEqiD/LioP3NI+BiOEZoQjQnUTZgPEYCSXfvJFQh01B
+vyinw27PG8M7WyfyLZajLK1mPOxmoCbFLDbQZoSQE3unF8AG0eOnPXnc3nhU
+2m+JfBwLyOINy/wN6mB0EEsaNmCERxfYs4gxA4LqgA8BOgCKs2459DcGIi87
+6aznLQGoB6LF2inHpmzGEvbvabQmexDejAHh+2zoybh74znwxcCJb0+4SWPR
+Ai85jsGPIACEJ4/s6bH3GJ/8pEevgPzAmlDEXVZ1MRfHCQjHOJyxnFoZ3Sxk
+TLbfqWgjFukpUARFWJqYPaMitwO+9L1rcD6jR441ho6kR5uek0PuiKRjMnuh
+RR2IGDw061WKvniBisoLYwK6RMZZfv6fzr3G0IOfz5saePZzqz8ycHbX2LXP
+ULPidt0K4PHj87LAyADm1A8fik0AVBkZ1YD/J1wYy/BV50B94nV2hBrAk44N
+nm6xBLTjOxqaaRSi8BlaKv2B/AFcC78/doeFf/EAg4P5fJ3QxjqQcmggz9ru
+gaUNj+Chjig8pciGQOROruIp/n8WV3X0BnRBRNhhl+1u5KzQkwloY3igHqpQ
+YBWao0AbBgGAw5ficuXTxAkIXjMNWu5RqL7CMAj4Ekgy03FiXEW4ZJ9lVYgT
+gPegdtc6WwmRvMJUOHWYj2fYwlJHypCLYn68RhaJ8VFHaeEZIi5PjthMeqnG
+uqzZ4qUpTI1yfpgvAUpYW5iczywmT5zwIuB61bLER+KsW1BgE4YmGGcX0CKE
+yoC7N1kJHZuNBjS3yP66KfKDFJV0jMtgURb50Ua3oHP8bXKskWutaWAOjlW+
+i0QJ/2J4lVHTN5qngWNJm2htFL6h9yKODFusfya0hs0KWYxqp3gR3IyWmoi9
+r0FjrDVbrJsbCNHnNmN/uwvgTgeBaYRrZHgKV9MwCA75Kah3KO1ghzXrhLdG
+F2VgergRbys7Hj690HEW1ekcSUKpW83ZNCKHQLWu0QU48YjLHMcTwYNcO37Q
+jR3xfY4x8rzKxohL+Mou8jP6IMRgRPE1tYt9Ctcocfdta+RweBnzcyOQqrRn
+4KRq32S/DpGGe6zDM8NW1Wn4wB49s4MEACt2fGvHSjSCr/XTV8vxzHOxu5hU
+hvFeGAEgjj4A4Tnvq1hi9ATGc4Ksnxdt5jISbnE43zqGVLBES22RB0KPiMhW
+7PWEuS7ZR/UkBvXoKxa0tTg02AHZMYNorDHFHMaLmqPIJkS1auNZR9LZo5Cq
+eLwi6mujW1NaNKgNpWal75aiWUtM8805oNeGnojK2oht9HCKHC606iAG0Gm0
+HEMIm1xi94YoHeLHMzb/oUT8oik8CxwwhS8Zg0hsNlgk8jMrbGPN06H3lJZl
+BExzMxjOCFiDGdYSa0RhDeykF41gJcHUbcG7adO1ZP07jbDNtehGFyKTZX6E
+IR6ziSnM0MqK0O2H8AFwzYpEgvYkoE6iNf04Q4xu5ihCmplih2GcLLNEAXeF
+ZkBRnzGYszmCRATB3uPqIz0JKJSN7zBhHK2he4ycsVF8WPtgcEDbXPURDSEY
+RTKXYCPY2Ax2S5EkfixzFCimPDtFAqwWcoyYZVqm45q5uJwO7PAmLYt8zpsm
+Qo/YROCd2FWSfoUrdVDNHgM0Jiwrxk91Dbp9JSOAYJREglpdo24eC2q/ggWR
+lfyliQ+Rn08PJvJVZLTqL54q7fv/i3la41520r62ZIRgKCXLfNK1pIgQag9z
+vTXMOdxonNlJJ06AAeF/H7OWUeu90e1aOGrcvi5qYrmsr4BM0Ntbj/vKSh4W
+U4Z4l0PjbB6qGbmcKQM2NKTIAeRFTZIZ0j0M6A0pre95MG5HIp+wLUtRLZKa
+gyRzle/agRMQz4wz6xToxbnFpILh65MrcuC9UG8LTJlhKmxu00b7pJWJ60+M
+k+ZG5ynRHLKYxBVowk0lu0e6+cKlOEi0sJHjFyR13uGuobgrQ8UE712IOS6k
+LEYgkucYIEzCLnNAAs+G0nCPyXZC6apr1GoDQcxJA5eQpz82l7djAJjGMcFI
+Pl0VvgmHC2w1hRlWbq6+E49lfdCIs3F8LWo+SqdLUh2QQ83xkjDvAKhYPl4Z
+LEVQPYopohta2Qx6WG1DWv/0APBsjC0J28sg177y/PfIlyhEkTQDGwxZFXMK
+fVdjO1vpzWYOmmVws6pNYrUnrrUsuSmJ3kesxp+vRe/4kSxkJSWyIsK4DU9b
+FyUDkbxVShb+LXCwYadtwnNjtOMVxpeMB2xydvDUFH7taDQOZ4E5w4gZjbIH
+xXCNbMWmHMSyc+OPDUYzZhUnQfuSMUBAxBAgAnEryCH6YgA3LMYCqIlCfqBc
+TGKbH8QZwhp+kNCmYb0gHom/wwHCkhjicYRkfoO7o2mxJ2JNGCFkGlHEWsQ9
+a3TDNM4m8G+qdhv5mmVcbN9Eu337N1vGcd7DfGVDa5yf3q3EmZiNSZyZvGdA
+d0YbE3PtCJo93sC+IoOKPUFO4NAaeYkG3HAdDbZgRXRg0l4NxcypEym2UVlH
+PodAg0QHYimeRZGhl0jGYuLC0q9GwYTiu/pmCq9yhwjlfEOU5gRffsDDRCpZ
+mh4NbkG2mlXDa8IUHuDVwBAKqPHPmJ2GccQl8wfoAHKVWSfx4yWcpRe860wK
+FI6AkakDSW9j94e1LeHVSCkN4uweVtCxEFafHrNoaQbFDJYYFUN77l4Efotv
+wypuaXWsOSYaA+zHaNUDSNEoYb6j5f3dJd/hl6JPVZJpdqBGRZHpOMfv5npe
+lCsqmKCT4Bu03sEi9RkzqQPVgYvpAH3pzHWSLuf0cZZOZx1sTZFpCQoaJ7Cm
+uRRuMsN1zfWtrV3tSJsulXmSyBBgxIQZpV5oshg4kidWOKTUFCtcqVWqAXDc
+Y74iB2R3HM6BF40iArufuYhoJ6P10M0BLL8kb4iekyKB1KLSNaKAnaxxbDDF
+iUyvzFcK+Uvf6xFcz1eOBFGNg6Qp0s+Pw3GiMqo/RImLnHIXgEHY6YIbv8dk
+Jjg7Q0UVOo/sIqwSFCaPOFYXhqmSnB20xCgTvjUTx7NA0KACZYEVIExOweRZ
+QOgcVjZnYkzmVx02G3oLpEzLIaufvEdgNibdVpoxegn33OfIOwBsTIaP4jHZ
+0D/+Ms8E2CnrM8o1tYFllNQeQxC6HO2F+ypytMvgYc2lzoGR8YV8CbWjFrjE
+bxzn8cLMUDvKWUoUvumFDgwJGMRwxcFwQ4ZZ+wwO1XdJsfHB+hDenL45QeDX
+lbMMNQPLGs+y5FHbY3tU3f59mBCD8T0oKm0Kt2xlAgJ6ZF16WlBNE1RaxBGH
+1hNS+KQRVrqDQ5gQlQiPQowNYr4xWh3ABEU60AnR3GYad38mnM6z6q2nrzcz
+1tk4gHI37q7nc/Seujh+NfjHmzM/1ZhECRYRWF6oAoXJeDvsTfqn4TmDjKVj
+eMQHEuGJMKQcjsd6UVvXzE7KEjQLMRp0xwwzBhwDSv0cas6aNmVaPuw8MB8p
+t5kETsxlpg9djs7pbvTnxskNemQq34bITJ3OEi/VLoOu0tvXGqIDXAZZS0O2
+oBkRBpV/3hoDWDXk0KEr8lM1pxFBy0AHwcSaoc+r5aDNxc8Qe7G6j8Y0JA8M
+JM7DS4nkfGhnXw1Tw4yF1RPskcBT2BNnYWD69IpMinfbQkHTL9NkasP6BSSF
+DMF5xSamwQCVV2bBWhHFrCAyDEpoOi5JWhahBf1WKmH9JzR0mTikPLTfeHaL
+HsYcCaGQ3CY098AUFUguQxRW8X5FZhqa9BjOXqIQW88c12ZgMJYF0OJ5QyuP
+zcmwNoLYZD9RiGOlJXavETWrdoY/SMfnWJfpyZARiOw7jFvQ5B9ccSoSmXfI
+fEKsaT2+TUcj0cU4Z8sVl1syS+srwwMw+8lLMBMD80SXpTXIkvJm9uSThzFe
+GZdu4J6OTEt8EZpFN1vsEGVHZENIWBnhuA9yifi+SF4qB47FEgPTE/EhSeHC
+l8ipA1NeinZfC9tkeQZ1KifZrCqW5Zi8q6Ct1bM+x/wvDMj7vKahMRmDstWX
+1sk11lsxlQviLJ0SyLLMOWb991aPjPkICYSHtUEyJB7OeFYgd8azAYkpQW9H
+8Sv7OjC8Bp4zYXfkVPR55yWVA/FUWJTx2pJJjZmHrMU6nnMifpC3ibubrRD7
+/ZC6vq1v4koTmexbq8T7kl5k8j9Ji7+0FNW3iLMsEWqaFxy5PrgwIvBOtcrH
+M6ALQBu7XB1BINdKyTuLgjMGYVdw8nCgH7tNESJWQ/QCnCbMz0wPWg4o3iRz
+9jkIyPhHzfhW1OAomOgSb/sE6VrlJXp3+61dKcG54ZP1AjRyfYuWNg6OTfGA
+SJ7ZeXuM/8t+2YsREOkdkyTJwCHoU3B9lWyCgI/x3DTAoXeCSt+QOFTUNnKB
+IqCYBMnhkZXWZbD3ebONTr4lvnnYPAldb8/mEUh1F1cMlWW/LGut+GLO3Lqr
+ezxqlJTpDWY3yg122YdiXbfxNC9QXyRLNRkm5iT9ih1lzHnOZMiXGfio+aLc
+prv9deuT2R7qFUvDnY0265l/c+/+WwO5HjygWDM9WWY+SvmoVMn3ka893Zlx
+icG4JTyv6C5BQfC5tCflmYo9vmbkInKs1HJHHJGRAmGgZloI0qsFsCT/np38
+VWnS2BAJ0bMiCOkYFVwX0n1i5bxEkZD8QxC1hGOFfHC6Yw/xtNRaUeUB1hld
+BQIE/paE/IL352ulvGu6wLdA4OgoXMWCNSCRmZAUwz6DAxEKbnQ9I2QGOg1V
+NJQ5PTJjOxlwMzmcjB5V10inIpSG+qMkMnpimW+t8O6nZ2/H1K+QUOI6cCWj
+i7ei9CkqkyUijAW2XuMaQFolBdqcjS3ei1UWjFttVCSrVq3CLaJNq5sALaqM
+cUPyn9i5hXgPciOlCBk+1FwZI2wiVnU1fLL7LTrQRO9BxB0y7APrYf7qLLY9
+q3bau7fsTtQxF5UlLCvY04MHDwKPiDVTHDiC4LldIvu9JOC9N9lfVj0T9fwf
+wKvopKPT4yH9fQWXin90W5GXxQK+GzLHNgC3zxWWWCK0EiVjqg/fninXmLSy
+dKLHqzGWd8iDuO2kvU5Cf0NMJrpl8OPrkys1IL/+YG//8RPa/2Cvv7e99WOB
+8n9LJOb2ln8eByoejRMdYe+nnjcA7uJdIBCtyzmBwBQKOh4lk/iFgEEDEYTj
+Jut3Ytk6uV+RS6UmVMFSxHVNxFRjC4U2NOFhuCvZjW05IqrfW/XCCQJSKtqL
+Fe4DebLwvtgEuOpKjKG+ZPiKrCT2uMRe6nMyis2tvhjgZ8KNaSlsCvIHcy4i
+bsQ+HW8sPndrlUWxR4QEn3oXE1c/wjKQVj7KpLISBgNEZGFzmOHqggBsE+rs
+Bzq3PTOB1+8rKR6EMdfKRWIHz/gIEIrV5987l7gL17yRLT+fbWsp+2vyC77S
+OmUSLKTma60754CPag4aNOB6p/uV1r9t3WutJZTdqxpwV2s8d09lVQPPq3rX
+HBx2UjVKHv0xOzgqpNRMZVjZvXYgEehB+PnUT16/SIs/aoltrdXfQR1OiBuQ
+4+E39pZ4fJUV03Q8QA2HE5l+4zBv4hW5gSjTkW/2j4MsqgRUOXp4V+tnz58r
+OHpgQxgHT1qGa33OwTs0lARTLqtGJZTPa+kNQgQDLZpd8nfRUCTIJssBw4Iq
+4afs2uYxiWeB2JZgcpaJF6KbQFUv8BihJDXSJo4H9VIkHFnGGd2Hoa9GDEDi
+pEHT36SgyDgvWJTX4VFrtFqOKNuR4hMVcntgRxgBFZayYDirMOeAzDLGN2/l
+Kjal3c1ZYtNmA2/xebq4gDjfLga9hvk7s5Rm9Yv1GETLirXj2aGog3WWTOUJ
+W1KFqwGbEqyZWGrwSycZEXN6dCdzaOUXyJrOzYRKwtlffDb5QAP36MqbHGNN
+Dm3giwH+zy4/3j5yrVTA0H7TCjdhaxsC+xwNoOPg3s0/dZBIdg46VOOj8+Ur
+zX/jYt6SF9a7wD909Jbmlg3CpRyEzaPIQKpLLjJcwz6S6iUvi/znYlkiAPyB
+i0Oe9VrX922OP2vBTnePbsIH9P1Gr4MMkj9yq23PDKvzwOG3DgESyLLM7Qhi
+OjSjPGvGwUUtjyK37jfomFZ/AjpNo35tm8KtBmNPgL2juZQBSfOlSJcbmoeZ
+901qHCTzfZ3TUflkJGomhjngeo6oTg33szFMTk8mpfnYqlQRjcleQi9ky5mG
+eGwrHfij0kYwIoZMb8ZYaG1jzpKIk7L/4tDEFiDzAOpL35HlLJ3rq/ijzodi
+mD8hs8SPyL6DdCu2V0Qz+eJOAyIu1hgR2Z5gzX5i8cQiDyaVd5rHNBVN4Fd5
+9Hy1AkzcpBlOYGZwA1NFaWatlpGLQZzNLs6siqdVlGTMAlC8lteqSdly+NRV
+O1hrawRLQkJAtqGJ8bTRGy+MhcE3vKwvyVzeDpqTqQAPyD7GVF8XXY58veQu
+R9CFUCnO71HbrRnleu8ydNzzye6uRwxexolxnRiVDAAcpXHPvtM1Pfe8nu9z
+KeHyLyn8ccdqn+w+9nq+KspRmgDI3mOfT3afeD29qDeJBydvHZ4tBc6HPb/3
+e8K9Z+m4du4Bwqa0mmOQXjecc9/veVUUWBNwZY6pUjvkh6TLJEeC6/k0OFt+
+N2Kcif9HcK19n0+DE7qUVBw4Y+sqaT8hE2mL5q2IITBiCGyJuF0D06CmWdNS
+ZixjdAdo06T3gmxv+UEeB37uzGDBiPMozH9Gd86mFGXG8IEXxQt3GdFdcqJz
+h7aB3b27t4uRNrwlaAQr5ScJoW5H3sPprLqewf4bUXC/Ubdx5UCoL2NS2hAQ
+VRzDpGcbnbhD6dOG3TCl9ELv6NzlUPnM+eaNa7Lj515znkVgbEZvM4dw3mhy
+R5nXWGBM0JKorM1RG6/aKaikxsHmmQJKNQ0buMrWOd8gv3LpYcaN0Asg5hFZ
+2FtcCuLzwuoneYt/Qwb1K1vbkJ3QmF7VHANIxN+j5CEfEL8DkXevytnOEAGN
+mB7eAH5gKCC2SFvAqAk4sngBijMJPp5H3C74m8p4JZpuljUvy5AWNlTF6Gc9
+dvsSN6ZxNrBDpduoZyxbdgFnM9Dtcn9DaxEU7d4m490IvIW9tdKPxqGFYQei
+hZrq2YFXh8UKkXc27RQOG+kHh/fSIdFxg1wyJM/xtbwRDPiqfCK/wcUJqOEM
+j8a5S63l/VDQWj51ZUIMNyzLeGVj27E8hqNnPJS8Cjd1RRkdqQBKQYSCKxye
+Mmcj7Y6fHFLaTLGsDG7y4ysQkwrT5txGjB5jplMybMspiuktFMCBlhhP9i9t
+rcAWiJ0MApgs9hIB7ClKaFiHUxJ1XLIejnjOqXZcEt0l7snPp9a8vDvlNc8r
+gOlGmvz/tzB0BmNQiW1hFY3oWXKPCs+XiEgTw9V0PJhQSSu0fX0oSg91Pt93
+aA7aVzsvAQkwHrgAobUC/MX3zH3UK0lZ5TrBBpgkk5npBCXq9NR8WWME0NXZ
+pbEo4UuWsFhPn0kI0CXg8Ti62vnPn644LqBZRoZQZMXkh6YcZ0SUR7q+1Sal
+i1HR3p2E2BmKHIarXPP+WPDEN/52leyU12KwL1jeNayPe+B7gbuEam/c/nau
+5/AfN8AXBHe7jWMnKxuc31/h/FzwxrrzD9pE0GbYyDQw+baUw8rvYCoyL9LE
+uY5+CzvYyA2sSiHkuAFCLjKhZ4HGsSZXRpdKjTX6MjQhBAnFnhVzLvJWNpuy
+pS0IiRuvOTKt29bgoh83gRHBbfUnxSfN0Hq98dW/cJ/mbcFdChd0hRObWauV
+AfFxuYK/6bV5kiLMYLtWQEWyW+j8SDWTiqFTvEWWH8ZFKU5uXCcWNDLvE7Vc
+P7SDBi9UCK/UaEWer3Et96RFbe5yEKlXFxbIHM47JgYogQsMel5yk6AqByhC
+v9i8yUeQV2bkCwDU6mG2kGl3BDQbp6Oi51K9JeMXYgNsFRMRegxxbmRIHqwH
+AcUJv7SmMGUJYImVl1rQU/YVOUIjjikEkEvjmOitIsuw4A1Va/dK5UBLQlab
+KooCIt4FZ15a+7gHltYlj8Z6DNgdxDA55aWm/Fqjk3rG7/o7VdMlsgdM7fSW
+CbBMiWy11J7inNi05CRcTOuv5sZ7TTXlYR3ZjRYHMJYJztLYJA5f6Oky47rr
+mxjd2PaQpFTTIwpz2r+sxUsadziFOSs3DgtCwAT1TYyFBwDsMldo3kLI6+Pz
+i546Ojo/7Jq3Y/wMaF4lqbjD7fuIXEk481IiAYIF2+2IgyBXIIpGcG+zkuVt
+ad4lyEs8Glfq3WGTEnEe3x1yItba8QO/7dkG8eBWelh/4ZZlal75s7emBnKg
+X1FB9GVmX051mJE2XOuWCFMG3ZqlujWqFiTdhPELUiR9hwJOiN4BgFoHSZe1
+W7NifvcbILRHI7yTk8O04YZSWuEm1bdos5F3sPjBcXKpntQiQfc1SazLOYVV
+cDpQQsvC+5/iW2aZqFCFvbFyNfhYyyMo5VOKsRbTqvE2R69y3QN1evj2cCPK
+AJTHbdgRvsPGVn3mUCNaTMu7YIb+G2pEbaLZO+/zlAphXBiLjONfagc6daW2
+adWx1UVsSrqrIH/hz3wl78J0e7HV5CN/iZF5aaYtKi6jIVRidWlZu/2WNEH8
+4hwxriKoMl/6r9Ea2LdIAX8B7oPBUnRsPD6OQH7qqw3n45iVe7VZdd83yZiw
+H45iNG+OxIKHQieqttBVLzeD9XlBW4pcd7VBPX/p2ut3uOaL2UO1VnbVKo1N
+eX1I5h1SA1OJlR7e6tGjoW1pI1pNGba+OXYqiz6u7ZH+M65ugR7P3EtZ+fmz
+lXzxl+kc6CNakF7YMYAmgqwo9egyfvOMvSAWmihx2pF7q71w6KDZCYH1ydUr
+ilRmdciu1L5ttvKG91Fph41+uo6Oy3hSdw/UQ6OBudekREANEVailyRQu7R2
+87pdQfNM0serhzzVtdQa/qDovVt3o9yBeq1zkGfG6nIFx/urG+K7p98/xSFe
+W6ZuOLBDP/IzJSQM4qIcllbmKOgRjRycNGYjYU4xLa7wEnEYO9x7HfwaSAfX
+XsG2D1QLyUi5Unr4xfUPXED7xYfrB7bI9YsPniWNbCAH/CoD05sSf1yhHJMg
+whnpKNVtkLrVDr5OQJGQNMT5aSDYi7wfgCVel64U2KXdOwG4P617aITfoPg/
+aLKRKeNvoym5l9njUDwipixf3KiGb3xkmKKrvlIZX/KLvJxk2NLmQihhIS9X
+2YL4KntHYA9U1BpOx5XGkYJBpsy9CE0emlh8sspyyMAEonzSKiQpKTQbSe1L
+iTEVwiOGTPhullluGCWSYLSipjkACOYqg+T2UcrxUN5QRoq9y5MxhKDxRj5O
+RCu4CCOsm/AkLLIUCJ1SbwCNcqvfYAiZ65iS8XoNU0gPVRQWG5xNA+s6aVvV
+fW9XInE965FRNlCCtwUlUW4AXofhML+qQ6www8Zq9ouuv7cH5UNqIb5VJ5x9
+YR3Q5AelAlG2RqUfGGpq0eIfUZY4D8FfBH7bvAT40nCeVBrRWJkx/SOuYbeW
+sN2OcQXYeggd+wrxmc4WlSRc0CtNcPF/cvEzJvoKYEeGWZbkTvDD5ZoFW6Wl
+cOjSq/jqv7UVR7HnfarelVMuySqrFQyhpu95zruKxEL7ynoswiRVu1xONZdW
+AbfHJk4XlxaN1FVoc90xidedD9xGMv7gO0pHFDdMs4KHdwKP+7v9XfKl3Dwe
+2Bq2+9B5n55STQ8ZdXBDz12zPdOVv4/2Bv6R+XGUuFju9MkUBbYgYpw3PfuN
+2wWt5Kn3VQNqjkot79OGk0ODkgvPozL+akpxwxgG1PdGoSgzPAUlEULoq8IX
+NHVk8QwdlJ/Ozey4dHto+w6aNopbQKMJ6DPaNdhYiQLHk7IarrWfwO4uyy1d
+3nyEENDM2Me31rVk7AuABDu7axT7dpAv/IH+EyALSaUHTCJR0ohMHHkcAYjq
+Y5plbaCA20osWkTULtrr+Cs2wGLoAlcUTaVuslmfXz45jDrxshIajsA12grU
+R9JHOxKKLn9ado7UNEk4AdZa1E16KUkVJg2bVF+xzzpTQ79B6V/2vQpgTq8y
+RZpEgzrikH+MqDCKtFc0Shinq7gJcJ+Ikn5iKhW42meNHPHUhNLP4xJYKlA0
+KarxKh4jmHKxnxmVyUlBt5tpuIBi0bqSQEPGMV4u04zEFkwnBslkqsP3ebMR
+kbMrSg7DtkUdOYXU1HkNXgOr4jmGl5B4E7xam+b8/e925vekrxWCbLz91tPp
+7AtDrGJo3pbpXgPO0axerUcEpKoBB0dY/dDIk6H32IGFlTij0JUosPpHvD6W
+rIquPyWsuVfKmlwLV2TOvH80ZmJv3kBM2fOlLUngVcXb8cWPXpBtPnQvAyTL
+6dV6FUBn6BRf0prPgm1FXNXt9PyoUZjJrzXmtG8pw92TmxJsdkhL1q61zOpm
+dg5FUMm76Aj1yBVqwrVs8qyf6dbzS3Dxi7o4AYmyl53XigdVtF5s5omfPITn
+UttBj1PXmAsbkECvUwOmKwoqdZUsTXqnBd1fWyHx8MW/9GJdCXxIJICQ1Qkq
+ngCSNVs47PtiHWiCAitQlJbN1enJBC2ahkaOLdFgm7XFg7jxDUV+LPN8iXWK
+dOKZ01Dhx8kzcpEXI3QoeageV4vUoD60vZXURSrt4+IJXRUPMveMkKaRg5Zt
+hX5lSCu89jy7o5RtTalyBtmPyUKMckGZut07Mhqh65wMoFYDMm/WoFSdxLyI
+lcJjHE2bLKk6VUnVhObG1xBQzv7WfwOSSn2GE5cAAA==
 
 -->
 

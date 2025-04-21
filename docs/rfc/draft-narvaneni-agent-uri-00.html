@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta content="Common,Latin" name="scripts">
 <meta content="initial-scale=1.0" name="viewport">
-<title>The agent:// Protocol — A URI-Based Framework for Interoperable Agents</title>
+<title>The agent:// Protocol -- A URI-Based Framework for Interoperable Agents</title>
 <meta content="Yaswanth Narvaneni" name="author">
 <meta content="
-       This document defines the  agent://  protocol, a URI-based framework for addressing, invoking, and interoperating with autonomous and semi-autonomous software agents. It introduces a layered architecture that supports minimal implementations (addressing and transport) and extensible features (capability discovery, contracts, orchestration). The protocol aims to foster interoperability among agents across ecosystems, platforms, and modalities, enabling composable and collaborative intelligent systems. 
+       This document defines the  agent://  protocol, a URI template-based framework as described in RFC 6570 for addressing, invoking, and interoperating with autonomous and semi-autonomous software agents. It introduces a layered architecture that supports minimal implementations (addressing and transport) and extensible features (capability discovery, contracts, orchestration). The protocol aims to foster interoperability among agents across ecosystems, platforms, and modalities, enabling composable and collaborative intelligent systems. 
     " name="description">
 <meta content="xml2rfc 3.12.2" name="generator">
 <meta content="Internet-Draft" name="keyword">
@@ -1191,7 +1191,7 @@ li > p:last-of-type {
 <time datetime="2025-04-21" class="published">21 April 2025</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
-<dd class="intended-status">Standards Track</dd>
+<dd class="intended-status">Experimental</dd>
 <dt class="label-expires">Expires:</dt>
 <dd class="expires"><time datetime="2025-10-23">23 October 2025</time></dd>
 <dt class="label-authors">Author:</dt>
@@ -1203,10 +1203,10 @@ li > p:last-of-type {
 </dd>
 </dl>
 </div>
-<h1 id="title">The agent:// Protocol — A URI-Based Framework for Interoperable Agents</h1>
+<h1 id="title">The agent:// Protocol -- A URI-Based Framework for Interoperable Agents</h1>
 <section id="section-abstract">
       <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
-<p id="section-abstract-1">This document defines the <code>agent://</code> protocol, a URI-based framework for addressing, invoking, and interoperating with autonomous and semi-autonomous software agents. It introduces a layered architecture that supports minimal implementations (addressing and transport) and extensible features (capability discovery, contracts, orchestration). The protocol aims to foster interoperability among agents across ecosystems, platforms, and modalities, enabling composable and collaborative intelligent systems.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+<p id="section-abstract-1">This document defines the <code>agent://</code> protocol, a URI template-based framework as described in RFC 6570 for addressing, invoking, and interoperating with autonomous and semi-autonomous software agents. It introduces a layered architecture that supports minimal implementations (addressing and transport) and extensible features (capability discovery, contracts, orchestration). The protocol aims to foster interoperability among agents across ecosystems, platforms, and modalities, enabling composable and collaborative intelligent systems.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
 </section>
 <div id="status-of-memo">
 <section id="section-boilerplate.1">
@@ -1244,10 +1244,7 @@ li > p:last-of-type {
             (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
             publication of this document. Please review these documents
             carefully, as they describe your rights and restrictions with
-            respect to this document. Code Components extracted from this
-            document must include Revised BSD License text as described in
-            Section 4.e of the Trust Legal Provisions and are provided without
-            warranty as described in the Revised BSD License.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+            respect to this document.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="toc">
@@ -1388,45 +1385,57 @@ li > p:last-of-type {
       <h2 id="name-introduction-2">
 <a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction-2" class="section-name selfRef">Introduction</a>
       </h2>
-<p id="section-1-1">The rise of intelligent software agents necessitates a standardized way to identify, invoke, and coordinate them across diverse platforms. While protocols like HTTP provide a transport mechanism for static APIs, agents differ significantly in behavior, output variability, and interaction patterns. The <code>agent://</code> proposes a URI scheme and resolution model designed to complement existing agent communication protocol like Agent2Agent(A2A), FIPA ACL, Contract Net Protocol (CNP), LangChain etc. It serves as an addressing and discovery layer that works alongside these communication protocol.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-1">The rise of intelligent software agents necessitates a standardized way to identify, invoke, and coordinate them across diverse platforms. While protocols like <span><a href="#RFC9110" class="xref">HTTP</a> [<a href="#RFC9110" class="xref">RFC9110</a>]</span> provide a transport mechanism for static APIs, agents differ significantly in behavior, output variability, and interaction patterns. The <code>agent://</code> proposes a URI scheme and resolution model designed to complement existing agent communication protocols and libraries like <span>[<a href="#Agent2Agent" class="xref">Agent2Agent</a>]</span>, <span>[<a href="#FIPA-ACL" class="xref">FIPA-ACL</a>]</span>, <span><a href="#FIPA-CNP" class="xref">Contract Net Protocol</a> [<a href="#FIPA-CNP" class="xref">FIPA-CNP</a>]</span>, <span>[<a href="#LangChain" class="xref">LangChain</a>]</span>, <span><a href="#MCP" class="xref">Model Context Protocol</a> [<a href="#MCP" class="xref">MCP</a>]</span>, <span>[<a href="#AutoGen" class="xref">AutoGen</a>]</span>, <span>[<a href="#SemanticKernel" class="xref">SemanticKernel</a>]</span> etc. It serves as an addressing and discovery layer that works alongside these communication protocol.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">The <code>agent://</code> protocol supports diverse agent deployment models through a unified addressing scheme:<a href="#section-1-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-1-3.1">Cloud-based agents accessible via standard web protocols<a href="#section-1-3.1" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-1-3.2">Local agents running on the user's device through the <code>agent+local://</code> scheme<a href="#section-1-3.2" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-1-3.3">On-premises agents within organizational boundaries<a href="#section-1-3.3" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-1-3.4">Decentralized agents operating across distributed networks<a href="#section-1-3.4" class="pilcrow">¶</a>
+</li>
+      </ul>
+<p id="section-1-4">This flexibility addresses a critical gap in current agent ecosystems, enabling applications (including browsers) to discover and invoke agents consistently regardless of where they're hosted. By providing standardized URI<span>[<a href="#RFC6570" class="xref">RFC6570</a>]</span> patterns for both remote and local agents, the protocol simplifies previously complex integration scenarios like browser-to-local-agent delegation for privileged operations.<a href="#section-1-4" class="pilcrow">¶</a></p>
 <span id="name-agent-protocol-stack-archite"></span><div id="fig-protocol-stack">
 <figure id="figure-1">
-        <div class="alignLeft art-text artwork" id="section-1-2.1">
+        <div class="alignLeft art-text artwork" id="section-1-5.1">
 <pre>
 +------------------+
 | Agent Applications|
 +------------------+
-        ↓  ↑
+       &lt;-&gt;
 +------------------+
-|   agent:// URI   | ← Addressing, Resolution, Discovery
+|   agent:// URI   | &lt;- Addressing, Resolution, Discovery
 +------------------+
-        ↓  ↑
-+------------------+     +------------------+
-|  Agent2Agent     |     |    CNP,. etc     | ← Communication Protocols
-+------------------+     +------------------+
-        ↓  ↑                    ↓  ↑
-+------------------+     +------------------+
-| Transport Layer  |     | Transport Layer  | ← HTTP, WebSockets, etc.
-+------------------+     +------------------+
+       &lt;-&gt;
++------------------+  +------------------+
+|  Agent2Agent     |  |    CNP,. etc     | &lt;- Communication Protocols
++------------------+  +------------------+
+        &lt;-&gt;                   &lt;-&gt;
++------------------+  +------------------+
+| Transport Layer  |  | Transport Layer  | &lt;- HTTP, WebSockets, etc.
++------------------+  +------------------+
 </pre>
 </div>
 <figcaption><a href="#figure-1" class="selfRef">Figure 1</a>:
 <a href="#name-agent-protocol-stack-archite" class="selfRef">Agent Protocol Stack Architecture</a>
         </figcaption></figure>
 </div>
-<p id="section-1-3">The <code>agent://</code> protocol supports:<a href="#section-1-3" class="pilcrow">¶</a></p>
+<p id="section-1-6">The <code>agent://</code> protocol supports:<a href="#section-1-6" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-1-4.1">Unique and resolvable addressing of agents<a href="#section-1-4.1" class="pilcrow">¶</a>
+<li class="normal" id="section-1-7.1">Unique and resolvable addressing of agents<a href="#section-1-7.1" class="pilcrow">¶</a>
 </li>
-        <li class="normal" id="section-1-4.2">Optional self-describing capabilities<a href="#section-1-4.2" class="pilcrow">¶</a>
+        <li class="normal" id="section-1-7.2">Optional self-describing capabilities<a href="#section-1-7.2" class="pilcrow">¶</a>
 </li>
-        <li class="normal" id="section-1-4.3">Consistent invocation semantics over existing transports<a href="#section-1-4.3" class="pilcrow">¶</a>
+        <li class="normal" id="section-1-7.3">Consistent invocation semantics over existing transports<a href="#section-1-7.3" class="pilcrow">¶</a>
 </li>
-        <li class="normal" id="section-1-4.4">Progressive support for advanced patterns like delegation, collaboration, and orchestration<a href="#section-1-4.4" class="pilcrow">¶</a>
+        <li class="normal" id="section-1-7.4">Progressive support for advanced patterns like delegation, collaboration, and orchestration<a href="#section-1-7.4" class="pilcrow">¶</a>
 </li>
       </ul>
-<p id="section-1-5">This document outlines the specification for the <code>agent://</code> protocol, beginning with its URI scheme and extending through capability description, transport bindings, and extensibility patterns.<a href="#section-1-5" class="pilcrow">¶</a></p>
-<p id="section-1-6">A reference implementation of the <code>agent://</code> protocol is available to demonstrate resolution, transport bindings, capability discovery, and orchestration patterns. Implementers and adopters can find this example implementation at: <span>[<a href="#AGENT-URI-REPO" class="xref">AGENT-URI-REPO</a>]</span><a href="#section-1-6" class="pilcrow">¶</a></p>
+<p id="section-1-8">This document outlines the specification for the <code>agent://</code> protocol, beginning with its URI scheme and extending through capability description, transport bindings, and extensibility patterns.<a href="#section-1-8" class="pilcrow">¶</a></p>
+<p id="section-1-9">A reference implementation of the <code>agent://</code> protocol is available to demonstrate resolution, transport bindings, capability discovery, and orchestration patterns. Implementers and adopters can find this example implementation at: <span>[<a href="#AGENT-URI-REPO" class="xref">AGENT-URI-REPO</a>]</span><a href="#section-1-9" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="terminology">
@@ -1451,7 +1460,9 @@ li > p:last-of-type {
           <strong>Invocation</strong>: The act of calling a capability on an agent with input parameters.<a href="#section-2-1.5" class="pilcrow">¶</a>
 </li>
       </ul>
-<p id="section-2-2">The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14 RFC2119 and RFC8174 when, and only when, they appear in all capitals, as shown here.<a href="#section-2-2" class="pilcrow">¶</a></p>
+<p id="section-2-2">The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+"SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in 
+RFC 2119, BCP 14 <span>[<a href="#RFC2119" class="xref">RFC2119</a>]</span>, <span>[<a href="#RFC8174" class="xref">RFC8174</a>]</span> when, and only when, they appear in all capitals, as shown here.<a href="#section-2-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="protocol-scope">
@@ -1526,19 +1537,19 @@ agent+&lt;protocol&gt;://[authority]/[path]
 <p id="section-4-3">Examples:<a href="#section-4-3" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-4-4.1">
-          <code>agent://acme.ai/planning/generate-itinerary?city=Paris</code><a href="#section-4-4.1" class="pilcrow">¶</a>
+          <code>agent://example.com/planning/gen-iti?city=Paris</code><a href="#section-4-4.1" class="pilcrow">¶</a>
 </li>
         <li class="normal" id="section-4-4.2">
-          <code>agent://planner.acme.ai/claude?text=Hello</code><a href="#section-4-4.2" class="pilcrow">¶</a>
+          <code>agent://planner.example.com/claude?text=Hello</code><a href="#section-4-4.2" class="pilcrow">¶</a>
 </li>
         <li class="normal" id="section-4-4.3">
-          <code>agent+https://acme.com/assistants/chatgpt?query=hello</code><a href="#section-4-4.3" class="pilcrow">¶</a>
+          <code>agent+https://example.com/assistants/chatgpt?query=hello</code><a href="#section-4-4.3" class="pilcrow">¶</a>
 </li>
         <li class="normal" id="section-4-4.4">
-          <code>agent+local://claude</code><a href="#section-4-4.4" class="pilcrow">¶</a>
+          <code>agent+local://examplelocalagent</code><a href="#section-4-4.4" class="pilcrow">¶</a>
 </li>
         <li class="normal" id="section-4-4.5">
-          <code>agent://did:web:acme.com:agent:researcher/get-article?doi=...</code><a href="#section-4-4.5" class="pilcrow">¶</a>
+          <code>agent://did:web:example.com:agent:researcher/get-article?doi=...</code><a href="#section-4-4.5" class="pilcrow">¶</a>
 </li>
       </ul>
 <div id="uri-components">
@@ -1575,20 +1586,27 @@ agent+&lt;protocol&gt;://[authority]/[path]
 <figure id="figure-3">
           <div id="section-4.2-1.1">
 <pre class="lang-abnf sourcecode">
-agent-uri      = "agent" [ "+" protocol ] "://" authority [ "/" path ] [ "?" query ] [ "#" fragment ]
+agent-uri      = "agent" ["+" protocol] "://" authority ["/" path]
+                 [ "?" query ] [ "#" fragment ]
 
 protocol       = 1*( ALPHA / DIGIT / "-" )
-authority      = [ userinfo "@" ] host [ ":" port ] ; &lt;authority, defined in RFC3986, Section 3.2&gt;
-path           = path-abempty    ; begins with "/" or is empty. Defined in RFC3986, Section 3.3
-query          = *( pchar / "/" / "?" ) ; &lt;query, defined in RFC3986, Section 3.4&gt;
-fragment       = *( pchar / "/" / "?" ) ; &lt;fragment, defined in RFC3986, Section 3.5&gt;
+authority      = [ userinfo "@" ] host [ ":" port ]
+                 ; &lt;authority, defined in RFC3986, Section 3.2&gt;
+path           = path-abempty
+                 ; begins with "/" or is empty.
+                 ; Defined in RFC3986, Section 3.3
+query          = *( pchar / "/" / "?" )
+                 ; &lt;query, defined in RFC3986, Section 3.4&gt;
+fragment       = *( pchar / "/" / "?" )
+                 ; &lt;fragment, defined in RFC3986, Section 3.5&gt;
 
 pchar          = unreserved / pct-encoded / sub-delims / ":" / "@"
 unreserved     = ALPHA / DIGIT / "-" / "." / "_" / "~"
 pct-encoded    = "%" HEXDIG HEXDIG
-sub-delims     = "!" / "$" / "&amp;" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
+sub-delims     = "!" / "$" / "&amp;" / "'" / "(" / ")" /
+                 "*" / "+" / "," / ";" / "="
 
-; Character sets like pchar, unreserved, etc. are also defined in RFC3986
+; Character sets like pchar, unreserved, etc. are defined in RFC3986
 
 </pre>
 </div>
@@ -1618,12 +1636,12 @@ sub-delims     = "!" / "$" / "&amp;" / "'" / "(" / ")" / "*" / "+" / "," / ";" /
           <code>/.well-known/agent.json</code> -- For single-agent deployments (compatible with Agent2Agent)<a href="#section-5-4.1" class="pilcrow">¶</a>
 </li>
         <li class="normal" id="section-5-4.2">
-          <code>/.well-known/agents.json</code> -- For multi-agent domains (maps agent names --&gt; descriptors)<a href="#section-5-4.2" class="pilcrow">¶</a>
+          <code>/.well-known/agents.json</code> -- For multi-agent domains (maps agent names -&gt; descriptors)<a href="#section-5-4.2" class="pilcrow">¶</a>
 </li>
       </ul>
 <p id="section-5-5">This descriptor is OPTIONAL but RECOMMENDED. It enables capability discovery, transport resolution, and compatibility with ecosystem tools.<a href="#section-5-5" class="pilcrow">¶</a></p>
-<p id="section-5-6">When present, the descriptor MAY use the AgentCard (as defined by Agent2Agent protocol by Google as of April 2025) schema as one possible format, or any equivalent JSON-LD-based structure that expresses the agent's identity, capabilities, and behavioral metadata.<a href="#section-5-6" class="pilcrow">¶</a></p>
-<p id="section-5-7">If the agent is deployed at a subdomain (e.g., <code>planner.acme.ai</code>), the agent descriptor SHOULD be published at <code>/.well-known/agent.json</code> on that domain.<a href="#section-5-7" class="pilcrow">¶</a></p>
+<p id="section-5-6">When present, the descriptor MAY use the <span>[<a href="#AgentCard" class="xref">AgentCard</a>]</span> (as defined by Agent2Agent protocol by Google as of April 2025) schema as one possible format, or any equivalent <span>[<a href="#JSON-LD11" class="xref">JSON-LD11</a>]</span> based structure that expresses the agent's identity, capabilities, and behavioral metadata.<a href="#section-5-6" class="pilcrow">¶</a></p>
+<p id="section-5-7">If the agent is deployed at a subdomain (e.g., <code>planner.example.org</code>), the agent descriptor SHOULD be published at <code>/.well-known/agent.json</code> on that domain.<a href="#section-5-7" class="pilcrow">¶</a></p>
 <div id="ecosystem-registries">
 <section id="section-5.1">
         <h3 id="name-ecosystem-registries-2">
@@ -1668,8 +1686,8 @@ https://&lt;domain&gt;/.well-known/agents.json
 <pre class="lang-json sourcecode">
 {
   "agents": {
-    "planner": "https://planner.acme.ai/.well-known/agent.json",
-    "translator": "https://acme.ai/translator/agent.json"
+    "planner": "https://planner.example.com/.well-known/agent.json",
+    "translator": "https://example.com/translator/agent.json"
   }
 }
 
@@ -1762,6 +1780,7 @@ agent+local://&lt;agent-name&gt;
 </pre><a href="#section-6.1-6" class="pilcrow">¶</a>
 </div>
 <p id="section-6.1-7">This allows agent runtimes to register their presence using a local resolver (e.g., via IPC, sockets, or service registry). The transport mechanism is implementation-specific.<a href="#section-6.1-7" class="pilcrow">¶</a></p>
+<p id="section-6.1-8">The <code>agent+local://</code> scheme specifically addresses the current lack of standardized methods for browser-based applications to invoke locally installed agents. This enables web applications to delegate tasks to local agents that can perform privileged operations such as file system access, desktop automation, or hardware interaction - capabilities that are typically restricted in browser environments. Security considerations for such invocations are discussed in <a href="#security-and-privacy" class="xref">Section 10</a>.<a href="#section-6.1-8" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="fallback-behavior">
@@ -1858,7 +1877,7 @@ agent+local://&lt;agent-name&gt;
 <ul class="normal">
 <li class="normal" id="section-7-4.1">The AgentCard structure (as defined by Google's Agent2Agent protocol as of April 2025), or another equivalent format<a href="#section-7-4.1" class="pilcrow">¶</a>
 </li>
-        <li class="normal" id="section-7-4.2">Any format other than AgentCard SHOULD be expressed in JSON-LD to enable semantic discovery<a href="#section-7-4.2" class="pilcrow">¶</a>
+        <li class="normal" id="section-7-4.2">Any format other than AgentCard SHOULD be expressed in <span>[<a href="#JSON-LD11" class="xref">JSON-LD11</a>]</span> to enable semantic discovery<a href="#section-7-4.2" class="pilcrow">¶</a>
 </li>
       </ul>
 <p id="section-7-5">Agent descriptors SHOULD include:<a href="#section-7-5" class="pilcrow">¶</a></p>
@@ -1910,14 +1929,14 @@ agent+local://&lt;agent-name&gt;
 </li>
       </ul>
 <p id="section-7-7">Agents MAY expose <code>inputFormats</code> and <code>outputFormats</code> per capability using standard MIME types (e.g., <code>application/json</code>, <code>application/ld+json</code>, <code>application/fipa-acl</code>).<a href="#section-7-7" class="pilcrow">¶</a></p>
-<p id="section-7-8">Agent descriptors SHOULD include input/output schemas (e.g., JSON Schema) and MAY document content negotiation support via the <code>contentTypes</code> field per capability. This allows clients to understand and negotiate payload encoding, enabling interoperability across ecosystems that use JSON, JSON-LD, RDF/XML, FIPA ACL, or other formats.<a href="#section-7-8" class="pilcrow">¶</a></p>
-<p id="section-7-9">Clients MAY use standard negotiation mechanisms such as <code>Content-Type</code> and Accept headers (in HTTP), or envelope metadata (in protocols like JSON-RPC, Matrix, etc.).<a href="#section-7-9" class="pilcrow">¶</a></p>
+<p id="section-7-8">Agent descriptors SHOULD include input/output schemas (e.g., JSON Schema) and MAY document content negotiation support via the <code>contentTypes</code> field per capability. This allows clients to understand and negotiate payload encoding, enabling interoperability across ecosystems that use JSON, <span>[<a href="#JSON-LD11" class="xref">JSON-LD11</a>]</span>, RDF/XML, <span>[<a href="#FIPA-ACL" class="xref">FIPA-ACL</a>]</span>, or other formats.<a href="#section-7-8" class="pilcrow">¶</a></p>
+<p id="section-7-9">Clients MAY use standard negotiation mechanisms such as <code>Content-Type</code> and Accept headers (in HTTP), or envelope metadata (in protocols like <span>[<a href="#JSON-RPC" class="xref">JSON-RPC</a>]</span>, <span>[<a href="#Matrix" class="xref">Matrix</a>]</span>, etc.).<a href="#section-7-9" class="pilcrow">¶</a></p>
 <p id="section-7-10">Implementations MAY advertise protocol compatility via metadata fields such as <code>interactionModel</code>, <code>orchestration</code>, or supported <code>envelopeSchemas</code> etc. These metadata fields enable clients and agent runtimes to interoperate across heterogeneous ecosystems and communication models.<a href="#section-7-10" class="pilcrow">¶</a></p>
 <p id="section-7-11">This extensibility ensures <code>agent://</code> can serve as a unifying addressing and invocation layer, bridging agents that follow established standards, platform-specific conventions, or learned behaviors in dynamic environments.<a href="#section-7-11" class="pilcrow">¶</a></p>
 <p id="section-7-12">If an <code>agent.json</code> is provided, it SHOULD contain at least: <code>name</code>, <code>version</code>, and one or more capabilities.<a href="#section-7-12" class="pilcrow">¶</a></p>
 <p id="section-7-13">Clients SHOULD explicitly specify the agent version either as a URI path segment, query parameter (<code>?version=3.1.4</code>), or HTTP header (<code>X-Agent-Version</code>). If omitted, servers SHOULD assume the latest version. Agents MUST document their preferred method for version negotiation clearly in their descriptor.<a href="#section-7-13" class="pilcrow">¶</a></p>
 <p id="section-7-14">While <code>.well-known/agents.json</code> MAY be used to enumerate all available agents under a domain, the individual <code>agent.json</code> files serve as the canonical source of truth.<a href="#section-7-14" class="pilcrow">¶</a></p>
-<p id="section-7-15">Expressing descriptors in JSON-LD enables semantic interoperability and supports alignment with common web-based data models.<a href="#section-7-15" class="pilcrow">¶</a></p>
+<p id="section-7-15">Expressing descriptors in <span>[<a href="#JSON-LD11" class="xref">JSON-LD11</a>]</span> enables semantic interoperability and supports alignment with common web-based data models.<a href="#section-7-15" class="pilcrow">¶</a></p>
 <p id="section-7-16">Implementers MAY choose to embed, proxy, or map to other protocols within the <code>agent.json</code> descriptor or transport bindings, allowing for seamless orchestration and hybrid deployments.<a href="#section-7-16" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -1965,7 +1984,7 @@ agent+local://&lt;agent-name&gt;
 <div id="section-8.1.1-3">
 <pre class="lang-http sourcecode">
 GET /tasks/1234 HTTP/1.1
-Host: planner.acme.ai
+Host: planner.example.com
 X-Session-ID: abcde-12345
 
 </pre><a href="#section-8.1.1-3" class="pilcrow">¶</a>
@@ -2010,11 +2029,11 @@ X-Session-ID: abcde-12345
      |                | Retrieves capabilities
      |                |                    |
      |                | Constructs request |
-     |                | --&gt; agent://planner.acme.ai/generate-itinerary?city=Paris
+     |                | --&gt; agent://plan.example.com/gen-iti?city=Rio
      |                |                    |
-     |                |                    | Agent validates input
-     |                |                    | Invokes internal logic or tools
-     |                |                    | May call sub-agents (see below)
+     |                |                    | Validate input
+     |                |                    | Process logic/call tools
+     |                |                    | May call sub-agents
      |                |                    |
      |                | Receives response  |
      |                | &lt;== itinerary JSON |
@@ -2048,27 +2067,30 @@ X-Session-ID: abcde-12345
 <figure id="figure-6">
             <div id="section-8.3.2-3.1">
 <pre class="lang-art sourcecode">
-+-----------------+         +------------------+         +-------------------+
-|  Planning Agent |  ---&gt;   |  Resolver / URI  |  ---&gt;   |  Translation Agent|
-+-----------------+         +------------------+         +-------------------+
-        |                            |                            |
-        | Receives input:            |                            |
-        | {"city": "Paris", ...}     |                            |
-        |                            |                            |
-        | Needs translated output    |                            |
-        | for international users    |                            |
-        |                            | Resolves URI:              |
-        | --&gt; agent://translator.acme.ai/translate?text=Bonjour   |
-        |                            |                            |
-        |                            | --&gt; Fetch agent.json       |
-        |                            | --&gt; Determine transport    |
-        |                            |                            |
-        |                            |                            | Processes translation
-        |                            |                            | Returns JSON { "text": "Hello" }
-        | &lt;--------------------------|&lt;---------------------------|
-        | Merges result, returns to  |
-        | user/client or continues   |
-
++----------+       +----------+       +------------+
+|Planning  |------&gt;|Resolver/ |------&gt;|Translation |
+|Agent     |       |URI       |       |Agent       |
++----------+       +----------+       +------------+
+     |                  |                   |
+     | Input:           |                   |
+     | {"city":"Paris"} |                   |
+     |                  |                   |
+     | Needs translation|                   |
+     |                  |                   |
+     |                  | Resolves URI:     |
+     |--agent://translator.example/translate?text=Bonjour--&gt;|
+     |                  |                   |
+     |                  | --&gt; Get           |
+     |                  |     agent.json    |
+     |                  | --&gt; Determine     |
+     |                  |     transport     |
+     |                  |                   |
+     |                  |                   | Process translation
+     |                  |                   | Return translated JSON
+     |&lt;-----------------|&lt;------------------|
+     | Merge &amp; return   |                   |
+     | to user/client   |                   |
+     | or continues     |                   |
 </pre>
 </div>
 <figcaption><a href="#figure-6" class="selfRef">Figure 6</a>:
@@ -2093,7 +2115,7 @@ X-Session-ID: abcde-12345
       <h2 id="name-error-handling-error-handlin">
 <a href="#section-9" class="section-number selfRef">9. </a><a href="#name-error-handling-error-handlin" class="section-name selfRef">Error Handling        {# error-handling}</a>
       </h2>
-<p id="section-9-1">The <code>agent://</code> protocol MAY leverage HTTP standard status codes for signaling errors. Implementations MAY return errors using standard HTTP status codes along with structured JSON error responses conforming to RFC7807 ("Problem Details for HTTP APIs").<a href="#section-9-1" class="pilcrow">¶</a></p>
+<p id="section-9-1">The <code>agent://</code> protocol MAY leverage HTTP standard status codes for signaling errors. Implementations MAY return errors using standard HTTP status codes along with structured JSON error responses conforming to <span>[<a href="#RFC9457" class="xref">RFC9457</a>]</span> ("Problem Details for HTTP APIs").<a href="#section-9-1" class="pilcrow">¶</a></p>
 <p id="section-9-2">**Recommended HTTP status codes include (but are not limited to)<a href="#section-9-2" class="pilcrow">¶</a></p>
 <span id="name-recommended-http-status-code"></span><div id="tab-http-status-codes">
 <table class="center" id="table-4">
@@ -2150,11 +2172,11 @@ HTTP/1.1 404 Not Found
 Content-Type: application/problem+json
 
 {
-  "type": "https://acme.ai/errors/capability-not-found",
+  "type": "https://example.com/errors/capability-not-found",
   "title": "Capability Not Found",
   "status": 404,
-  "detail": "The requested capability 'generate-itinerary' was not found.",
-  "instance": "/planner/generate-itinerary"
+  "detail": "The requested capability 'gen-iti' was not found.",
+  "instance": "/planner/gen-iti"
 }
 {: #fig-error-response title="Example HTTP Error Response"}
 
@@ -2166,9 +2188,11 @@ Content-Type: application/problem+json
 <ul class="normal">
 <li class="normal" id="section-9-9.1">JSON-RPC <code>error</code> objects (<code>code</code>, <code>message</code>, <code>data</code>)<a href="#section-9-9.1" class="pilcrow">¶</a>
 </li>
-        <li class="normal" id="section-9-9.2">OpenAPI/REST error payloads<a href="#section-9-9.2" class="pilcrow">¶</a>
+        <li class="normal" id="section-9-9.2">
+          <span>[<a href="#OpenAPI" class="xref">OpenAPI</a>]</span> or REST error payloads<a href="#section-9-9.2" class="pilcrow">¶</a>
 </li>
-        <li class="normal" id="section-9-9.3">GraphQL <code>errors</code> array format<a href="#section-9-9.3" class="pilcrow">¶</a>
+        <li class="normal" id="section-9-9.3">
+          <span>[<a href="#GraphQL" class="xref">GraphQL</a>]</span> <code>errors</code> array format<a href="#section-9-9.3" class="pilcrow">¶</a>
 </li>
       </ul>
 <p id="section-9-10">Recommended error categories:<a href="#section-9-10" class="pilcrow">¶</a></p>
@@ -2200,11 +2224,12 @@ Content-Type: application/problem+json
 <p id="section-10-1">The <code>agent://</code> protocol explicitly relies on widely-adopted HTTP authentication and authorization standards. Agents SHOULD support standard authentication and authorization schemes such as OAuth2 (Bearer tokens), API keys, or signed payloads. When using HTTPS, mutual TLS MAY be employed. JSON Web Tokens (JWT) are RECOMMENDED for conveying signed claims between agents.<a href="#section-10-1" class="pilcrow">¶</a></p>
 <p id="section-10-2">Security extensions MAY include:<a href="#section-10-2" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-10-3.1">OAuth2 Bearer Tokens (RFC6750)<a href="#section-10-3.1" class="pilcrow">¶</a>
+<li class="normal" id="section-10-3.1">
+          <span><a href="#RFC6750" class="xref">OAuth2</a> [<a href="#RFC6750" class="xref">RFC6750</a>]</span> Bearer Tokens<a href="#section-10-3.1" class="pilcrow">¶</a>
 </li>
-        <li class="normal" id="section-10-3.2">JSON Web Tokens (JWT) (RFC7519)<a href="#section-10-3.2" class="pilcrow">¶</a>
+        <li class="normal" id="section-10-3.2">JSON Web Tokens (<span><a href="#RFC7519" class="xref">JWT</a> [<a href="#RFC7519" class="xref">RFC7519</a>]</span>)<a href="#section-10-3.2" class="pilcrow">¶</a>
 </li>
-        <li class="normal" id="section-10-3.3">Mutual TLS (mTLS) authentication (RFC8705)<a href="#section-10-3.3" class="pilcrow">¶</a>
+        <li class="normal" id="section-10-3.3">Mutual TLS (<span><a href="#RFC8705" class="xref">mTLS</a> [<a href="#RFC8705" class="xref">RFC8705</a>]</span>) authentication<a href="#section-10-3.3" class="pilcrow">¶</a>
 </li>
         <li class="normal" id="section-10-3.4">API Keys via HTTP headers (e.g., <code>X-API-Key</code>)<a href="#section-10-3.4" class="pilcrow">¶</a>
 </li>
@@ -2214,7 +2239,7 @@ Content-Type: application/problem+json
 </li>
       </ul>
 <p id="section-10-4">For non-HTTP transports (e.g., WebSocket, Matrix), agents SHOULD leverage native authentication mechanisms, such as WebSocket protocol-level authentication tokens or Matrix homeserver authentication flows. Agents MUST clearly document supported security mechanisms per transport binding.<a href="#section-10-4" class="pilcrow">¶</a></p>
-<p id="section-10-5">When using Decentralized Identifiers (DIDs) as authority, agent descriptors MAY be cryptographically signed. Clients SHOULD verify such signatures against the corresponding DID Document.<a href="#section-10-5" class="pilcrow">¶</a></p>
+<p id="section-10-5">When using <span><a href="#DID-CORE" class="xref">Decentralized Identifiers</a> [<a href="#DID-CORE" class="xref">DID-CORE</a>]</span> as authority, agent descriptors MAY be cryptographically signed. Clients SHOULD verify such signatures against the corresponding DID Document.<a href="#section-10-5" class="pilcrow">¶</a></p>
 <p id="section-10-6">For agent-to-agent delegation, agents SHOULD include delegation metadata (e.g., <code>X-Delegation-Chain</code>) that identifies prior actors. These chains SHOULD be signed or verifiable via claims (e.g., using JWT, Verifiable Credentials, or DID-linked proofs).<a href="#section-10-6" class="pilcrow">¶</a></p>
 <p id="section-10-7">Privacy recommendations:<a href="#section-10-7" class="pilcrow">¶</a></p>
 <p id="section-10-8">Agents SHOULD adhere to privacy best practices, including:<a href="#section-10-8" class="pilcrow">¶</a></p>
@@ -2291,8 +2316,8 @@ The author or a relevant standards body such as the IETF if adopted.<a href="#se
           <li class="normal" id="section-12.1-1.6">
             <strong>References</strong>:<br>
 This document (Internet-Draft): <em>agent:// Protocol -- A URI-Based Framework for Interoperable Agents</em><br>
-            <span>[<a href="#RFC3986" class="xref">RFC3986</a>]</span> -- Uniform Resource Identifier (URI): Generic Syntax<br>
-            <span>[<a href="#RFC7595" class="xref">RFC7595</a>]</span> -- Guidelines and Registration Procedures for URI Schemes<a href="#section-12.1-1.6" class="pilcrow">¶</a>
+            <span>[<a href="#RFC3986" class="xref">RFC3986</a>]</span> - Uniform Resource Identifier (URI): Generic Syntax<br>
+            <span>[<a href="#RFC7595" class="xref">RFC7595</a>]</span> - Guidelines and Registration Procedures for URI Schemes<a href="#section-12.1-1.6" class="pilcrow">¶</a>
 </li>
           <li class="normal" id="section-12.1-1.7">
             <strong>URI Syntax</strong>:<br>
@@ -2334,13 +2359,13 @@ The <code>agent</code> scheme does not introduce new transport-layer vulnerabili
 <pre class="lang-json-ld sourcecode">
 {
   "@context": "https://example.org/agent-context.jsonld",
-  "name": "planner.acme.ai",
-  "description": "Planning agent helps in researching, generating and managing itineraries",
-  "url": "agent://planner.acme.ai/",
+  "name": "planner.example.com",
+  "description": "Agent helps in researching &amp; planning itineraries",
+  "url": "agent://planner.example.com/",
   "provider": {
-    "organization": "ACME AI"
+    "organization": "Example AI Org"
   },
-  "documentationUrl": "https://planner.acme.ai/docs",
+  "documentationUrl": "https://planner.example.com/docs",
   "interactionModel": "agent2agent",
   "orchestration": "delegation",
   "envelopeSchemas": ["fipa-acl"],
@@ -2352,7 +2377,7 @@ The <code>agent</code> scheme does not introduce new transport-layer vulnerabili
   },
   "capabilities": [
     {
-      "name": "generate-itinerary",
+      "name": "gen-iti",
       "version": "2.1.5",
       "description": "Creates a travel itinerary for a given city.",
       "input": { "city": "string" },
@@ -2400,6 +2425,10 @@ The <code>agent</code> scheme does not introduce new transport-layer vulnerabili
         <li class="normal" id="section-14-1.4">Building knowledge-based agents that invoke retrieval agents<a href="#section-14-1.4" class="pilcrow">¶</a>
 </li>
         <li class="normal" id="section-14-1.5">Real-time collaboration among specialized agents<a href="#section-14-1.5" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-14-1.6">Browser-to-local-agent delegation for privileged operations and desktop automation<a href="#section-14-1.6" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-14-1.7">Consistent addressing for agents across network boundaries and security contexts<a href="#section-14-1.7" class="pilcrow">¶</a>
 </li>
       </ul>
 </section>
@@ -2454,7 +2483,7 @@ The <code>agent</code> scheme does not introduce new transport-layer vulnerabili
 <dd class="break"></dd>
 <dt id="JSON-LD11">[JSON-LD11]</dt>
         <dd>
-<span class="refAuthor">Sporny, M.</span>, <span class="refAuthor">Longley, D.</span>, <span class="refAuthor">Kellogg, G.</span>, <span class="refAuthor">Lanthaler, M.</span>, <span class="refAuthor">Champin, P.</span>, and <span class="refAuthor">N. Lindström</span>, <span class="refTitle">"JSON-LD 1.1: A JSON-based Serialization for Linked Data"</span>, <span class="seriesInfo">W3C Recommendation</span>, <time datetime="2020-07" class="refDate">July 2020</time>, <span>&lt;<a href="https://www.w3.org/TR/json-ld11/">https://www.w3.org/TR/json-ld11/</a>&gt;</span>. </dd>
+<span class="refAuthor">Sporny, M.</span>, <span class="refAuthor">Longley, D.</span>, <span class="refAuthor">Kellogg, G.</span>, <span class="refAuthor">Lanthaler, M.</span>, <span class="refAuthor">Champin, P.</span>, and <span class="refAuthor">N. Lindstrom</span>, <span class="refTitle">"JSON-LD 1.1: A JSON-based Serialization for Linked Data"</span>, <span class="seriesInfo">W3C Recommendation</span>, <time datetime="2020-07" class="refDate">July 2020</time>, <span>&lt;<a href="https://www.w3.org/TR/json-ld11/">https://www.w3.org/TR/json-ld11/</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC2119">[RFC2119]</dt>
         <dd>
@@ -2472,10 +2501,6 @@ The <code>agent</code> scheme does not introduce new transport-layer vulnerabili
         <dd>
 <span class="refAuthor">Jones, M.</span> and <span class="refAuthor">D. Hardt</span>, <span class="refTitle">"The OAuth 2.0 Authorization Framework: Bearer Token Usage"</span>, <span class="seriesInfo">RFC 6750</span>, <span class="seriesInfo">DOI 10.17487/RFC6750</span>, <time datetime="2012-10" class="refDate">October 2012</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6750">https://www.rfc-editor.org/rfc/rfc6750</a>&gt;</span>. </dd>
 <dd class="break"></dd>
-<dt id="RFC7231">[RFC7231]</dt>
-        <dd>
-<span class="refAuthor">Fielding, R., Ed.</span> and <span class="refAuthor">J. Reschke, Ed.</span>, <span class="refTitle">"Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content"</span>, <span class="seriesInfo">RFC 7231</span>, <span class="seriesInfo">DOI 10.17487/RFC7231</span>, <time datetime="2014-06" class="refDate">June 2014</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7231">https://www.rfc-editor.org/rfc/rfc7231</a>&gt;</span>. </dd>
-<dd class="break"></dd>
 <dt id="RFC7519">[RFC7519]</dt>
         <dd>
 <span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">N. Sakimura</span>, <span class="refTitle">"JSON Web Token (JWT)"</span>, <span class="seriesInfo">RFC 7519</span>, <span class="seriesInfo">DOI 10.17487/RFC7519</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7519">https://www.rfc-editor.org/rfc/rfc7519</a>&gt;</span>. </dd>
@@ -2484,17 +2509,21 @@ The <code>agent</code> scheme does not introduce new transport-layer vulnerabili
         <dd>
 <span class="refAuthor">Thaler, D., Ed.</span>, <span class="refAuthor">Hansen, T.</span>, and <span class="refAuthor">T. Hardie</span>, <span class="refTitle">"Guidelines and Registration Procedures for URI Schemes"</span>, <span class="seriesInfo">BCP 35</span>, <span class="seriesInfo">RFC 7595</span>, <span class="seriesInfo">DOI 10.17487/RFC7595</span>, <time datetime="2015-06" class="refDate">June 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7595">https://www.rfc-editor.org/rfc/rfc7595</a>&gt;</span>. </dd>
 <dd class="break"></dd>
-<dt id="RFC7807">[RFC7807]</dt>
-        <dd>
-<span class="refAuthor">Nottingham, M.</span> and <span class="refAuthor">E. Wilde</span>, <span class="refTitle">"Problem Details for HTTP APIs"</span>, <span class="seriesInfo">RFC 7807</span>, <span class="seriesInfo">DOI 10.17487/RFC7807</span>, <time datetime="2016-03" class="refDate">March 2016</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7807">https://www.rfc-editor.org/rfc/rfc7807</a>&gt;</span>. </dd>
-<dd class="break"></dd>
 <dt id="RFC8174">[RFC8174]</dt>
         <dd>
 <span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8174">https://www.rfc-editor.org/rfc/rfc8174</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC8705">[RFC8705]</dt>
-      <dd>
+        <dd>
 <span class="refAuthor">Campbell, B.</span>, <span class="refAuthor">Bradley, J.</span>, <span class="refAuthor">Sakimura, N.</span>, and <span class="refAuthor">T. Lodderstedt</span>, <span class="refTitle">"OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens"</span>, <span class="seriesInfo">RFC 8705</span>, <span class="seriesInfo">DOI 10.17487/RFC8705</span>, <time datetime="2020-02" class="refDate">February 2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8705">https://www.rfc-editor.org/rfc/rfc8705</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9110">[RFC9110]</dt>
+        <dd>
+<span class="refAuthor">Fielding, R., Ed.</span>, <span class="refAuthor">Nottingham, M., Ed.</span>, and <span class="refAuthor">J. Reschke, Ed.</span>, <span class="refTitle">"HTTP Semantics"</span>, <span class="seriesInfo">STD 97</span>, <span class="seriesInfo">RFC 9110</span>, <span class="seriesInfo">DOI 10.17487/RFC9110</span>, <time datetime="2022-06" class="refDate">June 2022</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9110">https://www.rfc-editor.org/rfc/rfc9110</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9457">[RFC9457]</dt>
+      <dd>
+<span class="refAuthor">Nottingham, M.</span>, <span class="refAuthor">Wilde, E.</span>, and <span class="refAuthor">S. Dalal</span>, <span class="refTitle">"Problem Details for HTTP APIs"</span>, <span class="seriesInfo">RFC 9457</span>, <span class="seriesInfo">DOI 10.17487/RFC9457</span>, <time datetime="2023-07" class="refDate">July 2023</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9457">https://www.rfc-editor.org/rfc/rfc9457</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 </dl>
 </section>
@@ -2525,13 +2554,25 @@ The <code>agent</code> scheme does not introduce new transport-layer vulnerabili
         <dd>
 <span class="refAuthor">Foundation for Intelligent Physical Agents</span>, <span class="refTitle">"FIPA ACL Message Structure Specification"</span>, <time datetime="2002" class="refDate">2002</time>, <span>&lt;<a href="http://www.fipa.org/specs/fipa00061/SC00061G.html">http://www.fipa.org/specs/fipa00061/SC00061G.html</a>&gt;</span>. </dd>
 <dd class="break"></dd>
+<dt id="FIPA-CNP">[FIPA-CNP]</dt>
+        <dd>
+<span class="refAuthor">Foundation for Intelligent Physical Agents</span>, <span class="refTitle">"FIPA Contract Net Interaction Protocol Specification"</span>, <time datetime="2002" class="refDate">2002</time>, <span>&lt;<a href="http://www.fipa.org/specs/fipa00029/SC00029H.html">http://www.fipa.org/specs/fipa00029/SC00029H.html</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="GraphQL">[GraphQL]</dt>
         <dd>
 <span class="refAuthor">GraphQL Foundation</span>, <span class="refTitle">"GraphQL: A Query Language for APIs"</span>, <time datetime="2021-10" class="refDate">October 2021</time>, <span>&lt;<a href="https://spec.graphql.org/October2021/">https://spec.graphql.org/October2021/</a>&gt;</span>. </dd>
 <dd class="break"></dd>
+<dt id="JSON-RPC">[JSON-RPC]</dt>
+        <dd>
+<span class="refAuthor">JSON-RPC Working Group</span>, <span class="refTitle">"JSON-RPC 2.0 Specification"</span>, <time datetime="2013-01-04" class="refDate">4 January 2013</time>, <span>&lt;<a href="https://www.jsonrpc.org/specification">https://www.jsonrpc.org/specification</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="LangChain">[LangChain]</dt>
         <dd>
 <span class="refAuthor">LangChain Team</span>, <span class="refTitle">"LangChain Documentation"</span>, <time datetime="2024" class="refDate">2024</time>, <span>&lt;<a href="https://python.langchain.com/v0.3/docs/">https://python.langchain.com/v0.3/docs/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="Matrix">[Matrix]</dt>
+        <dd>
+<span class="refAuthor">The Matrix org Foundation</span>, <span class="refTitle">"Matrix Specification v1.14"</span>, <time datetime="2014" class="refDate">2014</time>, <span>&lt;<a href="https://spec.matrix.org/">https://spec.matrix.org/</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="MCP">[MCP]</dt>
         <dd>

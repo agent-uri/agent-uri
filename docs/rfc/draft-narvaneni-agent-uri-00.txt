@@ -4,23 +4,24 @@
 
 Independent Submission                                      Y. Narvaneni
 Internet-Draft                                    Independent Researcher
-Intended status: Standards Track                           21 April 2025
+Intended status: Experimental                              21 April 2025
 Expires: 23 October 2025
 
 
- The agent:// Protocol — A URI-Based Framework for Interoperable Agents
+The agent:// Protocol -- A URI-Based Framework for Interoperable Agents
                       draft-narvaneni-agent-uri-00
 
 Abstract
 
-   This document defines the agent:// protocol, a URI-based framework
-   for addressing, invoking, and interoperating with autonomous and
-   semi-autonomous software agents.  It introduces a layered
-   architecture that supports minimal implementations (addressing and
-   transport) and extensible features (capability discovery, contracts,
-   orchestration).  The protocol aims to foster interoperability among
-   agents across ecosystems, platforms, and modalities, enabling
-   composable and collaborative intelligent systems.
+   This document defines the agent:// protocol, a URI template-based
+   framework as described in RFC 6570 for addressing, invoking, and
+   interoperating with autonomous and semi-autonomous software agents.
+   It introduces a layered architecture that supports minimal
+   implementations (addressing and transport) and extensible features
+   (capability discovery, contracts, orchestration).  The protocol aims
+   to foster interoperability among agents across ecosystems, platforms,
+   and modalities, enabling composable and collaborative intelligent
+   systems.
 
 Status of This Memo
 
@@ -44,12 +45,11 @@ Copyright Notice
    Copyright (c) 2025 IETF Trust and the persons identified as the
    document authors.  All rights reserved.
 
-
-
-
-
-
-
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.
 
 
 
@@ -58,18 +58,9 @@ Narvaneni                Expires 23 October 2025                [Page 1]
 Internet-Draft                  agent-uri                     April 2025
 
 
-   This document is subject to BCP 78 and the IETF Trust's Legal
-   Provisions Relating to IETF Documents (https://trustee.ietf.org/
-   license-info) in effect on the date of publication of this document.
-   Please review these documents carefully, as they describe your rights
-   and restrictions with respect to this document.  Code Components
-   extracted from this document must include Revised BSD License text as
-   described in Section 4.e of the Trust Legal Provisions and are
-   provided without warranty as described in the Revised BSD License.
-
 Table of Contents
 
-   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   3
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   2
    2.  Terminology . . . . . . . . . . . . . . . . . . . . . . . . .   4
    3.  Protocol Scope and Layering . . . . . . . . . . . . . . . . .   4
    4.  URI Scheme Specification  . . . . . . . . . . . . . . . . . .   5
@@ -80,32 +71,41 @@ Table of Contents
      5.2.  Trust Anchors . . . . . . . . . . . . . . . . . . . . . .   8
    6.  Transport Bindings  . . . . . . . . . . . . . . . . . . . . .   8
      6.1.  Explicit Transport Binding  . . . . . . . . . . . . . . .   8
-     6.2.  Default Fallback Behavior . . . . . . . . . . . . . . . .   9
+     6.2.  Default Fallback Behavior . . . . . . . . . . . . . . . .  10
      6.3.  Use Cases and Recommended Bindings  . . . . . . . . . . .  10
-   7.  Capability Framework  . . . . . . . . . . . . . . . . . . . .  10
-   8.  Interaction Patterns {# interaction-patterns} . . . . . . . .  12
+   7.  Capability Framework  . . . . . . . . . . . . . . . . . . . .  11
+   8.  Interaction Patterns {# interaction-patterns} . . . . . . . .  13
      8.1.  Stateful Interactions {# stateful-interactions} . . . . .  13
-       8.1.1.  Recommended practices:  . . . . . . . . . . . . . . .  13
+       8.1.1.  Recommended practices:  . . . . . . . . . . . . . . .  14
      8.2.  Orchestration Patterns  . . . . . . . . . . . . . . . . .  14
      8.3.  Typical Interaction Flows . . . . . . . . . . . . . . . .  14
        8.3.1.  Client-to-Agent Interaction . . . . . . . . . . . . .  14
        8.3.2.  Agent-to-Agent Interaction  . . . . . . . . . . . . .  15
-   9.  Error Handling {# error-handling} . . . . . . . . . . . . . .  15
-   10. Security and Privacy Considerations . . . . . . . . . . . . .  17
-     10.1.  Compliance and Regulatory Considerations . . . . . . . .  18
-   11. Extensibility . . . . . . . . . . . . . . . . . . . . . . . .  18
-   12. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  19
-     12.1.  URI Scheme Registration Template . . . . . . . . . . . .  19
-   13. Appendix A.  Example Agent Descriptor . . . . . . . . . . . .  20
-   14. Appendix B.  Use Cases  . . . . . . . . . . . . . . . . . . .  22
-   15. Appendix C.  Reference Implementation . . . . . . . . . . . .  22
-   Acknowledgements  . . . . . . . . . . . . . . . . . . . . . . . .  22
-   References  . . . . . . . . . . . . . . . . . . . . . . . . . . .  22
-     Normative References  . . . . . . . . . . . . . . . . . . . . .  22
-     Informative References  . . . . . . . . . . . . . . . . . . . .  24
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  25
+   9.  Error Handling {# error-handling} . . . . . . . . . . . . . .  16
+   10. Security and Privacy Considerations . . . . . . . . . . . . .  18
+     10.1.  Compliance and Regulatory Considerations . . . . . . . .  19
+   11. Extensibility . . . . . . . . . . . . . . . . . . . . . . . .  19
+   12. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  20
+     12.1.  URI Scheme Registration Template . . . . . . . . . . . .  20
+   13. Appendix A.  Example Agent Descriptor . . . . . . . . . . . .  21
+   14. Appendix B.  Use Cases  . . . . . . . . . . . . . . . . . . .  23
+   15. Appendix C.  Reference Implementation . . . . . . . . . . . .  23
+   Acknowledgements  . . . . . . . . . . . . . . . . . . . . . . . .  24
+   References  . . . . . . . . . . . . . . . . . . . . . . . . . . .  24
+     Normative References  . . . . . . . . . . . . . . . . . . . . .  24
+     Informative References  . . . . . . . . . . . . . . . . . . . .  25
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  26
 
+1.  Introduction
 
+   The rise of intelligent software agents necessitates a standardized
+   way to identify, invoke, and coordinate them across diverse
+   platforms.  While protocols like HTTP [RFC9110] provide a transport
+   mechanism for static APIs, agents differ significantly in behavior,
+   output variability, and interaction patterns.  The agent:// proposes
+   a URI scheme and resolution model designed to complement existing
+   agent communication protocols and libraries like [Agent2Agent],
+   [FIPA-ACL], Contract Net Protocol [FIPA-CNP], [LangChain], Model
 
 
 
@@ -114,41 +114,61 @@ Narvaneni                Expires 23 October 2025                [Page 2]
 Internet-Draft                  agent-uri                     April 2025
 
 
-1.  Introduction
+   Context Protocol [MCP], [AutoGen], [SemanticKernel] etc.  It serves
+   as an addressing and discovery layer that works alongside these
+   communication protocol.
 
-   The rise of intelligent software agents necessitates a standardized
-   way to identify, invoke, and coordinate them across diverse
-   platforms.  While protocols like HTTP provide a transport mechanism
-   for static APIs, agents differ significantly in behavior, output
-   variability, and interaction patterns.  The agent:// proposes a URI
-   scheme and resolution model designed to complement existing agent
-   communication protocol like Agent2Agent(A2A), FIPA ACL, Contract Net
-   Protocol (CNP), LangChain etc.  It serves as an addressing and
-   discovery layer that works alongside these communication protocol.
+   The agent:// protocol supports diverse agent deployment models
+   through a unified addressing scheme:
 
- +------------------+
- | Agent Applications|
- +------------------+
-         ↓  ↑
- +------------------+
- |   agent:// URI   | ← Addressing, Resolution, Discovery
- +------------------+
-         ↓  ↑
- +------------------+     +------------------+
- |  Agent2Agent     |     |    CNP,. etc     | ← Communication Protocols
- +------------------+     +------------------+
-         ↓  ↑                    ↓  ↑
- +------------------+     +------------------+
- | Transport Layer  |     | Transport Layer  | ← HTTP, WebSockets, etc.
- +------------------+     +------------------+
+   *  Cloud-based agents accessible via standard web protocols
 
-              Figure 1: Agent Protocol Stack Architecture
+   *  Local agents running on the user's device through the
+      agent+local:// scheme
+
+   *  On-premises agents within organizational boundaries
+
+   *  Decentralized agents operating across distributed networks
+
+   This flexibility addresses a critical gap in current agent
+   ecosystems, enabling applications (including browsers) to discover
+   and invoke agents consistently regardless of where they're hosted.
+   By providing standardized URI[RFC6570] patterns for both remote and
+   local agents, the protocol simplifies previously complex integration
+   scenarios like browser-to-local-agent delegation for privileged
+   operations.
+
+   +------------------+
+   | Agent Applications|
+   +------------------+
+          <->
+   +------------------+
+   |   agent:// URI   | <- Addressing, Resolution, Discovery
+   +------------------+
+          <->
+   +------------------+  +------------------+
+   |  Agent2Agent     |  |    CNP,. etc     | <- Communication Protocols
+   +------------------+  +------------------+
+           <->                   <->
+   +------------------+  +------------------+
+   | Transport Layer  |  | Transport Layer  | <- HTTP, WebSockets, etc.
+   +------------------+  +------------------+
+
+                Figure 1: Agent Protocol Stack Architecture
 
    The agent:// protocol supports:
 
    *  Unique and resolvable addressing of agents
 
    *  Optional self-describing capabilities
+
+
+
+
+Narvaneni                Expires 23 October 2025                [Page 3]
+
+Internet-Draft                  agent-uri                     April 2025
+
 
    *  Consistent invocation semantics over existing transports
 
@@ -158,17 +178,6 @@ Internet-Draft                  agent-uri                     April 2025
    This document outlines the specification for the agent:// protocol,
    beginning with its URI scheme and extending through capability
    description, transport bindings, and extensibility patterns.
-
-
-
-
-
-
-
-Narvaneni                Expires 23 October 2025                [Page 3]
-
-Internet-Draft                  agent-uri                     April 2025
-
 
    A reference implementation of the agent:// protocol is available to
    demonstrate resolution, transport bindings, capability discovery, and
@@ -194,22 +203,13 @@ Internet-Draft                  agent-uri                     April 2025
 
    The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
    "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
-   "OPTIONAL" in this document are to be interpreted as described in BCP
-   14 RFC2119 and RFC8174 when, and only when, they appear in all
-   capitals, as shown here.
+   "OPTIONAL" in this document are to be interpreted as described in RFC
+   2119, BCP 14 [RFC2119], [RFC8174] when, and only when, they appear in
+   all capitals, as shown here.
 
 3.  Protocol Scope and Layering
 
    The agent:// protocol is designed as a layered framework:
-
-
-
-
-
-
-
-
-
 
 
 
@@ -260,15 +260,15 @@ Internet-Draft                  agent-uri                     April 2025
 
    Examples:
 
-   *  agent://acme.ai/planning/generate-itinerary?city=Paris
+   *  agent://example.com/planning/gen-iti?city=Paris
 
-   *  agent://planner.acme.ai/claude?text=Hello
+   *  agent://planner.example.com/claude?text=Hello
 
-   *  agent+https://acme.com/assistants/chatgpt?query=hello
+   *  agent+https://example.com/assistants/chatgpt?query=hello
 
-   *  agent+local://claude
+   *  agent+local://examplelocalagent
 
-   *  agent://did:web:acme.com:agent:researcher/get-article?doi=...
+   *  agent://did:web:example.com:agent:researcher/get-article?doi=...
 
 4.1.  Components
 
@@ -301,20 +301,27 @@ Internet-Draft                  agent-uri                     April 2025
 
 4.2.  ABNF for agent:// URI
 
-   agent-uri      = "agent" [ "+" protocol ] "://" authority [ "/" path ] [ "?" query ] [ "#" fragment ]
+   agent-uri      = "agent" ["+" protocol] "://" authority ["/" path]
+                    [ "?" query ] [ "#" fragment ]
 
    protocol       = 1*( ALPHA / DIGIT / "-" )
-   authority      = [ userinfo "@" ] host [ ":" port ] ; <authority, defined in RFC3986, Section 3.2>
-   path           = path-abempty    ; begins with "/" or is empty. Defined in RFC3986, Section 3.3
-   query          = *( pchar / "/" / "?" ) ; <query, defined in RFC3986, Section 3.4>
-   fragment       = *( pchar / "/" / "?" ) ; <fragment, defined in RFC3986, Section 3.5>
+   authority      = [ userinfo "@" ] host [ ":" port ]
+                    ; <authority, defined in RFC3986, Section 3.2>
+   path           = path-abempty
+                    ; begins with "/" or is empty.
+                    ; Defined in RFC3986, Section 3.3
+   query          = *( pchar / "/" / "?" )
+                    ; <query, defined in RFC3986, Section 3.4>
+   fragment       = *( pchar / "/" / "?" )
+                    ; <fragment, defined in RFC3986, Section 3.5>
 
    pchar          = unreserved / pct-encoded / sub-delims / ":" / "@"
    unreserved     = ALPHA / DIGIT / "-" / "." / "_" / "~"
    pct-encoded    = "%" HEXDIG HEXDIG
-   sub-delims     = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
+   sub-delims     = "!" / "$" / "&" / "'" / "(" / ")" /
+                    "*" / "+" / "," / ";" / "="
 
-   ; Character sets like pchar, unreserved, etc. are also defined in RFC3986
+   ; Character sets like pchar, unreserved, etc. are defined in RFC3986
 
                Figure 3: ABNF Grammar for agent:// URI Scheme
 
@@ -324,13 +331,6 @@ Internet-Draft                  agent-uri                     April 2025
 
    <scheme>://<domain>/<path-to-agent>/agent.json
 
-   If a single agent is deployed at the top level then it should be
-   under /.well-known to be compatible with Agent2Agent protocol.
-
-   *  /.well-known/agent.json -- For single-agent deployments
-      (compatible with Agent2Agent)
-
-
 
 
 Narvaneni                Expires 23 October 2025                [Page 6]
@@ -338,22 +338,28 @@ Narvaneni                Expires 23 October 2025                [Page 6]
 Internet-Draft                  agent-uri                     April 2025
 
 
+   If a single agent is deployed at the top level then it should be
+   under /.well-known to be compatible with Agent2Agent protocol.
+
+   *  /.well-known/agent.json -- For single-agent deployments
+      (compatible with Agent2Agent)
+
    *  /.well-known/agents.json -- For multi-agent domains (maps agent
-      names --> descriptors)
+      names -> descriptors)
 
    This descriptor is OPTIONAL but RECOMMENDED.  It enables capability
    discovery, transport resolution, and compatibility with ecosystem
    tools.
 
-   When present, the descriptor MAY use the AgentCard (as defined by
+   When present, the descriptor MAY use the [AgentCard] (as defined by
    Agent2Agent protocol by Google as of April 2025) schema as one
-   possible format, or any equivalent JSON-LD-based structure that
+   possible format, or any equivalent [JSON-LD11] based structure that
    expresses the agent's identity, capabilities, and behavioral
    metadata.
 
-   If the agent is deployed at a subdomain (e.g., planner.acme.ai), the
-   agent descriptor SHOULD be published at /.well-known/agent.json on
-   that domain.
+   If the agent is deployed at a subdomain (e.g., planner.example.org),
+   the agent descriptor SHOULD be published at /.well-known/agent.json
+   on that domain.
 
 5.1.  Ecosystem Registries
 
@@ -376,6 +382,18 @@ Internet-Draft                  agent-uri                     April 2025
    Resolvers SHOULD support caching and capability introspection where
    applicable.
 
+
+
+
+
+
+
+
+Narvaneni                Expires 23 October 2025                [Page 7]
+
+Internet-Draft                  agent-uri                     April 2025
+
+
    +---------+          +-------------+         +-------------+
    |  Client | --URI--> |  Resolver   | -->URL->| Agent Server|
    +---------+          +-------------+         +-------------+
@@ -386,18 +404,10 @@ Internet-Draft                  agent-uri                     April 2025
 
    *Example*:
 
-
-
-
-Narvaneni                Expires 23 October 2025                [Page 7]
-
-Internet-Draft                  agent-uri                     April 2025
-
-
    {
      "agents": {
-       "planner": "https://planner.acme.ai/.well-known/agent.json",
-       "translator": "https://acme.ai/translator/agent.json"
+       "planner": "https://planner.example.com/.well-known/agent.json",
+       "translator": "https://example.com/translator/agent.json"
      }
    }
 
@@ -421,6 +431,25 @@ Internet-Draft                  agent-uri                     April 2025
 
    Use the agent+<protocol>:// scheme for clarity:
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Narvaneni                Expires 23 October 2025                [Page 8]
+
+Internet-Draft                  agent-uri                     April 2025
+
+
    +==================+=================+==============================+
    | Transport        | Format          | Description                  |
    +==================+=================+==============================+
@@ -441,15 +470,6 @@ Internet-Draft                  agent-uri                     April 2025
 
                      Table 2: Transport Binding Formats
 
-
-
-
-
-Narvaneni                Expires 23 October 2025                [Page 8]
-
-Internet-Draft                  agent-uri                     April 2025
-
-
    The agent+<transport>:// scheme allows explicit declaration of such
    bindings, enabling clarity, extensibility, and optimized routing.
    When no explicit transport is declared, clients MAY rely on
@@ -467,6 +487,24 @@ Internet-Draft                  agent-uri                     April 2025
    This allows agent runtimes to register their presence using a local
    resolver (e.g., via IPC, sockets, or service registry).  The
    transport mechanism is implementation-specific.
+
+   The agent+local:// scheme specifically addresses the current lack of
+   standardized methods for browser-based applications to invoke locally
+   installed agents.  This enables web applications to delegate tasks to
+   local agents that can perform privileged operations such as file
+   system access, desktop automation, or hardware interaction -
+   capabilities that are typically restricted in browser environments.
+   Security considerations for such invocations are discussed in
+   Section 10.
+
+
+
+
+
+Narvaneni                Expires 23 October 2025                [Page 9]
+
+Internet-Draft                  agent-uri                     April 2025
+
 
 6.2.  Default Fallback Behavior
 
@@ -495,17 +533,6 @@ Internet-Draft                  agent-uri                     April 2025
    (agent://) when agent transport metadata is reliably available.
    Explicit binding reduces resolution ambiguity and improves latency.
 
-
-
-
-
-
-
-Narvaneni                Expires 23 October 2025                [Page 9]
-
-Internet-Draft                  agent-uri                     April 2025
-
-
 6.3.  Use Cases and Recommended Bindings
 
    The following table outlines some use cases and recommended bindings
@@ -525,6 +552,16 @@ Internet-Draft                  agent-uri                     April 2025
 
             Table 3: Recommended Bindings for Common Use Cases
 
+
+
+
+
+
+Narvaneni                Expires 23 October 2025               [Page 10]
+
+Internet-Draft                  agent-uri                     April 2025
+
+
 7.  Capability Framework
 
    Agents SHOULD expose a descriptor document at:
@@ -536,8 +573,8 @@ Internet-Draft                  agent-uri                     April 2025
    *  The AgentCard structure (as defined by Google's Agent2Agent
       protocol as of April 2025), or another equivalent format
 
-   *  Any format other than AgentCard SHOULD be expressed in JSON-LD to
-      enable semantic discovery
+   *  Any format other than AgentCard SHOULD be expressed in [JSON-LD11]
+      to enable semantic discovery
 
    Agent descriptors SHOULD include:
 
@@ -554,13 +591,6 @@ Internet-Draft                  agent-uri                     April 2025
    *  Human-readable description
 
    *  Input/output schemas (e.g., JSON Schema)
-
-
-
-Narvaneni                Expires 23 October 2025               [Page 10]
-
-Internet-Draft                  agent-uri                     April 2025
-
 
    *  Capability list with IDs, descriptions, tags, version
 
@@ -579,6 +609,14 @@ Internet-Draft                  agent-uri                     April 2025
 
       -  requiresContext (boolean): Indicates whether the input needs
          context or the agent can work on its own
+
+
+
+
+Narvaneni                Expires 23 October 2025               [Page 11]
+
+Internet-Draft                  agent-uri                     April 2025
+
 
       -  memoryEnabled (boolean): Indicates whether the agent will
          remember the interactions
@@ -602,21 +640,12 @@ Internet-Draft                  agent-uri                     April 2025
    Schema) and MAY document content negotiation support via the
    contentTypes field per capability.  This allows clients to understand
    and negotiate payload encoding, enabling interoperability across
-   ecosystems that use JSON, JSON-LD, RDF/XML, FIPA ACL, or other
+   ecosystems that use JSON, [JSON-LD11], RDF/XML, [FIPA-ACL], or other
    formats.
 
    Clients MAY use standard negotiation mechanisms such as Content-Type
    and Accept headers (in HTTP), or envelope metadata (in protocols like
-   JSON-RPC, Matrix, etc.).
-
-
-
-
-
-Narvaneni                Expires 23 October 2025               [Page 11]
-
-Internet-Draft                  agent-uri                     April 2025
-
+   [JSON-RPC], [Matrix], etc.).
 
    Implementations MAY advertise protocol compatility via metadata
    fields such as interactionModel, orchestration, or supported
@@ -638,12 +667,20 @@ Internet-Draft                  agent-uri                     April 2025
    version.  Agents MUST document their preferred method for version
    negotiation clearly in their descriptor.
 
+
+
+Narvaneni                Expires 23 October 2025               [Page 12]
+
+Internet-Draft                  agent-uri                     April 2025
+
+
    While .well-known/agents.json MAY be used to enumerate all available
    agents under a domain, the individual agent.json files serve as the
    canonical source of truth.
 
-   Expressing descriptors in JSON-LD enables semantic interoperability
-   and supports alignment with common web-based data models.
+   Expressing descriptors in [JSON-LD11] enables semantic
+   interoperability and supports alignment with common web-based data
+   models.
 
    Implementers MAY choose to embed, proxy, or map to other protocols
    within the agent.json descriptor or transport bindings, allowing for
@@ -664,16 +701,6 @@ Internet-Draft                  agent-uri                     April 2025
 
    *  Delegated invocation (calling other agents on behalf of user)
 
-
-
-
-
-
-Narvaneni                Expires 23 October 2025               [Page 12]
-
-Internet-Draft                  agent-uri                     April 2025
-
-
    *  Asynchronous event notifications via HTTP webhooks or WebSockets.
       Event notifications if available SHOULD include event types,
       payloads, and identifiers.
@@ -693,6 +720,15 @@ Internet-Draft                  agent-uri                     April 2025
    taskId.  Agents MAY maintain state across interactions using these
    identifiers.  Clients and agents SHOULD agree on session semantics
    via capability descriptors or invocation headers.
+
+
+
+
+
+Narvaneni                Expires 23 October 2025               [Page 13]
+
+Internet-Draft                  agent-uri                     April 2025
+
 
    Non-HTTP transports SHOULD include session or task identifiers within
    message envelopes (e.g., JSON-RPC headers, WebSocket message
@@ -718,17 +754,8 @@ Internet-Draft                  agent-uri                     April 2025
    *Example*:
 
    GET /tasks/1234 HTTP/1.1
-   Host: planner.acme.ai
+   Host: planner.example.com
    X-Session-ID: abcde-12345
-
-
-
-
-
-Narvaneni                Expires 23 October 2025               [Page 13]
-
-Internet-Draft                  agent-uri                     April 2025
-
 
 8.2.  Orchestration Patterns
 
@@ -744,6 +771,21 @@ Internet-Draft                  agent-uri                     April 2025
    A typical user-driven invocation of an agent using the agent://
    protocol follows these steps:
 
+
+
+
+
+
+
+
+
+
+
+Narvaneni                Expires 23 October 2025               [Page 14]
+
+Internet-Draft                  agent-uri                     April 2025
+
+
    +--------+       +-----------+       +-------------+
    |  User  |  -->  |  Client   |  -->  |  Agent Host |
    +--------+       +-----------+       +-------------+
@@ -757,11 +799,11 @@ Internet-Draft                  agent-uri                     April 2025
         |                | Retrieves capabilities
         |                |                    |
         |                | Constructs request |
-        |                | --> agent://planner.acme.ai/generate-itinerary?city=Paris
+        |                | --> agent://plan.example.com/gen-iti?city=Rio
         |                |                    |
-        |                |                    | Agent validates input
-        |                |                    | Invokes internal logic or tools
-        |                |                    | May call sub-agents (see below)
+        |                |                    | Validate input
+        |                |                    | Process logic/call tools
+        |                |                    | May call sub-agents
         |                |                    |
         |                | Receives response  |
         |                | <== itinerary JSON |
@@ -779,13 +821,6 @@ Internet-Draft                  agent-uri                     April 2025
    *  The invocation can be a simple GET or POST depending on input size
       and structure.
 
-
-
-Narvaneni                Expires 23 October 2025               [Page 14]
-
-Internet-Draft                  agent-uri                     April 2025
-
-
 8.3.2.  Agent-to-Agent Interaction
 
    Agents MAY interact with each other using agent:// URIs to delegate
@@ -793,26 +828,44 @@ Internet-Draft                  agent-uri                     April 2025
 
    *Example: A planning agent invoking a translation agent*:
 
-   +-----------------+         +------------------+         +-------------------+
-   |  Planning Agent |  --->   |  Resolver / URI  |  --->   |  Translation Agent|
-   +-----------------+         +------------------+         +-------------------+
-           |                            |                            |
-           | Receives input:            |                            |
-           | {"city": "Paris", ...}     |                            |
-           |                            |                            |
-           | Needs translated output    |                            |
-           | for international users    |                            |
-           |                            | Resolves URI:              |
-           | --> agent://translator.acme.ai/translate?text=Bonjour   |
-           |                            |                            |
-           |                            | --> Fetch agent.json       |
-           |                            | --> Determine transport    |
-           |                            |                            |
-           |                            |                            | Processes translation
-           |                            |                            | Returns JSON { "text": "Hello" }
-           | <--------------------------|<---------------------------|
-           | Merges result, returns to  |
-           | user/client or continues   |
+
+
+
+
+
+
+
+
+
+Narvaneni                Expires 23 October 2025               [Page 15]
+
+Internet-Draft                  agent-uri                     April 2025
+
+
+   +----------+       +----------+       +------------+
+   |Planning  |------>|Resolver/ |------>|Translation |
+   |Agent     |       |URI       |       |Agent       |
+   +----------+       +----------+       +------------+
+        |                  |                   |
+        | Input:           |                   |
+        | {"city":"Paris"} |                   |
+        |                  |                   |
+        | Needs translation|                   |
+        |                  |                   |
+        |                  | Resolves URI:     |
+        |--agent://translator.example/translate?text=Bonjour-->|
+        |                  |                   |
+        |                  | --> Get           |
+        |                  |     agent.json    |
+        |                  | --> Determine     |
+        |                  |     transport     |
+        |                  |                   |
+        |                  |                   | Process translation
+        |                  |                   | Return translated JSON
+        |<-----------------|<------------------|
+        | Merge & return   |                   |
+        | to user/client   |                   |
+        | or continues     |                   |
 
                  Figure 6: Agent-to-Agent Interaction Flow
 
@@ -829,7 +882,7 @@ Internet-Draft                  agent-uri                     April 2025
    The agent:// protocol MAY leverage HTTP standard status codes for
    signaling errors.  Implementations MAY return errors using standard
    HTTP status codes along with structured JSON error responses
-   conforming to RFC7807 ("Problem Details for HTTP APIs").
+   conforming to [RFC9457] ("Problem Details for HTTP APIs").
 
    **Recommended HTTP status codes include (but are not limited to)
 
@@ -837,7 +890,10 @@ Internet-Draft                  agent-uri                     April 2025
 
 
 
-Narvaneni                Expires 23 October 2025               [Page 15]
+
+
+
+Narvaneni                Expires 23 October 2025               [Page 16]
 
 Internet-Draft                  agent-uri                     April 2025
 
@@ -870,11 +926,11 @@ Internet-Draft                  agent-uri                     April 2025
    Content-Type: application/problem+json
 
    {
-     "type": "https://acme.ai/errors/capability-not-found",
+     "type": "https://example.com/errors/capability-not-found",
      "title": "Capability Not Found",
      "status": 404,
-     "detail": "The requested capability 'generate-itinerary' was not found.",
-     "instance": "/planner/generate-itinerary"
+     "detail": "The requested capability 'gen-iti' was not found.",
+     "instance": "/planner/gen-iti"
    }
    {: #fig-error-response title="Example HTTP Error Response"}
 
@@ -893,7 +949,7 @@ Internet-Draft                  agent-uri                     April 2025
 
 
 
-Narvaneni                Expires 23 October 2025               [Page 16]
+Narvaneni                Expires 23 October 2025               [Page 17]
 
 Internet-Draft                  agent-uri                     April 2025
 
@@ -903,9 +959,9 @@ Internet-Draft                  agent-uri                     April 2025
 
    *  JSON-RPC error objects (code, message, data)
 
-   *  OpenAPI/REST error payloads
+   *  [OpenAPI] or REST error payloads
 
-   *  GraphQL errors array format
+   *  [GraphQL] errors array format
 
    Recommended error categories:
 
@@ -933,11 +989,11 @@ Internet-Draft                  agent-uri                     April 2025
 
    Security extensions MAY include:
 
-   *  OAuth2 Bearer Tokens (RFC6750)
+   *  OAuth2 [RFC6750] Bearer Tokens
 
-   *  JSON Web Tokens (JWT) (RFC7519)
+   *  JSON Web Tokens (JWT [RFC7519])
 
-   *  Mutual TLS (mTLS) authentication (RFC8705)
+   *  Mutual TLS (mTLS [RFC8705]) authentication
 
    *  API Keys via HTTP headers (e.g., X-API-Key)
 
@@ -949,7 +1005,7 @@ Internet-Draft                  agent-uri                     April 2025
 
 
 
-Narvaneni                Expires 23 October 2025               [Page 17]
+Narvaneni                Expires 23 October 2025               [Page 18]
 
 Internet-Draft                  agent-uri                     April 2025
 
@@ -960,7 +1016,7 @@ Internet-Draft                  agent-uri                     April 2025
    authentication flows.  Agents MUST clearly document supported
    security mechanisms per transport binding.
 
-   When using Decentralized Identifiers (DIDs) as authority, agent
+   When using Decentralized Identifiers [DID-CORE] as authority, agent
    descriptors MAY be cryptographically signed.  Clients SHOULD verify
    such signatures against the corresponding DID Document.
 
@@ -1005,7 +1061,7 @@ Internet-Draft                  agent-uri                     April 2025
 
 
 
-Narvaneni                Expires 23 October 2025               [Page 18]
+Narvaneni                Expires 23 October 2025               [Page 19]
 
 Internet-Draft                  agent-uri                     April 2025
 
@@ -1044,9 +1100,8 @@ Internet-Draft                  agent-uri                     April 2025
    *  *References*:
       This document (Internet-Draft): _agent:// Protocol -- A URI-Based
       Framework for Interoperable Agents_
-      [RFC3986] -- Uniform Resource Identifier (URI): Generic Syntax
-      [RFC7595] -- Guidelines and Registration Procedures for URI
-      Schemes
+      [RFC3986] - Uniform Resource Identifier (URI): Generic Syntax
+      [RFC7595] - Guidelines and Registration Procedures for URI Schemes
 
    *  *URI Syntax*:
       The general form of an agent URI is:
@@ -1061,7 +1116,8 @@ Internet-Draft                  agent-uri                     April 2025
 
 
 
-Narvaneni                Expires 23 October 2025               [Page 19]
+
+Narvaneni                Expires 23 October 2025               [Page 20]
 
 Internet-Draft                  agent-uri                     April 2025
 
@@ -1117,20 +1173,20 @@ Internet-Draft                  agent-uri                     April 2025
 
 
 
-Narvaneni                Expires 23 October 2025               [Page 20]
+Narvaneni                Expires 23 October 2025               [Page 21]
 
 Internet-Draft                  agent-uri                     April 2025
 
 
    {
      "@context": "https://example.org/agent-context.jsonld",
-     "name": "planner.acme.ai",
-     "description": "Planning agent helps in researching, generating and managing itineraries",
-     "url": "agent://planner.acme.ai/",
+     "name": "planner.example.com",
+     "description": "Agent helps in researching & planning itineraries",
+     "url": "agent://planner.example.com/",
      "provider": {
-       "organization": "ACME AI"
+       "organization": "Example AI Org"
      },
-     "documentationUrl": "https://planner.acme.ai/docs",
+     "documentationUrl": "https://planner.example.com/docs",
      "interactionModel": "agent2agent",
      "orchestration": "delegation",
      "envelopeSchemas": ["fipa-acl"],
@@ -1142,7 +1198,7 @@ Internet-Draft                  agent-uri                     April 2025
      },
      "capabilities": [
        {
-         "name": "generate-itinerary",
+         "name": "gen-iti",
          "version": "2.1.5",
          "description": "Creates a travel itinerary for a given city.",
          "input": { "city": "string" },
@@ -1173,7 +1229,7 @@ Internet-Draft                  agent-uri                     April 2025
 
 
 
-Narvaneni                Expires 23 October 2025               [Page 21]
+Narvaneni                Expires 23 October 2025               [Page 22]
 
 Internet-Draft                  agent-uri                     April 2025
 
@@ -1189,6 +1245,12 @@ Internet-Draft                  agent-uri                     April 2025
    *  Building knowledge-based agents that invoke retrieval agents
 
    *  Real-time collaboration among specialized agents
+
+   *  Browser-to-local-agent delegation for privileged operations and
+      desktop automation
+
+   *  Consistent addressing for agents across network boundaries and
+      security contexts
 
 15.  Appendix C.  Reference Implementation
 
@@ -1215,6 +1277,19 @@ Internet-Draft                  agent-uri                     April 2025
    Implementers are encouraged to use this as a starting point or
    reference during their implementation efforts.
 
+
+
+
+
+
+
+
+
+Narvaneni                Expires 23 October 2025               [Page 23]
+
+Internet-Draft                  agent-uri                     April 2025
+
+
 Acknowledgements
 
    This draft reflects observations and aspirations drawn from emerging
@@ -1227,13 +1302,6 @@ References
 
 Normative References
 
-
-
-Narvaneni                Expires 23 October 2025               [Page 22]
-
-Internet-Draft                  agent-uri                     April 2025
-
-
    [DID-CORE] Sporny, M., Longley, D., Sabadello, M., Reed, D., Steele,
               O., and C. Allen, "Decentralized Identifiers (DIDs) v1.0",
               W3C Recommendation, July 2022,
@@ -1241,7 +1309,7 @@ Internet-Draft                  agent-uri                     April 2025
 
    [JSON-LD11]
               Sporny, M., Longley, D., Kellogg, G., Lanthaler, M.,
-              Champin, P., and N. Lindström, "JSON-LD 1.1: A JSON-based
+              Champin, P., and N. Lindstrom, "JSON-LD 1.1: A JSON-based
               Serialization for Linked Data", W3C Recommendation, July
               2020, <https://www.w3.org/TR/json-ld11/>.
 
@@ -1265,30 +1333,23 @@ Internet-Draft                  agent-uri                     April 2025
               DOI 10.17487/RFC6750, October 2012,
               <https://www.rfc-editor.org/rfc/rfc6750>.
 
-   [RFC7231]  Fielding, R., Ed. and J. Reschke, Ed., "Hypertext Transfer
-              Protocol (HTTP/1.1): Semantics and Content", RFC 7231,
-              DOI 10.17487/RFC7231, June 2014,
-              <https://www.rfc-editor.org/rfc/rfc7231>.
-
    [RFC7519]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web Token
               (JWT)", RFC 7519, DOI 10.17487/RFC7519, May 2015,
               <https://www.rfc-editor.org/rfc/rfc7519>.
+
+
+
+
+
+Narvaneni                Expires 23 October 2025               [Page 24]
+
+Internet-Draft                  agent-uri                     April 2025
+
 
    [RFC7595]  Thaler, D., Ed., Hansen, T., and T. Hardie, "Guidelines
               and Registration Procedures for URI Schemes", BCP 35,
               RFC 7595, DOI 10.17487/RFC7595, June 2015,
               <https://www.rfc-editor.org/rfc/rfc7595>.
-
-   [RFC7807]  Nottingham, M. and E. Wilde, "Problem Details for HTTP
-              APIs", RFC 7807, DOI 10.17487/RFC7807, March 2016,
-              <https://www.rfc-editor.org/rfc/rfc7807>.
-
-
-
-Narvaneni                Expires 23 October 2025               [Page 23]
-
-Internet-Draft                  agent-uri                     April 2025
-
 
    [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
@@ -1299,6 +1360,15 @@ Internet-Draft                  agent-uri                     April 2025
               and Certificate-Bound Access Tokens", RFC 8705,
               DOI 10.17487/RFC8705, February 2020,
               <https://www.rfc-editor.org/rfc/rfc8705>.
+
+   [RFC9110]  Fielding, R., Ed., Nottingham, M., Ed., and J. Reschke,
+              Ed., "HTTP Semantics", STD 97, RFC 9110,
+              DOI 10.17487/RFC9110, June 2022,
+              <https://www.rfc-editor.org/rfc/rfc9110>.
+
+   [RFC9457]  Nottingham, M., Wilde, E., and S. Dalal, "Problem Details
+              for HTTP APIs", RFC 9457, DOI 10.17487/RFC9457, July 2023,
+              <https://www.rfc-editor.org/rfc/rfc9457>.
 
 Informative References
 
@@ -1325,26 +1395,35 @@ Informative References
               Message Structure Specification", 2002,
               <http://www.fipa.org/specs/fipa00061/SC00061G.html>.
 
+
+
+Narvaneni                Expires 23 October 2025               [Page 25]
+
+Internet-Draft                  agent-uri                     April 2025
+
+
+   [FIPA-CNP] Foundation for Intelligent Physical Agents, "FIPA Contract
+              Net Interaction Protocol Specification", 2002,
+              <http://www.fipa.org/specs/fipa00029/SC00029H.html>.
+
    [GraphQL]  GraphQL Foundation, "GraphQL: A Query Language for APIs",
               October 2021, <https://spec.graphql.org/October2021/>.
+
+   [JSON-RPC] JSON-RPC Working Group, "JSON-RPC 2.0 Specification", 4
+              January 2013, <https://www.jsonrpc.org/specification>.
 
    [LangChain]
               LangChain Team, "LangChain Documentation", 2024,
               <https://python.langchain.com/v0.3/docs/>.
+
+   [Matrix]   The Matrix org Foundation, "Matrix Specification v1.14",
+              2014, <https://spec.matrix.org/>.
 
    [MCP]      Anthropic PBC, "Model Context Protocol (MCP)", March 2025,
               <https://modelcontextprotocol.io/specification/>.
 
    [OpenAPI]  OpenAPI Initiative, "OpenAPI Specification v3.1.0",
               October 2024, <https://spec.openapis.org/oas/latest.html>.
-
-
-
-
-Narvaneni                Expires 23 October 2025               [Page 24]
-
-Internet-Draft                  agent-uri                     April 2025
-
 
    [SemanticKernel]
               Microsoft, "Semantic Kernel SDK", 2024,
@@ -1374,27 +1453,4 @@ Author's Address
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Narvaneni                Expires 23 October 2025               [Page 25]
+Narvaneni                Expires 23 October 2025               [Page 26]
