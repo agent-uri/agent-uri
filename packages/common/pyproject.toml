@@ -1,0 +1,62 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "agent-common"
+version = "0.2.0"
+description = "Common utilities and shared components for agent:// protocol"
+authors = ["Yaswanth Narvaneni <yaswanth@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/WizardOfAgents/agent-uri"
+repository = "https://github.com/WizardOfAgents/agent-uri"
+documentation = "https://agent-uri.readthedocs.io"
+keywords = ["agent", "common", "utilities", "protocol"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+packages = [{include = "agent_common"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pydantic = "^2.5.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+pytest-cov = "^4.1.0"
+black = "^23.12.0"
+isort = "^5.13.0"
+flake8 = "^6.1.0"
+mypy = "^1.8.0"
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.isort]
+profile = "black"
+known_first_party = ["agent_common"]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["agent_common/tests"]
+python_files = ["test_*.py"]
+addopts = [
+    "--strict-markers",
+    "--cov=agent_common",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
