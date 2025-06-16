@@ -9,7 +9,7 @@ description = "Agent URI Protocol Implementation - A complete suite for addressi
 authors = ["Yaswanth Narvaneni <yaswanth@gmail.com>"]
 license = "MIT"
 readme = "README.md"
-package-mode = false
+packages = [{include = "agent_uri"}]
 homepage = "https://github.com/WizardOfAgents/agent-uri"
 repository = "https://github.com/WizardOfAgents/agent-uri"
 documentation = "https://agent-uri.readthedocs.io"
@@ -31,19 +31,16 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.9"
 
-# Core packages (local workspace dependencies)
-agent-uri-parser = {path = "packages/uri-parser", develop = true}
-agent-descriptor = {path = "packages/descriptor", develop = true}
-agent-resolver = {path = "packages/resolver", develop = true}
-agent-transport = {path = "packages/transport", develop = true}
-agent-client = {path = "packages/client", develop = true}
-agent-server = {path = "packages/server", develop = true}
-agent-common = {path = "packages/common", develop = true}
-
-# Common dependencies across packages
+# All dependencies from the original packages
 requests = "^2.31.0"
+requests-cache = "^1.1.0"
+websocket-client = "^1.7.0"
+sseclient-py = "^1.8.0"
+pyjwt = "^2.8.0"
 pydantic = "^2.5.0"
 jsonschema = "^4.20.0"
+fastapi = "^0.104.0"
+uvicorn = "^0.24.0"
 
 [tool.poetry.group.dev.dependencies]
 # Testing
@@ -153,14 +150,14 @@ minversion = "7.0"
 addopts = [
     "--strict-markers",
     "--strict-config",
-    "--cov=packages",
+    "--cov=agent_uri",
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-report=xml",
     "-ra"
 ]
 testpaths = [
-    "packages/*/tests",
+    "agent_uri/*/tests",
     "tests"
 ]
 python_files = [
