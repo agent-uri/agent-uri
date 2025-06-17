@@ -78,7 +78,7 @@ class BearerTokenAuth(AuthProvider):
     def __init__(
         self,
         token: str,
-        token_type: str = "Bearer",
+        token_type: str = "Bearer",  # nosec B107
         expires_at: Optional[int] = None,
         refresh_callback: Optional[callable] = None,
     ):

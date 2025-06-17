@@ -114,7 +114,7 @@ type-check: ## Run type checking with mypy
 
 security: ## Run security checks
 	@echo "$(BLUE)Running security checks with bandit...$(RESET)"
-	$(POETRY) run $(BANDIT) -r agent_uri/ --exclude '**/tests/**,**/test_*.py'
+	$(POETRY) run $(BANDIT) -r agent_uri/ -x "*/tests/*,*/test_*.py"
 	@echo "$(BLUE)Checking for known vulnerabilities with safety...$(RESET)"
 	$(POETRY) run safety check --ignore=67599
 	@echo "$(GREEN)✓ Security checks passed$(RESET)"

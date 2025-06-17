@@ -100,8 +100,8 @@ class LocalAgentRegistry:
                 socket_obj = self._server_sockets.pop(name)
                 try:
                     socket_obj.close()
-                except Exception:
-                    pass
+                except Exception:  # nosec B110
+                    pass  # Ignore errors when closing socket
 
                 if name in self._server_threads:
                     # Let thread complete gracefully
@@ -113,7 +113,7 @@ class LocalAgentRegistry:
                 try:
                     if os.path.exists(socket_path):
                         os.unlink(socket_path)
-                except Exception:
+                except Exception:  # nosec B110
                     pass
 
             # Remove agent from registry
@@ -177,7 +177,7 @@ class LocalAgentRegistry:
         for name, socket_obj in list(self._server_sockets.items()):
             try:
                 socket_obj.close()
-            except Exception:
+            except Exception:  # nosec B110
                 pass
 
         self._server_sockets.clear()
@@ -195,7 +195,7 @@ class LocalAgentRegistry:
                 try:
                     if os.path.exists(socket_path):
                         os.unlink(socket_path)
-                except Exception:
+                except Exception:  # nosec B110
                     pass
 
     def _start_agent_server(self, name: str) -> None:
@@ -364,7 +364,7 @@ class LocalAgentRegistry:
         finally:
             try:
                 client_socket.close()
-            except Exception:
+            except Exception:  # nosec B110
                 pass
 
     def _find_free_port(self) -> int:
@@ -584,9 +584,9 @@ class LocalTransport(AgentTransport):
         # Remove protocol prefix if present
         if endpoint.startswith(("local://", "agent+local://")):
             if endpoint.startswith("local://"):
-                agent_name = endpoint[len("local://"):]
+                agent_name = endpoint[len("local://") :]
             else:
-                agent_name = endpoint[len("agent+local://"):]
+                agent_name = endpoint[len("agent+local://") :]
         else:
             agent_name = endpoint
 
@@ -676,7 +676,7 @@ class LocalTransport(AgentTransport):
             if sock:
                 try:
                     sock.close()
-                except Exception:
+                except Exception:  # nosec B110
                     pass
 
     def _stream_request(
@@ -773,5 +773,5 @@ class LocalTransport(AgentTransport):
             if sock:
                 try:
                     sock.close()
-                except Exception:
+                except Exception:  # nosec B110
                     pass

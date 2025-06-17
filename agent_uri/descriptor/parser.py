@@ -317,7 +317,7 @@ def load_descriptor(source: Union[str, Dict[str, Any]]) -> AgentDescriptor:
     # Check if source is a URL
     parsed_url = urlparse(source)
     if parsed_url.scheme in ("http", "https"):
-        with urllib.request.urlopen(source) as response:
+        with urllib.request.urlopen(source) as response:  # nosec B310
             descriptor_data = json.loads(response.read())
             return parse_descriptor(descriptor_data)
 

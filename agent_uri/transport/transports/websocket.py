@@ -363,7 +363,7 @@ class WebSocketTransport(AgentTransport):
         if self._ws and self._is_connected:
             try:
                 self._ws.close()
-            except Exception:
+            except Exception:  # nosec B110
                 pass  # Ignore errors on close
 
             self._is_connected = False

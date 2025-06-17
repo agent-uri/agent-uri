@@ -14,10 +14,7 @@ from .models import (  # noqa: F401
     Provider,
     Skill,
 )
-from .parser import (  # noqa: F401
-    load_descriptor,
-    parse_descriptor,
-)
+from .parser import load_descriptor, parse_descriptor  # noqa: F401
 from .validator import (  # noqa: F401
     ValidationError,
     ValidationResult,
