@@ -273,7 +273,10 @@ class TestParseAgentUri:
 
     def test_parse_complex_agent_uri(self):
         """Test parsing complex agent URI with all components."""
-        uri_string = "agent+wss://user:pass@example.com:9000/my-agent/echo?token=abc123&mode=chat#section"
+        uri_string = (
+            "agent+wss://user:pass@example.com:9000/my-agent/echo"
+            "?token=abc123&mode=chat#section"
+        )
         uri = parse_agent_uri(uri_string)
         assert uri.scheme == "agent"
         assert uri.transport == "wss"
@@ -293,7 +296,9 @@ class TestParseAgentUri:
 
     def test_parse_agent_uri_with_special_chars_in_query(self):
         """Test parsing agent URI with special characters in query."""
-        uri = parse_agent_uri("agent://example.com?message=hello%20world&symbols=%21%40%23")
+        uri = parse_agent_uri(
+            "agent://example.com?message=hello%20world&symbols=%21%40%23"
+        )
         assert uri.host == "example.com"
         assert "message" in uri.query
         assert "symbols" in uri.query
@@ -415,7 +420,9 @@ class TestParseAgentUriTransportBindings:
     def test_parse_agent_uri_transport_with_hyphens(self):
         """Test parsing agent URI with transport containing hyphens."""
         # my-transport is not in the valid protocols list
-        with pytest.raises(AgentUriError, match="Invalid transport protocol: my-transport"):
+        with pytest.raises(
+            AgentUriError, match="Invalid transport protocol: my-transport"
+        ):
             parse_agent_uri("agent+my-transport://example.com")
 
 
@@ -437,13 +444,13 @@ class TestAgentUriRoundTrip:
         """Test that parsing and serializing returns equivalent URIs."""
         # Parse the URI
         parsed = parse_agent_uri(uri_string)
-        
+
         # Serialize it back
         serialized = parsed.to_string()
-        
+
         # Parse the serialized version
         reparsed = parse_agent_uri(serialized)
-        
+
         # Compare key components (exact string match may differ due to encoding)
         assert parsed.scheme == reparsed.scheme
         assert parsed.transport == reparsed.transport
@@ -456,7 +463,7 @@ class TestAgentUriRoundTrip:
         """Test that parsing and serializing preserves all components."""
         original = "agent+https://user@example.com:8080/my-agent?param=value#section"
         parsed = parse_agent_uri(original)
-        
+
         assert parsed.scheme == "agent"
         assert parsed.transport == "https"
         assert parsed.userinfo == "user"

@@ -8,7 +8,7 @@ against schema requirements and check for required fields.
 import json
 import os
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Union
 
 from .models import AgentDescriptor
 
@@ -75,14 +75,17 @@ def _get_schema() -> Dict[str, Any]:
         "type": "object",
         "required": ["name", "version", "capabilities"],
         "properties": {
-            "name": {"type": "string", "description": "Unique name of the agent"},
+            "name": {
+                "type": "string",
+                "description": "Unique name of the agent",
+            },
             "version": {
                 "type": ["string", "number"],
                 "description": "Semantic version of the agent",
             },
             "capabilities": {
                 "type": "array",
-                "description": "List of capabilities this agent provides",
+                "description": ("List of capabilities this agent provides"),
                 "minItems": 1,
                 "items": {
                     "type": "object",
@@ -90,7 +93,7 @@ def _get_schema() -> Dict[str, Any]:
                     "properties": {
                         "name": {
                             "type": "string",
-                            "description": "Unique identifier for this capability",
+                            "description": ("Unique identifier for this capability"),
                         }
                     },
                 },
@@ -291,7 +294,10 @@ def _validate_against_schema(
             for prop_name, prop_schema in schema["properties"].items():
                 if prop_name in value:
                     _validate_against_schema(
-                        value[prop_name], prop_schema, f"{path}.{prop_name}", result
+                        value[prop_name],
+                        prop_schema,
+                        f"{path}.{prop_name}",
+                        result,
                     )
 
         # Check for additional properties
@@ -314,14 +320,16 @@ def _validate_against_schema(
         if "minItems" in schema and len(value) < schema["minItems"]:
             result.add_error(
                 path,
-                f"Array length {len(value)} is less than minimum {schema['minItems']}",
+                f"Array length {len(value)} is less than minimum "
+                f"{schema['minItems']}",
             )
 
         # Check maxItems
         if "maxItems" in schema and len(value) > schema["maxItems"]:
             result.add_error(
                 path,
-                f"Array length {len(value)} is greater than maximum {schema['maxItems']}",
+                f"Array length {len(value)} is greater than maximum "
+                f"{schema['maxItems']}",
             )
 
     # Validate string format if specified
@@ -374,7 +382,8 @@ def validate_agent_card_compatibility(
     descriptor_data: Dict[str, Any]
 ) -> ValidationResult:
     """
-    Validate an agent descriptor for compatibility with the Agent2Agent protocol's AgentCard.
+    Validate an agent descriptor for compatibility with the Agent2Agent
+    protocol's AgentCard.
 
     Args:
         descriptor_data: A dictionary containing the descriptor data
@@ -405,7 +414,7 @@ def validate_agent_card_compatibility(
         elif len(descriptor_data["capabilities"]) == 0:
             result.add_error(
                 "capabilities",
-                "For AgentCard compatibility, at least one capability is required",
+                "For AgentCard compatibility, at least one capability " "is required",
                 "warning",
             )
 
@@ -422,7 +431,7 @@ def validate_agent_card_compatibility(
                 if not isinstance(skill, dict):
                     result.add_error(
                         f"skills[{i}]",
-                        "For AgentCard compatibility, each skill must be an object",
+                        "For AgentCard compatibility, each skill must be " "an object",
                         "warning",
                     )
                     continue
@@ -432,24 +441,30 @@ def validate_agent_card_compatibility(
                     if field not in skill:
                         result.add_error(
                             f"skills[{i}]",
-                            f"For AgentCard compatibility, skill missing required field: {field}",
+                            f"For AgentCard compatibility, skill missing "
+                            f"required field: {field}",
                             "warning",
                         )
 
-    # Check if the descriptor has capabilities field with the required structure
+    # Check if the descriptor has capabilities field with the required
+    # structure
     if "capabilities" in descriptor_data and isinstance(
         descriptor_data["capabilities"], dict
     ):
         capabilities = descriptor_data["capabilities"]
 
         # For AgentCard, these are boolean fields
-        for capability in ["streaming", "pushNotifications", "stateTransitionHistory"]:
+        for capability in [
+            "streaming",
+            "pushNotifications",
+            "stateTransitionHistory",
+        ]:
             if capability in capabilities and not isinstance(
                 capabilities[capability], bool
             ):
                 result.add_error(
                     f"capabilities.{capability}",
-                    f"For AgentCard compatibility, {capability} must be a boolean",
+                    f"For AgentCard compatibility, {capability} must be " "a boolean",
                     "warning",
                 )
 
@@ -471,7 +486,9 @@ def check_json_ld_extensions(descriptor_data: Dict[str, Any]) -> ValidationResul
     # Check for @context
     if "@context" not in descriptor_data:
         result.add_error(
-            "@context", "Missing JSON-LD context for semantic interoperability", "info"
+            "@context",
+            "Missing JSON-LD context for semantic interoperability",
+            "info",
         )
 
     # Check for JSON-LD specific properties

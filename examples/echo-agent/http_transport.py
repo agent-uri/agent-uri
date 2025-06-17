@@ -3,13 +3,12 @@
 import logging
 import os
 import re
-
 import sys
 from typing import Any, Dict, Optional, Tuple
 
 import requests
 
-# Import from the installed agent_uri package  
+# Import from the installed agent_uri package
 from agent_uri.transport.base import AgentTransport
 
 logger = logging.getLogger(__name__)

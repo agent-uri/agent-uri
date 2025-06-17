@@ -1,11 +1,11 @@
 """
 Agent URI Protocol Implementation
 
-A complete suite for addressing and interacting with AI agents using the agent:// protocol.
+A complete suite for addressing and interacting with AI agents using
+the agent:// protocol.
 
 Basic usage:
     from agent_uri import AgentUri
-    
     # Parse an agent URI
     uri = AgentUri.parse("agent://example.com/my-agent")
     print(uri.authority)  # "example.com"
@@ -16,12 +16,13 @@ __version__ = "0.2.0"
 __author__ = "Yaswanth Narvaneni"
 __email__ = "yaswanth@gmail.com"
 
+from .client import AgentClient
+
 # Import available exceptions
 from .exceptions import AgentServerError, AuthenticationError, CapabilityError
 
 # Import core functionality
 from .parser import AgentUri, parse_agent_uri
-from .client import AgentClient
 from .server import FastAPIAgentServer
 
 __all__ = [

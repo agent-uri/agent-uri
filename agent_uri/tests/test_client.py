@@ -4,18 +4,13 @@ Tests for the client module.
 This module contains tests for the AgentClient and AgentSession classes.
 """
 
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
-from ..auth import AuthProvider, BearerTokenAuth
+from ..auth import AuthProvider
 from ..client import AgentClient, AgentSession
-from ..exceptions import (
-    InvocationError,
-    ResolutionError,
-    SessionError,
-    StreamingError,
-)
+from ..exceptions import InvocationError, ResolutionError, SessionError
 
 
 # Mock classes for testing

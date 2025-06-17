@@ -21,7 +21,6 @@ from ..cli import (
     format_output,
     parse_arguments,
 )
-from ..parser import AgentUriError
 
 
 class TestCLIArgumentParsing:
@@ -364,14 +363,14 @@ class TestCLIErrorHandling:
 
         # Mock the client to avoid actual network calls
         from unittest.mock import AsyncMock
-        
+
         with patch("agent_uri.cli.AgentClient") as mock_client_class:
             mock_client = Mock()
             # Make invoke an async mock since it's awaited in the CLI
             mock_client.invoke = AsyncMock(return_value={"result": "test response"})
             mock_client_class.return_value = mock_client
 
-            with patch("builtins.print") as mock_print:
+            with patch("builtins.print"):
                 result = await cmd_invoke(args)
                 assert result == 0
                 mock_client.invoke.assert_called_once_with(

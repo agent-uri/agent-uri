@@ -1,8 +1,6 @@
 """Tests for the validator module."""
 
-import pytest
-
-from ..models import AgentDescriptor, Capability, Provider, Skill
+from ..models import AgentDescriptor, Capability
 from ..validator import (
     ValidationResult,
     check_json_ld_extensions,

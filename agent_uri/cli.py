@@ -10,12 +10,12 @@ import argparse
 import asyncio
 import json
 import sys
-from typing import Dict, Any, Optional
+from typing import Any
 
 from .client import AgentClient
-from .parser import parse_agent_uri, AgentUriError
-from .resolver.resolver import AgentResolver
 from .exceptions import AgentClientError
+from .parser import AgentUriError, parse_agent_uri
+from .resolver.resolver import AgentResolver
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -28,13 +28,13 @@ def parse_arguments() -> argparse.Namespace:
 Examples:
   # Parse an agent URI
   agent-uri parse "agent://example.com/my-agent"
-  
+
   # Resolve an agent URI to get its descriptor
   agent-uri resolve "agent://example.com/my-agent"
-  
+
   # Invoke a capability on an agent
   agent-uri invoke "agent://example.com/my-agent/echo" --params '{"message": "Hello"}'
-  
+
   # Get agent descriptor
   agent-uri describe "agent://example.com/my-agent"
         """,
@@ -77,7 +77,7 @@ Examples:
     )
 
     # Version command
-    version_parser = subparsers.add_parser("version", help="Show version information")
+    subparsers.add_parser("version", help="Show version information")
 
     return parser.parse_args()
 
@@ -104,7 +104,8 @@ async def cmd_parse(args: argparse.Namespace) -> int:
     try:
         uri = parse_agent_uri(args.uri)
 
-        # Extract capability from path (if path has multiple segments, last one might be capability)
+        # Extract capability from path (if path has multiple segments,
+        # last one might be capability)
         capability = None
         if uri.path and "/" in uri.path.strip("/"):
             path_parts = uri.path.strip("/").split("/")

@@ -9,7 +9,6 @@ the agent:// protocol and its echo capability works as expected.
 import asyncio
 import datetime
 import os
-
 import sys
 import unittest
 from unittest import mock

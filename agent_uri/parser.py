@@ -124,15 +124,15 @@ class AgentUri:
     @classmethod
     def parse(cls, uri: str) -> "AgentUri":
         """Parse an agent:// URI string into an AgentUri object.
-        
+
         This is a convenience class method that calls the parse_agent_uri function.
-        
+
         Args:
             uri: The agent URI string to parse
-            
+
         Returns:
             AgentUri: Object representing the parsed URI
-            
+
         Raises:
             AgentUriError: If the URI doesn't follow the agent:// scheme format
         """

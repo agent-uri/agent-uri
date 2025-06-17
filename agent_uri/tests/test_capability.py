@@ -5,9 +5,7 @@ This module tests the capability class and decorator for registering
 agent capabilities.
 """
 
-import asyncio
-import json
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 import pytest
 

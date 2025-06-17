@@ -5,11 +5,7 @@ Tests for the transport binding utilities in the error handling framework.
 import json
 import unittest
 
-from ..error.models import (
-    AgentProblemDetail,
-    ErrorCategory,
-    create_problem_detail,
-)
+from ..error.models import AgentProblemDetail, ErrorCategory, create_problem_detail
 from ..error.transport import (
     format_for_http,
     format_for_local,

@@ -7,13 +7,11 @@ This module provides utilities for generating agent.json descriptors.
 import json
 import logging
 import os
-from typing import Any, Callable, Dict, List, Optional, Set, Type, Union
+from typing import Any, Dict, List, Optional
 
 from ..capability import Capability
 from ..exceptions import DescriptorError
 
-# Import from within descriptor package
-from .models import AgentDescriptor
 from .validator import validate_descriptor
 
 logger = logging.getLogger(__name__)

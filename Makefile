@@ -73,7 +73,7 @@ test-integration: ## Run integration tests only
 
 test-coverage: ## Run tests with coverage report
 	@echo "$(BLUE)Running tests with coverage...$(RESET)"
-	$(POETRY) run $(PYTEST) --cov=packages --cov-report=html --cov-report=term
+	$(POETRY) run $(PYTEST) --cov=agent_uri --cov-report=html --cov-report=term
 	@echo "$(GREEN)✓ Coverage report generated in htmlcov/$(RESET)"
 
 test-parallel: ## Run tests in parallel for speed
@@ -90,30 +90,30 @@ lint: ## Run all linting tools
 
 lint-flake8: ## Run flake8 linter
 	@echo "$(BLUE)Running flake8...$(RESET)"
-	$(POETRY) run $(FLAKE8) packages/ tests/ examples/
+	$(POETRY) run $(FLAKE8) agent_uri/ examples/
 
 lint-black-check: ## Check code formatting with black
 	@echo "$(BLUE)Checking code formatting with black...$(RESET)"
-	$(POETRY) run $(BLACK) --check packages/ tests/ examples/
+	$(POETRY) run $(BLACK) --check agent_uri/ examples/
 
 lint-isort-check: ## Check import sorting with isort
 	@echo "$(BLUE)Checking import sorting with isort...$(RESET)"
-	$(POETRY) run $(ISORT) --check-only packages/ tests/ examples/
+	$(POETRY) run $(ISORT) --check-only agent_uri/ examples/
 
 format: ## Auto-format code with black and isort
 	@echo "$(BLUE)Formatting code with black...$(RESET)"
-	$(POETRY) run $(BLACK) packages/ examples/ scripts/
+	$(POETRY) run $(BLACK) agent_uri/ examples/ scripts/
 	@echo "$(BLUE)Sorting imports with isort...$(RESET)"
-	$(POETRY) run $(ISORT) packages/ examples/ scripts/
+	$(POETRY) run $(ISORT) agent_uri/ examples/ scripts/
 	@echo "$(GREEN)✓ Code formatted$(RESET)"
 
 type-check: ## Run type checking with mypy
 	@echo "$(BLUE)Running type checking with mypy...$(RESET)"
-	$(POETRY) run $(MYPY) packages/
+	$(POETRY) run $(MYPY) agent_uri/
 
 security: ## Run security checks
 	@echo "$(BLUE)Running security checks with bandit...$(RESET)"
-	$(POETRY) run $(BANDIT) -r packages/
+	$(POETRY) run $(BANDIT) -r agent_uri/
 	@echo "$(BLUE)Checking for known vulnerabilities with safety...$(RESET)"
 	$(POETRY) run safety check
 	@echo "$(GREEN)✓ Security checks passed$(RESET)"
@@ -262,8 +262,8 @@ version: ## Show version information
 # Example target for package-specific commands
 test-parser: ## Test only the URI parser package
 	@echo "$(BLUE)Testing URI parser package...$(RESET)"
-	$(POETRY) run $(PYTEST) packages/uri-parser/tests/
+	$(POETRY) run $(PYTEST) agent_uri/tests/test_parser.py
 
 test-client: ## Test only the client package
 	@echo "$(BLUE)Testing client package...$(RESET)"
-	$(POETRY) run $(PYTEST) packages/client/tests/
+	$(POETRY) run $(PYTEST) agent_uri/tests/test_client.py

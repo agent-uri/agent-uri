@@ -6,19 +6,13 @@ that conform to the agent:// protocol.
 """
 
 import abc
-import asyncio
-import importlib
-import inspect
 import json
 import logging
-import os
-import uuid
-from typing import Any, Callable, Dict, List, Optional, Set, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 try:
     # Import FastAPI if available
-    import fastapi
-    from fastapi import Depends, FastAPI, HTTPException, Request, Response, WebSocket
+    from fastapi import FastAPI, HTTPException, Request, WebSocket
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import JSONResponse, StreamingResponse
     from fastapi.routing import APIRouter
@@ -38,7 +32,6 @@ except ImportError:
 from .capability import Capability
 from .descriptor import AgentDescriptorGenerator
 from .exceptions import (
-    AgentServerError,
     AuthenticationError,
     CapabilityNotFoundError,
     ConfigurationError,

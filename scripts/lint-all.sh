@@ -56,7 +56,7 @@ check_black() {
     fi
     
     run_linter "Black" \
-        "uv run black $fix_flag packages/ examples/ scripts/ tests/" \
+        "uv run black $fix_flag agent_uri/ examples/ scripts/" \
         "Black code formatting" \
         "true"
 }
@@ -71,7 +71,7 @@ check_isort() {
     fi
     
     run_linter "isort" \
-        "uv run isort $fix_flag packages/ examples/ scripts/ tests/" \
+        "uv run isort $fix_flag agent_uri/ examples/ scripts/" \
         "Import sorting with isort" \
         "true"
 }
@@ -79,7 +79,7 @@ check_isort() {
 # Function to run flake8 linting
 check_flake8() {
     run_linter "flake8" \
-        "uv run flake8 packages/ examples/ scripts/ tests/" \
+        "uv run flake8 agent_uri/ examples/ scripts/" \
         "PEP8 compliance with flake8" \
         "false"
 }
@@ -92,7 +92,7 @@ check_mypy() {
     fi
     
     run_linter "mypy" \
-        "uv run mypy $strict_flag packages/" \
+        "uv run mypy $strict_flag agent_uri/" \
         "Type checking with mypy" \
         "false"
 }
@@ -100,7 +100,7 @@ check_mypy() {
 # Function to run bandit security checks
 check_bandit() {
     run_linter "bandit" \
-        "uv run bandit -r packages/ -f json -o bandit-report.json || uv run bandit -r packages/" \
+        "uv run bandit -r agent_uri/ -f json -o bandit-report.json || uv run bandit -r agent_uri/" \
         "Security scanning with bandit" \
         "false"
 }
@@ -117,7 +117,7 @@ check_safety() {
 check_docstrings() {
     if command_exists pydocstyle || uv run pydocstyle --version >/dev/null 2>&1; then
         run_linter "pydocstyle" \
-            "uv run pydocstyle packages/" \
+            "uv run pydocstyle agent_uri/" \
             "Docstring quality with pydocstyle" \
             "false"
     else
@@ -129,7 +129,7 @@ check_docstrings() {
 check_complexity() {
     if command_exists mccabe || uv run python -c "import mccabe" 2>/dev/null; then
         run_linter "mccabe" \
-            "uv run python -m mccabe --min 10 packages/" \
+            "uv run python -m mccabe --min 10 agent_uri/" \
             "Cyclomatic complexity with mccabe" \
             "false"
     else
@@ -141,7 +141,7 @@ check_complexity() {
 check_vulture() {
     if command_exists vulture || uv run vulture --version >/dev/null 2>&1; then
         run_linter "vulture" \
-            "uv run vulture packages/ --min-confidence 80" \
+            "uv run vulture agent_uri/ --min-confidence 80" \
             "Dead code detection with vulture" \
             "false"
     else
@@ -165,14 +165,9 @@ check_precommit() {
 check_package_structure() {
     echo -e "${BLUE}🏗️  Checking package structure...${RESET}"
     
+    # Package structure now uses single unified agent_uri package
     local packages=(
-        "packages/uri-parser"
-        "packages/descriptor"
-        "packages/resolver"
-        "packages/transport"
-        "packages/client"
-        "packages/server"
-        "packages/common"
+        "agent_uri"
     )
     
     local structure_issues=0
@@ -182,27 +177,20 @@ check_package_structure() {
             echo -e "${BLUE}   Checking $package...${RESET}"
             
             # Check for __init__.py
-            local package_name=$(basename "$package")
-            if [ "$package_name" = "uri-parser" ]; then
-                package_name="agent_uri"
-            else
-                package_name="agent_${package_name}"
-            fi
-            
-            if [ ! -f "$package/$package_name/__init__.py" ] && [ ! -f "$package/__init__.py" ]; then
+            if [ ! -f "$package/__init__.py" ]; then
                 echo -e "${YELLOW}     ⚠️  Missing __init__.py${RESET}"
                 ((structure_issues++))
             fi
             
             # Check for tests
-            if [ ! -d "$package/tests" ] && [ ! -d "$package/$package_name/tests" ]; then
+            if [ ! -d "$package/tests" ]; then
                 echo -e "${YELLOW}     ⚠️  Missing tests directory${RESET}"
                 ((structure_issues++))
             fi
             
-            # Check for setup.py or pyproject.toml
-            if [ ! -f "$package/setup.py" ] && [ ! -f "$package/pyproject.toml" ]; then
-                echo -e "${YELLOW}     ⚠️  Missing setup.py or pyproject.toml${RESET}"
+            # Check for pyproject.toml (root level for unified package)
+            if [ ! -f "pyproject.toml" ]; then
+                echo -e "${YELLOW}     ⚠️  Missing pyproject.toml${RESET}"
                 ((structure_issues++))
             fi
             

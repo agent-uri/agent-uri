@@ -7,7 +7,7 @@ error structures that can be used across different transport bindings.
 
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Dict, Optional, Union
 
 
 class ErrorCategory(Enum):
@@ -106,7 +106,8 @@ class AgentError(Exception):
             message: Human-readable error message
             category: The error category
             type_uri: URI reference that identifies the problem type
-            instance: URI reference that identifies the specific occurrence of the problem
+            instance: URI reference that identifies the specific occurrence
+                of the problem
             status: HTTP status code (derived from category if not provided)
             extensions: Additional fields to include in the problem detail
         """

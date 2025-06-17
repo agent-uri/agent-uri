@@ -5,11 +5,10 @@ This module defines authentication providers that can be used to
 authenticate requests to agents.
 """
 
-import json
 import logging
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, Union
+from typing import Dict, Optional
 
 try:
     import jwt

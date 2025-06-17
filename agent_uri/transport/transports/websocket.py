@@ -10,7 +10,7 @@ import logging
 import threading
 import time
 from queue import Empty, Queue
-from typing import Any, Callable, Dict, Iterator, List, Optional, Union
+from typing import Any, Dict, Iterator, Optional
 
 # Try importing websocket library, provide clear error message if missing
 try:

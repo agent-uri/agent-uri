@@ -8,7 +8,7 @@ providing support for both synchronous and streaming HTTP(S) requests.
 import json
 import logging
 import urllib.parse
-from typing import Any, Dict, Iterator, List, Optional, Union
+from typing import Any, Dict, Iterator, Optional
 
 # Try importing requests, provide clear error message if missing
 try:

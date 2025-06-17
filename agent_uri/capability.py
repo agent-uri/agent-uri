@@ -1,26 +1,21 @@
 """
 Capability definition and registration for agent servers.
 
-This module provides utilities for defining and registering agent 
+This module provides utilities for defining and registering agent
 capabilities, including decorators for easy capability creation.
 """
 
 import asyncio
-import functools
 import inspect
-import json
 import logging
 import uuid
 from typing import (
     Any,
     Callable,
     Dict,
-    Iterator,
     List,
     Optional,
     Type,
-    Union,
-    get_type_hints,
 )
 
 from pydantic import BaseModel, ValidationError, create_model
@@ -325,8 +320,9 @@ class Capability:
                     # Add a defensive check to detect possible parameter duplication
                     if "session_id" in kwargs:
                         logger.warning(
-                            "session_id found in both kwargs and as explicit parameter. "
-                            "This could cause parameter duplication errors."
+                            "session_id found in both kwargs and as explicit "
+                            "parameter. This could cause parameter duplication "
+                            "errors."
                         )
                         # Don't propagate the kwargs version to avoid duplication
                         kwargs.pop("session_id")

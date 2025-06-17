@@ -7,9 +7,8 @@ over different transport protocols (HTTP, WebSocket, etc.)
 
 import abc
 import asyncio
-import json
 import logging
-from typing import Any, AsyncGenerator, Awaitable, Callable, Dict, List, Optional, Union
+from typing import Any, AsyncGenerator, Awaitable, Callable, Dict, Optional, Union
 
 from .capability import Capability
 from .exceptions import (
@@ -237,7 +236,7 @@ class HTTPHandler(BaseHandler):
         except AuthenticationError:
             # Re-raise authentication errors
             raise
-        except InvalidInputError as e:
+        except InvalidInputError:
             # Re-raise input validation errors
             raise
         except Exception as e:
@@ -357,7 +356,7 @@ class WebSocketHandler(BaseHandler):
         except AuthenticationError:
             # Re-raise authentication errors
             raise
-        except InvalidInputError as e:
+        except InvalidInputError:
             # Re-raise input validation errors
             raise
         except Exception as e:

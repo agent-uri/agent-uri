@@ -2,7 +2,7 @@
 Transport registry for agent:// protocol.
 
 This module provides a registry for transport protocol implementations,
-allowing dynamic registration and lookup of transports based on the 
+allowing dynamic registration and lookup of transports based on the
 protocol specified in agent+<protocol>:// URIs.
 """
 

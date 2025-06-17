@@ -10,7 +10,6 @@ from unittest.mock import MagicMock
 
 from requests.models import Response
 
-from ..cache import CacheProvider
 from ..resolver import AgentResolver
 
 # Sample descriptor JSON for testing

@@ -147,6 +147,7 @@ addopts = [
     "-ra"
 ]
 testpaths = [
+    "agent_uri/tests",
     "agent_uri/*/tests",
     "tests"
 ]

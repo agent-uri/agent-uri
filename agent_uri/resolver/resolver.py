@@ -2,18 +2,16 @@
 Agent URI Resolution Framework
 
 This module provides the core functionality for resolving agent:// URIs
-to their corresponding agent descriptors and endpoints by discovering 
+to their corresponding agent descriptors and endpoints by discovering
 and parsing .well-known/agent.json or .well-known/agents.json files.
 """
 
 import json
 import logging
-import urllib.parse
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 # Try importing requests, provide clear error message if missing
 try:
-    import requests
     from requests.exceptions import RequestException, Timeout
 except ImportError:
     raise ImportError(
@@ -75,7 +73,8 @@ class AgentResolver:
             timeout: HTTP request timeout in seconds
             verify_ssl: Whether to verify SSL certificates
             user_agent: User-Agent header to send with requests
-            fallback_to_https: Whether to fallback to HTTPS if explicit transport not specified
+            fallback_to_https: Whether to fallback to HTTPS if explicit
+                transport not specified
         """
         self.cache = cache_provider or default_cache
         self.session = self.cache.get_session()
@@ -117,7 +116,7 @@ class AgentResolver:
         metadata = {
             "uri": uri.to_string(),
             "resolution_path": [],
-            "transport": uri.transport or "https" if self.fallback_to_https else None,
+            "transport": (uri.transport or "https" if self.fallback_to_https else None),
         }
 
         # Try to resolve via agent.json or agents.json
@@ -143,7 +142,8 @@ class AgentResolver:
         self, uri: AgentUri
     ) -> Tuple[AgentDescriptor, Dict[str, Any]]:
         """
-        Resolve an agent URI via .well-known/agent.json or .well-known/agents.json.
+        Resolve an agent URI via .well-known/agent.json or
+        .well-known/agents.json.
 
         Args:
             uri: An AgentUri object

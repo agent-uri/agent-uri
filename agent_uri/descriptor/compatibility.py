@@ -1,13 +1,14 @@
 """
 Compatibility module for converting between AgentDescriptor and other formats.
 
-This module provides a framework for converting between the internal AgentDescriptor
-format and external descriptor formats like Agent2Agent's AgentCard, JSON-LD, etc.
-It supports extensibility to easily add new compatibility formats in the future.
+This module provides a framework for converting between the internal
+AgentDescriptor format and external descriptor formats like Agent2Agent's
+AgentCard, JSON-LD, etc. It supports extensibility to easily add new
+compatibility formats in the future.
 """
 
 from enum import Enum, auto
-from typing import Any, Dict, List, Optional, Protocol, Type, cast
+from typing import Any, Dict, List, Protocol, Type
 
 from .models import (
     AgentCapabilities,
@@ -42,7 +43,8 @@ class CompatibilityConverter(Protocol):
 
     @staticmethod
     def is_compatible(descriptor: AgentDescriptor) -> bool:
-        """Check if an AgentDescriptor is compatible with the external format."""
+        """Check if an AgentDescriptor is compatible with the external
+        format."""
         ...
 
 
@@ -85,7 +87,7 @@ class Agent2AgentConverter:
         agent_card["capabilities"] = {
             "streaming": agent_capabilities.streaming,
             "pushNotifications": agent_capabilities.push_notifications,
-            "stateTransitionHistory": agent_capabilities.state_transition_history,
+            "stateTransitionHistory": (agent_capabilities.state_transition_history),
         }
 
         # Convert authentication
@@ -231,7 +233,8 @@ class Agent2AgentConverter:
     @staticmethod
     def is_compatible(descriptor: AgentDescriptor) -> bool:
         """
-        Check if an AgentDescriptor is compatible with the Agent2Agent protocol's AgentCard format.
+        Check if an AgentDescriptor is compatible with the Agent2Agent
+        protocol's AgentCard format.
 
         Args:
             descriptor: The AgentDescriptor to check
@@ -302,7 +305,8 @@ class JsonLdConverter:
         Returns:
             An AgentDescriptor object
         """
-        # Use the standard parser which already handles @context -> context conversion
+        # Use the standard parser which already handles @context ->
+        # context conversion
         from .parser import parse_descriptor
 
         return parse_descriptor(jsonld_data)
@@ -318,7 +322,8 @@ class JsonLdConverter:
         Returns:
             True if the descriptor is compatible with JSON-LD, False otherwise
         """
-        # All descriptors are technically JSON-LD compatible, but ideally have a context
+        # All descriptors are technically JSON-LD compatible, but ideally
+        # have a context
         return True
 
 
@@ -397,7 +402,8 @@ def is_format_compatible(
     return converter.is_compatible(descriptor)
 
 
-# Convenience functions for Agent2Agent format, since it's currently the primary use case
+# Convenience functions for Agent2Agent format, since it's currently the
+# primary use case
 def to_agent_card(descriptor: AgentDescriptor) -> Dict[str, Any]:
     """Convert an AgentDescriptor to an Agent2Agent protocol AgentCard."""
     return to_format(descriptor, DescriptorFormat.AGENT2AGENT)
@@ -409,5 +415,6 @@ def from_agent_card(agent_card: Dict[str, Any]) -> AgentDescriptor:
 
 
 def is_agent_card_compatible(descriptor: AgentDescriptor) -> bool:
-    """Check if an AgentDescriptor is compatible with the Agent2Agent protocol's AgentCard format."""
+    """Check if an AgentDescriptor is compatible with the Agent2Agent
+    protocol's AgentCard format."""
     return is_format_compatible(descriptor, DescriptorFormat.AGENT2AGENT)

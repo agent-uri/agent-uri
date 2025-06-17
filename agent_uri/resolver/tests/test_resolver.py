@@ -7,11 +7,9 @@ caching tests and resolution strategy tests.
 
 import json
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from ...descriptor.models import AgentDescriptor
-from ...parser import parse_agent_uri
-
 from ..resolver import AgentResolver, ResolverNotFoundError
 
 # Sample descriptor JSON for testing
@@ -207,7 +205,6 @@ class TestAgentResolver(unittest.TestCase):
         self.assertEqual(descriptor1.name, "test-agent")
 
         # Reset the mock for second request
-        call_count = mock_session.get.call_count
         mock_session.get.reset_mock()
 
         # Make the mock return the same data for the second call

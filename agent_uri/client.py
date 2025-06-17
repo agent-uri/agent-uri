@@ -5,25 +5,21 @@ This module provides the main client interface for interacting with agents
 using the agent:// protocol.
 """
 
-import json
 import logging
 import urllib.parse
 import uuid
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, Optional, Tuple
 
 from .auth import AuthProvider
 
 # Import from consolidated package
 from .descriptor.models import AgentDescriptor
-from .descriptor.parser import load_descriptor
 from .exceptions import (
     AgentClientError,
-    AuthenticationError,
     InvocationError,
     ResolutionError,
     ResolverError,
     SessionError,
-    StreamingError,
 )
 from .parser import AgentUri, parse_agent_uri
 from .resolver.resolver import AgentResolver
