@@ -388,7 +388,10 @@ if FASTAPI_AVAILABLE:
                         methods=["GET"],
                         response_model=None,
                         summary="Get agent descriptor (A2A compatible)",
-                        description="Returns the agent.json descriptor for this agent (A2A compatible path).",
+                        description=(
+                            "Returns the agent.json descriptor for this agent "
+                            "(A2A compatible path)."
+                        ),
                     )
 
             # Dynamic routes for capabilities
@@ -460,7 +463,8 @@ if FASTAPI_AVAILABLE:
                 for key, value in request.headers.items():
                     headers[key] = value
 
-                # Get session ID from header if present and store in dedicated metadata field
+                # Get session ID from header if present and store in dedicated
+                # metadata field
                 # instead of using both kwargs and explicit parameter
                 session_metadata = {}
                 if headers.get("X-Session-ID"):
@@ -471,7 +475,7 @@ if FASTAPI_AVAILABLE:
                     path=path,
                     params=params,
                     headers=headers,
-                    session_metadata=session_metadata,  # Pass as a dedicated metadata parameter
+                    session_metadata=session_metadata,  # Pass as dedicated metadata
                 )
 
                 # Return JSON response
@@ -508,7 +512,8 @@ if FASTAPI_AVAILABLE:
                 params_raw = await websocket.receive_text()
                 params = json.loads(params_raw)
 
-                # Get session ID from parameters if present and store in dedicated metadata
+                # Get session ID from parameters if present and store in
+                # dedicated metadata
                 session_metadata = {}
                 if params.get("session_id"):
                     session_metadata["session_id"] = params.get("session_id")

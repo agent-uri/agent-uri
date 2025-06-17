@@ -337,7 +337,8 @@ class LocalAgentRegistry:
                         # Regular request/response
                         result = handler(capability, params)
 
-                        # Check if result is a generator and convert to list for JSON serialization
+                        # Check if result is a generator and convert to list
+                        # for JSON serialization
                         if hasattr(result, "__iter__") and hasattr(result, "__next__"):
                             # It's a generator, convert to list
                             result = list(result)
@@ -435,7 +436,8 @@ class LocalTransport(AgentTransport):
             # Direct invocation
             try:
                 result = local_handler(capability, params or {})
-                # Check if result is a generator and convert to list for JSON serialization
+                # Check if result is a generator and convert to list
+                # for JSON serialization
                 if hasattr(result, "__iter__") and hasattr(result, "__next__"):
                     # It's a generator, convert to list
                     return list(result)
@@ -582,9 +584,9 @@ class LocalTransport(AgentTransport):
         # Remove protocol prefix if present
         if endpoint.startswith(("local://", "agent+local://")):
             if endpoint.startswith("local://"):
-                agent_name = endpoint[len("local://") :]
+                agent_name = endpoint[len("local://"):]
             else:
-                agent_name = endpoint[len("agent+local://") :]
+                agent_name = endpoint[len("agent+local://"):]
         else:
             agent_name = endpoint
 
