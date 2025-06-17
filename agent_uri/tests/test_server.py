@@ -11,11 +11,7 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 
 from ..capability import Capability, CapabilityMetadata
-from ..exceptions import (
-    CapabilityNotFoundError,
-    ConfigurationError,
-    HandlerError,
-)
+from ..exceptions import CapabilityNotFoundError, ConfigurationError, HandlerError
 from ..server import FASTAPI_AVAILABLE, AgentServer
 
 try:

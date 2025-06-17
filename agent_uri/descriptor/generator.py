@@ -11,7 +11,6 @@ from typing import Any, Dict, List, Optional
 
 from ..capability import Capability
 from ..exceptions import DescriptorError
-
 from .validator import validate_descriptor
 
 logger = logging.getLogger(__name__)
