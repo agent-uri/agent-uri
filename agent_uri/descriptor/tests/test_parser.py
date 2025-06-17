@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from .models import AgentDescriptor, Capability, Provider, Skill
-from .parser import (
+from ..models import AgentDescriptor, Capability, Provider, Skill
+from ..parser import (
     descriptor_to_dict,
     load_descriptor,
     parse_descriptor,

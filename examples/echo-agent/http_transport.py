@@ -4,14 +4,12 @@ import logging
 import os
 import re
 
-# For the new single package structure
 import sys
 from typing import Any, Dict, Optional, Tuple
 
 import requests
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
-
+# Import from the installed agent_uri package  
 from agent_uri.transport.base import AgentTransport
 
 logger = logging.getLogger(__name__)

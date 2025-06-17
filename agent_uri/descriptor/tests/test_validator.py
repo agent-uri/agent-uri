@@ -2,8 +2,8 @@
 
 import pytest
 
-from .models import AgentDescriptor, Capability, Provider, Skill
-from .validator import (
+from ..models import AgentDescriptor, Capability, Provider, Skill
+from ..validator import (
     ValidationResult,
     check_json_ld_extensions,
     validate_agent_card_compatibility,

@@ -4,7 +4,7 @@ Tests for the error models module in the agent:// protocol error handling framew
 
 import unittest
 
-from agent_common.error.models import (
+from ..error.models import (
     AgentError,
     AgentProblemDetail,
     ErrorCategory,

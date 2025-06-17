@@ -7,8 +7,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from agent_client.auth import ApiKeyAuth, AuthProvider, BearerTokenAuth
-from agent_client.exceptions import AuthenticationError
+from ..auth import ApiKeyAuth, AuthProvider, BearerTokenAuth
+from ..exceptions import AuthenticationError
 
 
 class TestAuthProvider:

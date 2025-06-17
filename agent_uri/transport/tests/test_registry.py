@@ -6,8 +6,8 @@ This module contains tests for the TransportRegistry class.
 
 import pytest
 
-from .base import AgentTransport, TransportNotSupportedError
-from .registry import TransportRegistry
+from ..base import AgentTransport, TransportNotSupportedError
+from ..registry import TransportRegistry
 
 
 class MockTransport(AgentTransport):

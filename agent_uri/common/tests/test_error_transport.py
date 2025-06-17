@@ -5,12 +5,12 @@ Tests for the transport binding utilities in the error handling framework.
 import json
 import unittest
 
-from agent_common.error.models import (
+from ..error.models import (
     AgentProblemDetail,
     ErrorCategory,
     create_problem_detail,
 )
-from agent_common.error.transport import (
+from ..error.transport import (
     format_for_http,
     format_for_local,
     format_for_websocket,

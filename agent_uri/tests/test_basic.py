@@ -7,14 +7,14 @@ is installed correctly and can be imported and used.
 
 import pytest
 
-from agent_server.capability import Capability
+from ..capability import Capability
 
 
 def test_import():
     """Test that the package can be imported correctly."""
-    import agent_server
+    import agent_uri
 
-    assert agent_server is not None
+    assert agent_uri is not None
 
 
 def test_capability_creation():

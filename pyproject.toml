@@ -67,6 +67,7 @@ poetry-plugin-export = "^1.6.0"
 mkdocs = "^1.5.0"
 mkdocs-material = "^9.5.0"
 mkdocstrings = "^0.24.0"
+requests-mock = "^1.12.1"
 
 [tool.poetry.group.ci.dependencies]
 # CI-specific dependencies
@@ -76,18 +77,7 @@ coverage = "^7.3.0"
 [tool.poetry.scripts]
 agent-uri = "agent_uri.cli:main"
 
-# uv configuration for faster dependency resolution
-[tool.uv]
-dev-dependencies = [
-    "pytest>=7.4.0",
-    "pytest-cov>=4.1.0",
-    "pytest-asyncio>=0.21.0",
-    "black>=23.12.0",
-    "isort>=5.13.0",
-    "flake8>=6.1.0",
-    "mypy>=1.8.0",
-    "pre-commit>=3.6.0"
-]
+# Note: uv reads dependencies from Poetry's dependency groups above
 
 # Tool configurations
 [tool.black]
@@ -184,7 +174,7 @@ filterwarnings = [
 ]
 
 [tool.coverage.run]
-source = ["packages"]
+source = ["agent_uri"]
 omit = [
     "*/tests/*",
     "*/test_*",

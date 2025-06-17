@@ -10,7 +10,6 @@ import asyncio
 import datetime
 import os
 
-# For the new single package structure
 import sys
 import unittest
 from unittest import mock
@@ -19,8 +18,7 @@ from unittest import mock
 from echo_agent import create_echo_agent_server, echo
 from http_transport import HttpTransport
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
-
+# Import from the installed agent_uri package
 from agent_uri.client import AgentClient
 from agent_uri.transport.registry import default_registry
 

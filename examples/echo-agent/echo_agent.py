@@ -11,15 +11,12 @@ import json
 import logging
 import os
 
-# For the new single package structure, we need to import from agent_uri
-# Note: For now, we'll add the parent directory to import from the local development version
 import sys
 from typing import Any, Dict
 
 import uvicorn
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
-
+# Import from the installed agent_uri package
 from agent_uri.capability import capability
 from agent_uri.server import FastAPIAgentServer
 

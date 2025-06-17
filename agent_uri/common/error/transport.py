@@ -8,7 +8,7 @@ across different transport bindings (HTTP, WebSocket, Local, etc.).
 import json
 from typing import Any, Dict, Optional, Tuple, Union
 
-from agent_common.error.models import AgentError, AgentProblemDetail, ErrorCategory
+from .models import AgentError, AgentProblemDetail, ErrorCategory
 
 
 def format_for_http(

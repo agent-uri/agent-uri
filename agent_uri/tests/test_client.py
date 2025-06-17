@@ -8,9 +8,9 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from agent_client.auth import AuthProvider, BearerTokenAuth
-from agent_client.client import AgentClient, AgentSession
-from agent_client.exceptions import (
+from ..auth import AuthProvider, BearerTokenAuth
+from ..client import AgentClient, AgentSession
+from ..exceptions import (
     InvocationError,
     ResolutionError,
     SessionError,
@@ -126,7 +126,7 @@ class TestAgentClient:
         # Replace registry with mock
         self.client.registry = self.mock_registry
 
-    @patch("agent_client.client.parse_agent_uri")
+    @patch("agent_uri.client.parse_agent_uri")
     def test_invoke(self, mock_parse_uri):
         """Test invoking an agent capability."""
         # Configure mock parser
@@ -165,7 +165,7 @@ class TestAgentClient:
         # Verify response
         assert response == {"result": "test-response"}
 
-    @patch("agent_client.client.parse_agent_uri")
+    @patch("agent_uri.client.parse_agent_uri")
     def test_explicit_transport(self, mock_parse_uri):
         """Test invoking with explicit transport binding."""
         # Configure mock parser
@@ -182,7 +182,7 @@ class TestAgentClient:
         self.mock_registry.get_transport.assert_called_once_with("https")
         assert len(self.mock_transport.invoke_calls) == 1
 
-    @patch("agent_client.client.parse_agent_uri")
+    @patch("agent_uri.client.parse_agent_uri")
     def test_stream(self, mock_parse_uri):
         """Test streaming from an agent capability."""
         # Configure mock parser
@@ -217,7 +217,7 @@ class TestAgentClient:
         assert chunks[1]["chunk"] == 1
         assert chunks[2]["chunk"] == 2
 
-    @patch("agent_client.client.parse_agent_uri")
+    @patch("agent_uri.client.parse_agent_uri")
     def test_get_descriptor(self, mock_parse_uri):
         """Test getting an agent descriptor."""
         # Configure mock parser
@@ -238,7 +238,7 @@ class TestAgentClient:
         assert descriptor.name == "test-agent"
         assert descriptor.version == "1.0.0"
 
-    @patch("agent_client.client.parse_agent_uri")
+    @patch("agent_uri.client.parse_agent_uri")
     def test_create_session(self, mock_parse_uri):
         """Test creating a session."""
         # Create session
@@ -253,7 +253,7 @@ class TestAgentClient:
         assert session.session_id == "test-session"
         assert session.auth_provider == self.mock_auth
 
-    @patch("agent_client.client.parse_agent_uri")
+    @patch("agent_uri.client.parse_agent_uri")
     def test_error_handling(self, mock_parse_uri):
         """Test error handling in client."""
         # Configure mock to raise exception

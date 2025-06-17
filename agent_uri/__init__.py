@@ -21,10 +21,14 @@ from .exceptions import AgentServerError, AuthenticationError, CapabilityError
 
 # Import core functionality
 from .parser import AgentUri, parse_agent_uri
+from .client import AgentClient
+from .server import FastAPIAgentServer
 
 __all__ = [
     "AgentUri",
     "parse_agent_uri",
+    "AgentClient",
+    "FastAPIAgentServer",
     "AgentServerError",
     "CapabilityError",
     "AuthenticationError",

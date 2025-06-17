@@ -9,10 +9,10 @@ import json
 import unittest
 from unittest.mock import MagicMock, patch
 
-from agent_descriptor.models import AgentDescriptor
-from agent_uri.parser import parse_agent_uri
+from ...descriptor.models import AgentDescriptor
+from ...parser import parse_agent_uri
 
-from .resolver import AgentResolver, ResolverNotFoundError
+from ..resolver import AgentResolver, ResolverNotFoundError
 
 # Sample descriptor JSON for testing
 SAMPLE_DESCRIPTOR = {

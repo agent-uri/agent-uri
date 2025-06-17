@@ -2,7 +2,7 @@
 
 import pytest
 
-from .compatibility import (
+from ..compatibility import (
     Agent2AgentConverter,
     DescriptorFormat,
     JsonLdConverter,
@@ -13,7 +13,7 @@ from .compatibility import (
     to_agent_card,
     to_format,
 )
-from .models import (
+from ..models import (
     AgentCapabilities,
     AgentDescriptor,
     Authentication,

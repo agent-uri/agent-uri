@@ -6,14 +6,14 @@ RFC 7807 (Problem Details for HTTP APIs) for structured error responses
 across different transport bindings.
 """
 
-from agent_common.error.models import (
+from .models import (
     AgentError,
     AgentProblemDetail,
     ErrorCategory,
     create_problem_detail,
     problem_from_exception,
 )
-from agent_common.error.transport import (
+from .transport import (
     format_for_http,
     format_for_local,
     format_for_websocket,

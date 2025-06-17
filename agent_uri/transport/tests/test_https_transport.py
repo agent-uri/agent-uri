@@ -10,8 +10,8 @@ import pytest
 import requests
 import requests_mock
 
-from .base import TransportError, TransportTimeoutError
-from .transports.https import HttpsTransport
+from ..base import TransportError, TransportTimeoutError
+from ..transports.https import HttpsTransport
 
 
 class TestHttpsTransport:

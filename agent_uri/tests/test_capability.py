@@ -11,8 +11,8 @@ from typing import Any, Dict, List
 
 import pytest
 
-from agent_server.capability import Capability, capability
-from agent_server.exceptions import CapabilityError, InvalidInputError
+from ..capability import Capability, capability
+from ..exceptions import CapabilityError, InvalidInputError
 
 
 # Test functions to use as capabilities
