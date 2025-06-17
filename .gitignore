@@ -71,3 +71,7 @@ dmypy.json
 **/.pytest_cache/
 **/node_modules/
 **/tmp/
+
+CLAUDE.md
+.mcp.json
+.claude

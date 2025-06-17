@@ -14,12 +14,18 @@ The Echo Agent demonstrates:
 
 ## Components
 
-- `echo_agent.py`: Server implementation with the echo capability
-- `client_test.py`: Agent client SDK implementation (full agent:// protocol)
+### ✅ Working Examples:
+- `echo_agent.py`: **FIXED** - Server implementation with the echo capability  
+- `simple_client.py`: **FIXED** - Simple HTTP client for testing the echo agent
 - `direct_client.py`: Direct HTTP client using custom HTTP transport
-- `simple_client.py`: Simple HTTP client without agent:// protocol dependencies
-- `http_transport.py`: HTTP transport implementation
+- Basic URI parsing functionality
+
+### ⚠️ Examples that need testing:
+- `client_test.py`: Agent client SDK implementation (full agent:// protocol)
+- `http_transport.py`: HTTP transport implementation  
 - `tests.py`: Unit and integration tests
+
+> **Note**: Most examples are now working with the single `agent-uri` package!
 
 ## How it Works
 
@@ -30,20 +36,15 @@ The Echo Agent implements a simple capability that:
 
 ## Prerequisites
 
-- Python 3.8+
-- Install required packages:
+- Python 3.9+
+- Install the agent-uri package:
   ```bash
-  # From the agent-uri root directory:
-  pip install -e packages/common
-  pip install -e packages/uri-parser
-  pip install -e packages/descriptor
-  pip install -e packages/resolver
-  pip install -e packages/transport
-  pip install -e packages/client
-  pip install -e packages/server
+  # Option 1: Install from PyPI (once published)
+  pip install agent-uri
   
-  # Additional requirements
-  pip install uvicorn fastapi requests
+  # Option 2: Install from local development (for now)
+  # From the agent-uri root directory:
+  pip install -e .
   ```
 
 ## Running the Example
@@ -51,7 +52,8 @@ The Echo Agent implements a simple capability that:
 ### 1. Start the Echo Agent server
 
 ```bash
-python echo_agent.py
+# From the agent-uri root directory:
+python examples/echo-agent/echo_agent.py
 ```
 
 This will:
@@ -62,7 +64,15 @@ This will:
 
 ### 2. Run a client (in a separate terminal)
 
-There are three different clients you can use:
+```bash
+# Simple HTTP client (works now):
+python examples/echo-agent/simple_client.py
+
+# Direct HTTP client (works now):
+python examples/echo-agent/direct_client.py
+```
+
+### Other examples (need testing):
 
 #### Standard Agent Client (using agent:// protocol)
 
@@ -93,37 +103,51 @@ This client uses pure HTTP without any agent:// protocol dependencies.
 
 ## Running Tests
 
-Run the unit and integration tests:
-
 ```bash
-python tests.py
+# Start the server first:
+python examples/echo-agent/echo_agent.py
+
+# In another terminal, test the client:
+python examples/echo-agent/simple_client.py
+
+# Full integration tests (need testing):
+python examples/echo-agent/tests.py
 ```
 
 ## Expected Output
 
-When running the Echo Agent, you'll see that it:
-
-1. Registers the echo capability
-2. Saves a descriptor file
-3. Prints the descriptor
-4. Starts the server
-
-Example client output:
+### Simple URI Example Output:
 
 ```
-=== Echo Agent Test ===
+🤖 Agent URI Simple Example
+========================================
 
-Invoking echo capability:
-Message sent: Hello, Echo Agent! Current time: 2025-04-18T18:34:42.123456
-Response: {
-  "result": "Hello, Echo Agent! Current time: 2025-04-18T18:34:42.123456 [2025-04-18T18:34:42.654321]",
-  "timestamp": "2025-04-18T18:34:42.654321",
-  "original_message": "Hello, Echo Agent! Current time: 2025-04-18T18:34:42.123456"
-}
+1. Basic URI Parsing:
+   Original URI: agent://example.com/echo-agent
+   Host: example.com
+   Path: echo-agent
+   Authority: example.com
 
-✅ Test passed: Original message matched in response
-✅ Test passed: Timestamp found in response
-✅ Test passed: Result found in response
+2. URI with Transport Binding:
+   Original URI: agent+https://api.example.com:8443/my-agent
+   Full scheme: agent+https
+   Transport: https
+   Host: api.example.com
+   Port: 8443
+   Path: my-agent
+
+3. URI with Query Parameters:
+   Original URI: agent://service.ai/gpt-agent?version=4&temperature=0.7&max_tokens=150
+   Host: service.ai
+   Path: gpt-agent
+   Query parameters:
+     version: 4
+     temperature: 0.7
+     max_tokens: 150
+
+✅ All examples completed successfully!
+📦 Package Info:
+   agent-uri version: 0.2.0
 ```
 
 ## Agent Descriptor

@@ -1,0 +1,223 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "agent-uri"
+version = "0.2.0"
+description = "Agent URI Protocol Implementation - A complete suite for addressing and interacting with AI agents"
+authors = ["Yaswanth Narvaneni <yaswanth@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "agent_uri"}]
+homepage = "https://github.com/WizardOfAgents/agent-uri"
+repository = "https://github.com/WizardOfAgents/agent-uri"
+documentation = "https://agent-uri.readthedocs.io"
+keywords = ["agent", "uri", "protocol", "ai", "rfc"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Networking",
+]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+# All dependencies from the original packages
+requests = "^2.31.0"
+requests-cache = "^1.1.0"
+websocket-client = "^1.7.0"
+sseclient-py = "^1.8.0"
+pyjwt = "^2.8.0"
+pydantic = "^2.5.0"
+jsonschema = "^4.20.0"
+fastapi = "^0.104.0"
+uvicorn = "^0.24.0"
+
+[tool.poetry.group.dev.dependencies]
+# Testing
+pytest = "^7.4.0"
+pytest-cov = "^4.1.0"
+pytest-asyncio = "^0.21.0"
+pytest-mock = "^3.12.0"
+pytest-xdist = "^3.5.0"
+
+# Code quality
+black = "^23.12.0"
+isort = "^5.13.0"
+flake8 = "^6.1.0"
+mypy = "^1.8.0"
+bandit = "^1.7.5"
+safety = "^2.3.0"
+
+# Development tools
+pre-commit = "^3.6.0"
+uv = "^0.4.0"
+poetry-plugin-export = "^1.6.0"
+
+# Documentation
+mkdocs = "^1.5.0"
+mkdocs-material = "^9.5.0"
+mkdocstrings = "^0.24.0"
+requests-mock = "^1.12.1"
+
+[tool.poetry.group.ci.dependencies]
+# CI-specific dependencies
+tox = "^4.11.0"
+coverage = "^7.3.0"
+
+[tool.poetry.scripts]
+agent-uri = "agent_uri.cli:main"
+
+# Note: uv reads dependencies from Poetry's dependency groups above
+
+# Tool configurations
+[tool.black]
+line-length = 88
+target-version = ['py39', 'py310', 'py311', 'py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = [
+    "agent_uri",
+    "agent_descriptor", 
+    "agent_resolver",
+    "agent_transport",
+    "agent_client",
+    "agent_server",
+    "agent_common"
+]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = false
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+disallow_untyped_decorators = false
+no_implicit_optional = false
+warn_redundant_casts = false
+warn_unused_ignores = false
+warn_no_return = false
+warn_unreachable = false
+strict_equality = false
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "requests.*",
+    "websocket.*",
+    "sseclient.*"
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--cov=agent_uri",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+    "-ra"
+]
+testpaths = [
+    "agent_uri/tests",
+    "agent_uri/*/tests",
+    "tests"
+]
+python_files = [
+    "test_*.py",
+    "*_test.py"
+]
+python_classes = [
+    "Test*"
+]
+python_functions = [
+    "test_*"
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests", 
+    "e2e: End-to-end tests",
+    "slow: Slow tests",
+    "network: Tests that require network access"
+]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning"
+]
+
+[tool.coverage.run]
+source = ["agent_uri"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/virtualenv/*"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:"
+]
+
+[tool.bandit]
+exclude_dirs = ["tests", "*/tests"]
+skips = ["B101", "B601"]
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = [
+    "E203",  # whitespace before ':'
+    "E501",  # line too long (handled by black)
+    "W503",  # line break before binary operator
+]
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    ".eggs",
+    "*.egg-info",
+    ".venv",
+    ".tox"
+]
+per-file-ignores = [
+    "__init__.py:F401"
+]
