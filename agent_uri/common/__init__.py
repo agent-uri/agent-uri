@@ -6,4 +6,4 @@ agent:// protocol packages.
 """
 
 # Import version from main package
-from .. import __version__
+from .. import __version__  # noqa: F401

@@ -23,4 +23,4 @@ from .validator import (  # noqa: F401
 )
 
 # Import version from main package
-from .. import __version__
+from .. import __version__  # noqa: F401
