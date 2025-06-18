@@ -4,10 +4,10 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "agent-uri"
-version = "0.2.0"
+version = "0.2.1"
 description = "Agent URI Protocol Implementation - A complete suite for addressing and interacting with AI agents"
 authors = ["Yaswanth Narvaneni <yaswanth@gmail.com>"]
-license = "MIT"
+license = "BSD-3-Clause"
 readme = "README.md"
 packages = [{include = "agent_uri"}]
 homepage = "https://github.com/WizardOfAgents/agent-uri"
@@ -17,7 +17,7 @@ keywords = ["agent", "uri", "protocol", "ai", "rfc"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: BSD License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",

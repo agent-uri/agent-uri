@@ -50,6 +50,52 @@ For changes to the Internet-Draft:
 
 ---
 
+## 🔢 Version Management
+
+### Single Source of Truth
+
+The version is defined in **one place only**:
+
+```python
+# agent_uri/__init__.py
+__version__ = "0.2.1"
+```
+
+### Version Update Process
+
+When updating the version:
+
+1. **Update `agent_uri/__init__.py`**:
+   ```python
+   __version__ = "x.y.z"
+   ```
+
+2. **Update `pyproject.toml`**:
+   ```toml
+   version = "x.y.z"  # Must match __init__.py
+   ```
+
+3. **That's it!** All other components will automatically use the correct version.
+
+### How Components Get the Version
+
+- **Submodules** (`common/`, `descriptor/`) import from main package
+- **CLI** uses package metadata with fallback to imported version
+- **Tests** should use flexible version checking, not hardcoded versions
+
+### Testing Version Checks
+
+```python
+# ✅ Good - flexible version checking
+assert "agent-uri" in result.stdout
+assert any(char.isdigit() for char in result.stdout)
+
+# ❌ Bad - hardcoded version
+assert "agent-uri 0.2.1" in result.stdout
+```
+
+---
+
 ## 💬 Communication Channels
 
 - 📄 [Internet-Draft on IETF Datatracker](https://datatracker.ietf.org/doc/draft-narvaneni-agent-uri/)

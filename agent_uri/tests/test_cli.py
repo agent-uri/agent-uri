@@ -283,7 +283,9 @@ class TestCLICommandLine:
             text=True,
         )
         assert result.returncode == 0
-        assert "agent-uri 0.2.0" in result.stdout
+        assert "agent-uri" in result.stdout
+        # Should show some version number
+        assert any(char.isdigit() for char in result.stdout)
 
     def test_cli_parse_command_line(self):
         """Test CLI parse command via command line."""

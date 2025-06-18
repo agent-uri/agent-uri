@@ -5,4 +5,5 @@ This package provides shared functionality used across different
 agent:// protocol packages.
 """
 
-__version__ = "0.1.0"
+# Import version from main package
+from .. import __version__  # noqa: F401
