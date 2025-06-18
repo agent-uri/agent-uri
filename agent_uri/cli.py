@@ -12,6 +12,7 @@ import json
 import sys
 from typing import Any
 
+from . import __version__
 from .client import AgentClient
 from .exceptions import AgentClientError
 from .parser import AgentUriError, parse_agent_uri
@@ -222,8 +223,8 @@ def cmd_version(args: argparse.Namespace) -> int:
         pkg_version = version("agent-uri")
         print(f"agent-uri {pkg_version}")
     except Exception:
-        # Fallback to hardcoded version
-        print("agent-uri 0.2.0")
+        # Fallback to version from __init__.py
+        print(f"agent-uri {__version__}")
 
     return 0
 
