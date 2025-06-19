@@ -36,13 +36,13 @@ normative:
   JSON-LD11:
     title: "JSON-LD 1.1: A JSON-based Serialization for Linked Data"
     author:
-      - 
+      -
         ins: M. Sporny
       -
         ins: D. Longley
       -
         ins: G. Kellogg
-      - 
+      -
         ins: M. Lanthaler
       -
         ins: P. Champin
@@ -55,7 +55,7 @@ normative:
   DID-CORE:
     title: "Decentralized Identifiers (DIDs) v1.0"
     author:
-      - 
+      -
         ins: M. Sporny
       -
         ins: D. Longley
@@ -192,15 +192,15 @@ This flexibility addresses a critical gap in current agent ecosystems, enabling 
 +------------------+
 | Agent Applications|
 +------------------+
-       <-> 
+       <->
 +------------------+
 |   agent:// URI   | <- Addressing, Resolution, Discovery
 +------------------+
-       <-> 
+       <->
 +------------------+  +------------------+
 |  Agent2Agent     |  |    CNP,. etc     | <- Communication Protocols
 +------------------+  +------------------+
-        <->                   <-> 
+        <->                   <->
 +------------------+  +------------------+
 | Transport Layer  |  | Transport Layer  | <- HTTP, WebSockets, etc.
 +------------------+  +------------------+
@@ -228,7 +228,7 @@ A reference implementation of the `agent://` protocol is available to demonstrat
 - **Invocation**: The act of calling a capability on an agent with input parameters.
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
-"SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in 
+"SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in
 RFC 2119, BCP 14 {{RFC2119}}, {{RFC8174}} when, and only when, they appear in all capitals, as shown here.
 
 # Protocol Scope and Layering    {#protocol-scope}
@@ -251,7 +251,7 @@ This layering allows implementations to adopt minimal or full-featured configura
 The format of `agent://` URIs is:
 
 ~~~
-agent://[authority]/[path]?[query]#[fragment] 
+agent://[authority]/[path]?[query]#[fragment]
 agent+<protocol>://[authority]/[path]
 ~~~
 {: #fig-uri-format title="Agent URI Format"}
@@ -283,7 +283,7 @@ agent-uri      = "agent" ["+" protocol] "://" authority ["/" path]
 protocol       = 1*( ALPHA / DIGIT / "-" )
 authority      = [ userinfo "@" ] host [ ":" port ]
                  ; <authority, defined in RFC3986, Section 3.2>
-path           = path-abempty    
+path           = path-abempty
                  ; begins with "/" or is empty.
                  ; Defined in RFC3986, Section 3.3
 query          = *( pchar / "/" / "?" )
@@ -558,7 +558,7 @@ A typical user-driven invocation of an agent using the `agent://` protocol follo
      |                | Constructs request |
      |                | --> agent://plan.example.com/gen-iti?city=Rio
      |                |                    |
-     |                |                    | Validate input 
+     |                |                    | Validate input
      |                |                    | Process logic/call tools
      |                |                    | May call sub-agents
      |                |                    |
@@ -694,7 +694,7 @@ Privacy recommendations:
 Agents SHOULD adhere to privacy best practices, including:
 
 - Data minimization (collect only necessary data)
-- Explicit consent and revocation mechanisms 
+- Explicit consent and revocation mechanisms
 - Clear logging/audit trails
 - Ethical AI guidelines, including bias detection and fairness assessments as they evolve
 
@@ -723,22 +723,22 @@ This document requests the registration of the `agent` URI scheme in the IANA "U
 
 - **Status**: Provisional
 
-- **Applications/Protocols That Use This Scheme**:  
+- **Applications/Protocols That Use This Scheme**:
   The `agent` URI scheme identifies and invokes autonomous or semi-autonomous software agents across systems. It provides transport-agnostic addressing layer supporting discovery, invocation and orchestration. The scheme is compatible with existing schemes such as `https`, `did` and `web+` schemes where appropriate.
 
-- **Contact**:  
-  Yaswanth Narvaneni  
+- **Contact**:
+  Yaswanth Narvaneni
   <yaswanth@gmail.com>
 
-- **Change Controller**:  
+- **Change Controller**:
   The author or a relevant standards body such as the IETF if adopted.
 
-- **References**:  
-  This document (Internet-Draft): *agent:// Protocol -- A URI-Based Framework for Interoperable Agents*  
-  [RFC3986] - Uniform Resource Identifier (URI): Generic Syntax  
+- **References**:
+  This document (Internet-Draft): *agent:// Protocol -- A URI-Based Framework for Interoperable Agents*
+  [RFC3986] - Uniform Resource Identifier (URI): Generic Syntax
   [RFC7595] - Guidelines and Registration Procedures for URI Schemes
 
-- **URI Syntax**:  
+- **URI Syntax**:
   The general form of an `agent` URI is:
 
 ~~~txt
@@ -748,15 +748,15 @@ agent:[+<protocol>]://<authority>/<path>[?<query>][#<fragment>]
 ~~~
 
 Where:
-- `authority` is typically a domain name or Decentralized Identifier (DID)  
-- `path` is an opaque agent-specific capability or namespace  
-- `query` includes serialized key-value parameters  
-- `fragment` MAY reference a sub-capability or context  
+- `authority` is typically a domain name or Decentralized Identifier (DID)
+- `path` is an opaque agent-specific capability or namespace
+- `query` includes serialized key-value parameters
+- `fragment` MAY reference a sub-capability or context
 - The optional `+<protocol>` segment indicates an explicit transport binding (e.g., `agent+https://`)
 
 Detailed ABNF is specified in [](#uri-abnf) of this document.
 
-- **Security Considerations**:  
+- **Security Considerations**:
 The `agent` scheme does not introduce new transport-layer vulnerabilities but inherits risks from underlying protocols such as HTTP, WebSocket, or local execution environments. Implementers should apply standard authentication and authorization measures, such as OAuth2, JWTs, or mutual TLS. See Section 10 for security and privacy guidance.
 
 

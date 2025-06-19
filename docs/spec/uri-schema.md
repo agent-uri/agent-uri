@@ -7,7 +7,7 @@ This document provides a formal definition of the `agent://` URI scheme syntax a
 The format of `agent://` URIs is:
 
 ```
-agent://[authority]/[path]?[query]#[fragment] 
+agent://[authority]/[path]?[query]#[fragment]
 agent+<protocol>://[authority]/[path]?[query]#[fragment]
 ```
 

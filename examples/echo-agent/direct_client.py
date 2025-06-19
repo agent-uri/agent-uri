@@ -2,7 +2,7 @@
 """
 Agent URI Protocol Client for Echo Agent
 
-This script demonstrates how to use the agent:// protocol to interact with 
+This script demonstrates how to use the agent:// protocol to interact with
 the Echo Agent server.
 """
 

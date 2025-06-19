@@ -75,3 +75,7 @@ dmypy.json
 CLAUDE.md
 .mcp.json
 .claude
+
+# Security reports
+*-security-report.json
+pip-audit-report.json

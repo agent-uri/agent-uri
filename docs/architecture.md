@@ -20,64 +20,64 @@ graph TB
             Resolver["Resolution Framework\n(packages/resolver)"]
             Security["Security Framework\n(security/)"]
         end
-        
+
         subgraph "Transport Layer"
             TransportRegistry["Transport Registry\n(packages/transport/registry.js)"]
             HttpsTransport["HTTPS Transport\n(packages/transport/https/)"]
             WsTransport["WebSocket Transport\n(packages/transport/websocket/)"]
             LocalTransport["Local Transport\n(packages/transport/local/)"]
         end
-        
+
         subgraph "Client/Server SDKs"
             ClientSDK["Client SDK\n(packages/client/)"]
             ServerSDK["Server SDK\n(packages/server/)"]
         end
-        
+
         subgraph "Integrations"
             A2AIntegration["Agent2Agent Integration\n(integrations/a2a/)"]
             MCPIntegration["Model Context Protocol\n(integrations/mcp/)"]
         end
-        
+
         subgraph "Tools & Examples"
             CLI["Command Line Tools\n(tools/cli/)"]
             Examples["Example Implementations\n(examples/)"]
         end
     end
-    
+
     %% Relationships
     Client --> ClientSDK
     Agent1 --> ServerSDK
     Agent2 --> ServerSDK
-    
+
     ClientSDK --> UriParser
     ClientSDK --> Resolver
     ClientSDK --> TransportRegistry
-    
+
     ServerSDK --> Descriptor
     ServerSDK --> TransportRegistry
     ServerSDK --> Security
-    
+
     Resolver --> Descriptor
     Resolver --> Registry
-    
+
     TransportRegistry --> HttpsTransport
     TransportRegistry --> WsTransport
     TransportRegistry --> LocalTransport
-    
+
     HttpsTransport --> Agent1
     WsTransport --> Agent2
-    
+
     A2AIntegration --> ServerSDK
     MCPIntegration --> ClientSDK
-    
+
     CLI --> ClientSDK
     CLI --> ServerSDK
-    
+
     %% Styling
     classDef container fill:#1168bd,stroke:#0b4884,color:white;
     classDef component fill:#85bbf0,stroke:#5d82a8,color:black;
     classDef external fill:#999999,stroke:#666666,color:white;
-    
+
     class Client,Agent1,Agent2,Registry external
     class UriParser,Descriptor,Resolver,TransportRegistry,HttpsTransport,WsTransport,LocalTransport,ClientSDK,ServerSDK,Security,A2AIntegration,MCPIntegration,CLI,Examples component
 ```

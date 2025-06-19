@@ -117,6 +117,9 @@ security: ## Run security checks
 	$(POETRY) run $(BANDIT) -r agent_uri/ -x "*/tests/*,*/test_*.py"
 	@echo "$(BLUE)Checking for known vulnerabilities with safety...$(RESET)"
 	$(POETRY) run safety check --ignore=67599
+	@echo "$(BLUE)Running pip audit for dependency vulnerabilities...$(RESET)"
+	$(POETRY) run pip-audit --desc --format json --output local-security-report.json || echo "$(YELLOW)Some packages could not be audited (local packages)$(RESET)"
+	@echo "$(GREEN)Security report generated: local-security-report.json$(RESET)"
 	@echo "$(GREEN)✓ Security checks passed$(RESET)"
 
 # Quality Gates

@@ -28,14 +28,14 @@ command_exists() {
 run_package_tests() {
     local package_path="$1"
     local package_name="$2"
-    
+
     echo -e "${BLUE}📦 Testing $package_name...${RESET}"
-    
+
     if [ ! -d "$package_path/tests" ] && [ ! -d "$package_path/$package_name/tests" ]; then
         echo -e "${YELLOW}⚠️  No tests found for $package_name, skipping...${RESET}"
         return 0
     fi
-    
+
     # Determine test directory
     local test_dir=""
     if [ -d "$package_path/tests" ]; then
@@ -43,7 +43,7 @@ run_package_tests() {
     elif [ -d "$package_path/$package_name/tests" ]; then
         test_dir="$package_path/$package_name/tests"
     fi
-    
+
     if [ -n "$test_dir" ]; then
         echo -e "${BLUE}   Running tests in $test_dir...${RESET}"
         if ! uv run pytest "$test_dir" -v --tb=short --timeout="$TEST_TIMEOUT"; then
@@ -53,7 +53,7 @@ run_package_tests() {
             echo -e "${GREEN}✓ Tests passed for $package_name${RESET}"
         fi
     fi
-    
+
     return 0
 }
 
@@ -61,9 +61,9 @@ run_package_tests() {
 test_all_packages() {
     local failed_packages=()
     local tested_packages=()
-    
+
     echo -e "${BLUE}🔍 Discovering packages...${RESET}"
-    
+
     # Define packages to test
     local packages=(
         "packages/uri-parser:agent_uri"
@@ -74,10 +74,10 @@ test_all_packages() {
         "packages/server:agent_server"
         "packages/common:agent_common"
     )
-    
+
     for package_info in "${packages[@]}"; do
         IFS=':' read -r package_path package_name <<< "$package_info"
-        
+
         if [ -d "$package_path" ]; then
             tested_packages+=("$package_name")
             if ! run_package_tests "$package_path" "$package_name"; then
@@ -87,7 +87,7 @@ test_all_packages() {
             echo -e "${YELLOW}⚠️  Package directory $package_path not found, skipping...${RESET}"
         fi
     done
-    
+
     # Test examples
     if [ -d "examples" ]; then
         echo -e "${BLUE}📚 Testing examples...${RESET}"
@@ -105,12 +105,12 @@ test_all_packages() {
             fi
         done
     fi
-    
+
     # Report results
     echo -e "${BLUE}📊 Test Results Summary${RESET}"
     echo -e "   Packages tested: ${#tested_packages[@]}"
     echo -e "   Packages failed: ${#failed_packages[@]}"
-    
+
     if [ ${#failed_packages[@]} -eq 0 ]; then
         echo -e "${GREEN}🎉 All tests passed!${RESET}"
         return 0
@@ -126,7 +126,7 @@ test_all_packages() {
 # Function to run integration tests
 run_integration_tests() {
     echo -e "${BLUE}🔗 Running integration tests...${RESET}"
-    
+
     if [ -d "tests/integration" ]; then
         if ! uv run pytest tests/integration/ -v --tb=short -m integration; then
             echo -e "${RED}❌ Integration tests failed${RESET}"
@@ -137,14 +137,14 @@ run_integration_tests() {
     else
         echo -e "${YELLOW}⚠️  No integration tests found${RESET}"
     fi
-    
+
     return 0
 }
 
 # Function to run end-to-end tests
 run_e2e_tests() {
     echo -e "${BLUE}🌐 Running end-to-end tests...${RESET}"
-    
+
     if [ -d "tests/e2e" ]; then
         if ! uv run pytest tests/e2e/ -v --tb=short -m e2e; then
             echo -e "${RED}❌ End-to-end tests failed${RESET}"
@@ -155,29 +155,29 @@ run_e2e_tests() {
     else
         echo -e "${YELLOW}⚠️  No end-to-end tests found${RESET}"
     fi
-    
+
     return 0
 }
 
 # Function to generate coverage report
 generate_coverage() {
     echo -e "${BLUE}📈 Generating coverage report...${RESET}"
-    
+
     if ! uv run pytest --cov=packages --cov-report=html --cov-report=term --cov-report=xml; then
         echo -e "${RED}❌ Coverage generation failed${RESET}"
         return 1
     fi
-    
+
     # Check coverage threshold
     local coverage_percent
     coverage_percent=$(uv run coverage report --format=total 2>/dev/null || echo "0")
-    
+
     if [ "$coverage_percent" -ge "$COVERAGE_THRESHOLD" ]; then
         echo -e "${GREEN}✓ Coverage: ${coverage_percent}% (meets threshold of ${COVERAGE_THRESHOLD}%)${RESET}"
     else
         echo -e "${YELLOW}⚠️  Coverage: ${coverage_percent}% (below threshold of ${COVERAGE_THRESHOLD}%)${RESET}"
     fi
-    
+
     echo -e "${BLUE}📄 Coverage report: htmlcov/index.html${RESET}"
     return 0
 }
@@ -185,7 +185,7 @@ generate_coverage() {
 # Function to run performance tests
 run_performance_tests() {
     echo -e "${BLUE}⚡ Running performance tests...${RESET}"
-    
+
     if [ -d "tests/performance" ]; then
         if ! uv run pytest tests/performance/ -v --tb=short -m performance; then
             echo -e "${RED}❌ Performance tests failed${RESET}"
@@ -196,7 +196,7 @@ run_performance_tests() {
     else
         echo -e "${YELLOW}⚠️  No performance tests found${RESET}"
     fi
-    
+
     return 0
 }
 
@@ -204,13 +204,13 @@ run_performance_tests() {
 main() {
     local test_type="${1:-all}"
     local exit_code=0
-    
+
     # Check dependencies
     if ! command_exists uv; then
         echo -e "${RED}❌ uv not found. Please install uv first.${RESET}"
         exit 1
     fi
-    
+
     if ! command_exists pytest; then
         echo -e "${YELLOW}⚠️  pytest not found, trying with uv run...${RESET}"
         if ! uv run pytest --version >/dev/null 2>&1; then
@@ -218,15 +218,15 @@ main() {
             exit 1
         fi
     fi
-    
+
     # Create test results directory
     mkdir -p test-results
-    
+
     echo -e "${BLUE}🎯 Test type: $test_type${RESET}"
     echo -e "${BLUE}🔧 Parallel jobs: $PARALLEL_JOBS${RESET}"
     echo -e "${BLUE}⏱️  Timeout: ${TEST_TIMEOUT}s${RESET}"
     echo ""
-    
+
     case "$test_type" in
         "unit")
             echo -e "${BLUE}Running unit tests only...${RESET}"
@@ -260,39 +260,39 @@ main() {
             ;;
         "all"|*)
             echo -e "${BLUE}Running comprehensive test suite...${RESET}"
-            
+
             # Run unit tests
             if ! test_all_packages; then
                 exit_code=1
             fi
-            
+
             # Run integration tests
             if ! run_integration_tests; then
                 exit_code=1
             fi
-            
+
             # Run e2e tests
             if ! run_e2e_tests; then
                 exit_code=1
             fi
-            
+
             # Generate coverage
             if ! generate_coverage; then
                 exit_code=1
             fi
-            
+
             # Run performance tests (non-failing)
             run_performance_tests || echo -e "${YELLOW}⚠️  Performance tests had issues but continuing...${RESET}"
             ;;
     esac
-    
+
     echo ""
     if [ $exit_code -eq 0 ]; then
         echo -e "${GREEN}🎉 All requested tests completed successfully!${RESET}"
     else
         echo -e "${RED}❌ Some tests failed. Please check the output above.${RESET}"
     fi
-    
+
     exit $exit_code
 }
 

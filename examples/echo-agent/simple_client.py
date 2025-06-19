@@ -2,7 +2,7 @@
 """
 Simple Echo Agent Client with agent:// Protocol Support
 
-This client demonstrates how to use the agent:// protocol directly 
+This client demonstrates how to use the agent:// protocol directly
 without using the transport layer or SDK abstractions.
 """
 
@@ -82,7 +82,7 @@ async def test_echo_capability():
                 json={"message": message},
                 headers={
                     "Content-Type": "application/json",
-                    "Accept": "application/json"
+                    "Accept": "application/json",
                     # No session ID header for now to avoid potential conflicts
                 },
             )

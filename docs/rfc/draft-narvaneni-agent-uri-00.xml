@@ -71,15 +71,15 @@
 +------------------+
 | Agent Applications|
 +------------------+
-       <-> 
+       <->
 +------------------+
 |   agent:// URI   | <- Addressing, Resolution, Discovery
 +------------------+
-       <-> 
+       <->
 +------------------+  +------------------+
 |  Agent2Agent     |  |    CNP,. etc     | <- Communication Protocols
 +------------------+  +------------------+
-        <->                   <-> 
+        <->                   <->
 +------------------+  +------------------+
 | Transport Layer  |  | Transport Layer  | <- HTTP, WebSockets, etc.
 +------------------+  +------------------+
@@ -110,7 +110,7 @@
 </list></t>
 
 <t>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
-"SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in 
+"SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in
 RFC 2119, BCP 14 <xref target="RFC2119"/>, <xref target="RFC8174"/> when, and only when, they appear in all capitals, as shown here.</t>
 
 </section>
@@ -147,7 +147,7 @@ RFC 2119, BCP 14 <xref target="RFC2119"/>, <xref target="RFC8174"/> when, and on
 <t>The format of <spanx style="verb">agent://</spanx> URIs is:</t>
 
 <figure title="Agent URI Format" anchor="fig-uri-format"><artwork><![CDATA[
-agent://[authority]/[path]?[query]#[fragment] 
+agent://[authority]/[path]?[query]#[fragment]
 agent+<protocol>://[authority]/[path]
 ]]></artwork></figure>
 
@@ -182,7 +182,7 @@ agent-uri      = "agent" ["+" protocol] "://" authority ["/" path]
 protocol       = 1*( ALPHA / DIGIT / "-" )
 authority      = [ userinfo "@" ] host [ ":" port ]
                  ; <authority, defined in RFC3986, Section 3.2>
-path           = path-abempty    
+path           = path-abempty
                  ; begins with "/" or is empty.
                  ; Defined in RFC3986, Section 3.3
 query          = *( pchar / "/" / "?" )
@@ -497,7 +497,7 @@ X-Session-ID: abcde-12345
      |                | Constructs request |
      |                | --> agent://plan.example.com/gen-iti?city=Rio
      |                |                    |
-     |                |                    | Validate input 
+     |                |                    | Validate input
      |                |                    | Process logic/call tools
      |                |                    | May call sub-agents
      |                |                    |
@@ -1467,4 +1467,3 @@ lcJjHE2bLKk6VUnVhObG1xBQzv7WfwOSSn2GE5cAAA==
 -->
 
 </rfc>
-

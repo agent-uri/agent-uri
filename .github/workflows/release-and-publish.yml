@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.get-version.outputs.version }}
-    
+
     steps:
     - uses: actions/checkout@v4
 
@@ -64,11 +64,27 @@ jobs:
         poetry run flake8 agent_uri/ --max-line-length=88 --extend-ignore=W503,E203
         poetry run mypy agent_uri/ || echo "Type checking found issues (non-blocking for now)"
 
+    - name: Security gate check
+      run: |
+        echo "Running security gate checks..."
+        poetry run bandit -r agent_uri/ -x "*/tests/*,*/test_*.py"
+        poetry run safety check --ignore=67599
+        poetry run pip-audit --desc --format json --output release-security-report.json
+        echo "All security checks passed!"
+
+    - name: Upload release security report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-security-report
+        path: release-security-report.json
+        retention-days: 90
+
   build-package:
     name: Build Distribution Package
     runs-on: ubuntu-latest
     needs: validate-release
-    
+
     steps:
     - uses: actions/checkout@v4
 
@@ -101,7 +117,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [validate-release, build-package]
     environment: test-pypi
-    
+
     steps:
     - uses: actions/download-artifact@v4
       with:
@@ -125,7 +141,7 @@ jobs:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     needs: [validate-release, test-pypi-publish]
-    
+
     steps:
     - uses: actions/checkout@v4
 
@@ -147,19 +163,19 @@ jobs:
           dist/*
         body: |
           ## Agent URI Protocol v${{ needs.validate-release.outputs.version }}
-          
+
           ### Installation
           ```bash
           pip install agent-uri==${{ needs.validate-release.outputs.version }}
           ```
-          
+
           ### What's New
           - See [CHANGELOG.md](CHANGELOG.md) for detailed changes
-          
+
           ### Usage
           ```python
           from agent_uri import parse_agent_uri
-          
+
           uri = parse_agent_uri("agent://example.com/my-agent")
           print(f"Host: {uri.host}, Path: {uri.path}")
           ```
@@ -171,7 +187,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [validate-release, create-github-release]
     environment: production-pypi
-    
+
     steps:
     - uses: actions/download-artifact@v4
       with:
@@ -193,7 +209,7 @@ jobs:
     name: Post-Release Tasks
     runs-on: ubuntu-latest
     needs: [validate-release, production-pypi-publish]
-    
+
     steps:
     - uses: actions/checkout@v4
       with:

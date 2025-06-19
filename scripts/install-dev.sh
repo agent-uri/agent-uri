@@ -86,10 +86,10 @@ echo -e "${BLUE}📦 Checking Poetry installation...${RESET}"
 if ! command_exists poetry; then
     echo -e "${YELLOW}⚠️  Poetry not found. Installing Poetry...${RESET}"
     curl -sSL https://install.python-poetry.org | python3 -
-    
+
     # Add Poetry to PATH for this session
     export PATH="$HOME/.local/bin:$PATH"
-    
+
     if ! command_exists poetry; then
         echo -e "${RED}❌ Poetry installation failed. Please install manually: https://python-poetry.org/docs/#installation${RESET}"
         exit 1
@@ -182,7 +182,7 @@ echo -e "   Virtual Environment: $(poetry env info --path 2>/dev/null || echo 'U
 echo -e "${GREEN}🎉 Development environment setup complete!${RESET}"
 echo -e "${BLUE}📝 Next steps:${RESET}"
 echo -e "   • Run ${YELLOW}'make test'${RESET} to run tests"
-echo -e "   • Run ${YELLOW}'make lint'${RESET} to check code quality"  
+echo -e "   • Run ${YELLOW}'make lint'${RESET} to check code quality"
 echo -e "   • Run ${YELLOW}'make docs-serve'${RESET} to preview documentation"
 echo -e "   • Run ${YELLOW}'make quality-gate'${RESET} to run all checks"
 echo -e ""
