@@ -94,6 +94,13 @@ jobs:
       run: |
         poetry run bandit -r agent_uri/ -x "*/tests/*,*/test_*.py"
         poetry run safety check --ignore=67599 || echo "Safety found dependency vulnerabilities (non-blocking for now)"
+        
+    - name: Run pip audit
+      run: |
+        echo "Running pip audit for vulnerability scanning..."
+        poetry run pip-audit --desc --format json --output pip-audit-report.json || true
+        poetry run pip-audit --desc
+        echo "Pip audit completed. Check the report for any vulnerabilities."
 
   build-test:
     name: Test Package Build
