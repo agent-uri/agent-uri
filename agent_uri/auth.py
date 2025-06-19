@@ -207,3 +207,7 @@ class ApiKeyAuth(AuthProvider):
         if self.param_name is not None:
             return {self.param_name: self.api_key}
         return {}
+
+    def refresh(self) -> None:
+        """Refresh authentication credentials if needed."""
+        pass

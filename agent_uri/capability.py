@@ -11,7 +11,7 @@ import logging
 import uuid
 from typing import Any, Callable, Dict, List, Optional, Type, cast
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, create_model
 
 from .exceptions import CapabilityError, InvalidInputError
 
@@ -197,7 +197,7 @@ class Capability:
             {} if self.metadata.memory_enabled else None
         )
 
-    def _create_input_model(self) -> Type[BaseModel]:
+    def _create_input_model(self) -> Optional[Type[BaseModel]]:
         """
         Create a pydantic model for input validation based on the input schema.
 
@@ -205,14 +205,19 @@ class Capability:
             A pydantic model class for validating inputs
         """
         try:
-            # Get properties from schema
+            # Check if schema exists
             if self.metadata.input_schema is None:
-                return BaseModel
+                return None
+
+            # Create model name based on capability name
+            model_name = f"{self.metadata.name.title().replace('-', '')}Input"
+
+            # Get properties from schema
             properties = self.metadata.input_schema.get("properties", {})
             required = self.metadata.input_schema.get("required", [])
 
             # Create field definitions
-            field_definitions = {}
+            fields: Dict[str, Any] = {}
             for field_name, field_schema in properties.items():
                 field_type = self._schema_type_to_python(
                     field_schema.get("type", "string")
@@ -220,23 +225,17 @@ class Capability:
                 is_required = field_name in required
 
                 if is_required:
-                    # For required fields, use ... as default
-                    field_definitions[field_name] = (field_type, ...)
+                    fields[field_name] = (field_type, ...)
                 else:
                     default = field_schema.get("default", None)
-                    field_definitions[field_name] = (field_type, default)
+                    fields[field_name] = (field_type, default)
 
             # Create the model dynamically
-            try:
-                # For now, just return BaseModel since create_model API is complex
-                return BaseModel
-            except Exception:
-                # Fallback to BaseModel if creation fails
-                return BaseModel
+            return create_model(model_name, **fields)
 
         except Exception as e:
             logger.warning(f"Failed to create input model: {str(e)}")
-            return BaseModel
+            return None
 
     def _schema_type_to_python(self, schema_type: str) -> Type[Any]:
         """

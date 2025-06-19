@@ -32,7 +32,7 @@ class AgentUri:
     transport: Optional[str] = None
     authority: str = ""
     path: str = ""
-    query: Dict[str, Union[str, List[str]]] = field(default_factory=dict)
+    query: Optional[Dict[str, Union[str, List[str]]]] = field(default_factory=dict)
     fragment: Optional[str] = None
 
     # Parsed authority components
@@ -42,8 +42,9 @@ class AgentUri:
 
     def __post_init__(self):
         """Initialize default values and handle empty fields."""
-        # query is now initialized by default_factory, no need to check for None
-        pass
+        # Handle explicit None passed for query
+        if self.query is None:
+            object.__setattr__(self, "query", {})
 
     @property
     def full_scheme(self) -> str:
