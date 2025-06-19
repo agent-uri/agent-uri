@@ -93,7 +93,7 @@ jobs:
     - name: Run security checks
       run: |
         poetry run bandit -r agent_uri/ -x "*/tests/*,*/test_*.py"
-        poetry run safety check --ignore=67599 || echo "Safety found dependency vulnerabilities (non-blocking for now)"
+        poetry run safety check --ignore=67599
 
     - name: Run pip audit
       run: |
