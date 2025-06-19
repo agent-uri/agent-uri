@@ -51,7 +51,7 @@ def _camel_to_snake(name: str) -> str:
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
 
-def _convert_dict_keys(d: Dict[str, Any]) -> Dict[str, Any]:
+def _convert_dict_keys(d: Any) -> Any:
     """
     Recursively convert dictionary keys from camelCase to snake_case.
     Used when parsing external JSON to internal model.
