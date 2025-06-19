@@ -8,12 +8,12 @@ authenticate requests to agents.
 import logging
 import time
 from abc import ABC, abstractmethod
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 
 try:
-    import jwt
+    import jwt  # type: ignore[import]
 except ImportError:
-    jwt = None  # Make JWT optional
+    jwt = None  # type: ignore[assignment] # Make JWT optional
 
 from .exceptions import AuthenticationError
 
@@ -47,6 +47,7 @@ class AuthProvider(ABC):
         """
         return {}
 
+    @abstractmethod
     def refresh(self) -> None:
         """
         Refresh authentication credentials if needed.
@@ -80,7 +81,7 @@ class BearerTokenAuth(AuthProvider):
         token: str,
         token_type: str = "Bearer",  # nosec B107
         expires_at: Optional[int] = None,
-        refresh_callback: Optional[callable] = None,
+        refresh_callback: Optional[Callable[[], str]] = None,
     ):
         """
         Initialize a bearer token authentication provider.

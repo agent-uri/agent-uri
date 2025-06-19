@@ -142,7 +142,7 @@ class AgentDescriptorGenerator:
             return self._descriptor
 
         # Base descriptor
-        descriptor = {
+        descriptor: Dict[str, Any] = {
             "name": self.name,
             "version": self.version,
             "description": self.description,

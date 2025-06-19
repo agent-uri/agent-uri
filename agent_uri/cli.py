@@ -139,7 +139,7 @@ async def cmd_resolve(args: argparse.Namespace) -> int:
     """Handle the resolve command."""
     try:
         resolver = AgentResolver()
-        descriptor, metadata = await resolver.resolve(args.uri)
+        descriptor, metadata = resolver.resolve(args.uri)
 
         result = {
             "descriptor": (
@@ -203,7 +203,7 @@ async def cmd_describe(args: argparse.Namespace) -> int:
     """Handle the describe command."""
     try:
         resolver = AgentResolver()
-        descriptor, _ = await resolver.resolve(args.uri)
+        descriptor, _ = resolver.resolve(args.uri)
 
         result = (
             descriptor.to_dict() if hasattr(descriptor, "to_dict") else str(descriptor)

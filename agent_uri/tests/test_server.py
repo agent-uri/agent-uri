@@ -17,7 +17,7 @@ from ..server import FASTAPI_AVAILABLE, AgentServer
 try:
     from ..server import FastAPIAgentServer
 except ImportError:
-    FastAPIAgentServer = None
+    FastAPIAgentServer = None  # type: ignore
 
 
 class TestAgentServerBase:
@@ -423,8 +423,8 @@ class TestServerIntegration:
                 input_schema={"type": "object", "properties": {}},
             )
 
-            async def handler():
-                return f"result_{i}"
+            async def handler(index=i):
+                return f"result_{index}"
 
             capability = Capability(handler, metadata)
             server.register_capability(f"/capability_{i}", capability)

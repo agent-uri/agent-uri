@@ -90,7 +90,7 @@ class AgentResolver:
 
     def resolve(
         self, uri: Union[str, AgentUri]
-    ) -> Tuple[AgentDescriptor, Dict[str, Any]]:
+    ) -> Tuple[Optional[AgentDescriptor], Dict[str, Any]]:
         """
         Resolve an agent URI to its agent descriptor and resolution metadata.
 
@@ -113,7 +113,7 @@ class AgentResolver:
                 raise ResolverError(f"Invalid agent URI: {e}")
 
         # Start with empty metadata
-        metadata = {
+        metadata: Dict[str, Any] = {
             "uri": uri.to_string(),
             "resolution_path": [],
             "transport": (uri.transport or "https" if self.fallback_to_https else None),
@@ -128,7 +128,9 @@ class AgentResolver:
             # If we have an explicit transport binding, we should still
             # try to construct an endpoint
             if uri.transport:
-                metadata["resolution_path"].append("explicit_transport")
+                resolution_path = metadata["resolution_path"]
+                if isinstance(resolution_path, list):
+                    resolution_path.append("explicit_transport")
                 endpoint = self._construct_endpoint_from_transport(uri)
                 metadata["endpoint"] = endpoint
                 metadata["resolution_method"] = "transport_binding"
@@ -154,7 +156,7 @@ class AgentResolver:
         Raises:
             ResolverNotFoundError: If no agent descriptor is found
         """
-        metadata = {"resolution_path": [], "resolution_method": None}
+        metadata: Dict[str, Any] = {"resolution_path": [], "resolution_method": None}
 
         # Construct base domain URL
         if uri.transport:
@@ -166,7 +168,9 @@ class AgentResolver:
         if uri.path == "" and not ("." in uri.host.split(".")[0]):
             # This is a domain like agent://planner.acme.ai/ - try /agent.json
             agent_json_url = f"{base_url}/agent.json"
-            metadata["resolution_path"].append(f"domain_root: {agent_json_url}")
+            resolution_path = metadata["resolution_path"]
+            if isinstance(resolution_path, list):
+                resolution_path.append(f"domain_root: {agent_json_url}")
 
             try:
                 descriptor = self._fetch_descriptor(agent_json_url)
@@ -179,7 +183,9 @@ class AgentResolver:
 
         # Try multi-agent case (.well-known/agents.json)
         agents_json_url = f"{base_url}/.well-known/agents.json"
-        metadata["resolution_path"].append(f"agents_json: {agents_json_url}")
+        resolution_path = metadata["resolution_path"]
+        if isinstance(resolution_path, list):
+            resolution_path.append(f"agents_json: {agents_json_url}")
 
         try:
             # Fetch agents.json registry
@@ -194,7 +200,9 @@ class AgentResolver:
                 if agent_name in agents_registry["agents"]:
                     # Get descriptor URL for this agent
                     descriptor_url = agents_registry["agents"][agent_name]
-                    metadata["resolution_path"].append(f"descriptor: {descriptor_url}")
+                    resolution_path = metadata["resolution_path"]
+                    if isinstance(resolution_path, list):
+                        resolution_path.append(f"descriptor: {descriptor_url}")
 
                     # Fetch the descriptor
                     descriptor = self._fetch_descriptor(descriptor_url)
@@ -208,7 +216,9 @@ class AgentResolver:
 
         # Try single agent case (.well-known/agent.json)
         agent_json_url = f"{base_url}/.well-known/agent.json"
-        metadata["resolution_path"].append(f"agent_json: {agent_json_url}")
+        resolution_path = metadata["resolution_path"]
+        if isinstance(resolution_path, list):
+            resolution_path.append(f"agent_json: {agent_json_url}")
 
         try:
             descriptor = self._fetch_descriptor(agent_json_url)
@@ -223,7 +233,9 @@ class AgentResolver:
         if uri.path:
             path_base = uri.path.split("/")[0]
             path_descriptor_url = f"{base_url}/{path_base}/agent.json"
-            metadata["resolution_path"].append(f"path: {path_descriptor_url}")
+            resolution_path = metadata["resolution_path"]
+            if isinstance(resolution_path, list):
+                resolution_path.append(f"path: {path_descriptor_url}")
 
             try:
                 descriptor = self._fetch_descriptor(path_descriptor_url)

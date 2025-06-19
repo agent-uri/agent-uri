@@ -6,12 +6,13 @@ that conform to the agent:// protocol.
 """
 
 import abc
+import asyncio
 import json
 import logging
 from typing import Any, Callable, Dict, List, Optional, Union
 
+# Runtime imports
 try:
-    # Import FastAPI if available
     from fastapi import FastAPI, HTTPException, Request, WebSocket
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import JSONResponse, StreamingResponse
@@ -21,12 +22,15 @@ try:
 except ImportError:
     FASTAPI_AVAILABLE = False
 
-    # Create placeholder for type hints
-    class FastAPI:
-        pass
-
-    class APIRouter:
-        pass
+    # Runtime placeholders
+    FastAPI = None  # type: ignore
+    APIRouter = None  # type: ignore
+    HTTPException = None  # type: ignore
+    Request = None  # type: ignore
+    WebSocket = None  # type: ignore
+    CORSMiddleware = None  # type: ignore
+    JSONResponse = None  # type: ignore
+    StreamingResponse = None  # type: ignore
 
 
 from .capability import Capability
@@ -296,7 +300,7 @@ if FASTAPI_AVAILABLE:
             prefix: str = "",
             app: Optional[FastAPI] = None,
             enable_cors: bool = True,
-            cors_origins: List[str] = ["*"],
+            cors_origins: Optional[List[str]] = None,
             enable_docs: bool = True,
             enable_agent_json: bool = True,
         ):
@@ -335,7 +339,7 @@ if FASTAPI_AVAILABLE:
             # Store settings
             self.prefix = prefix
             self.enable_cors = enable_cors
-            self.cors_origins = cors_origins
+            self.cors_origins = cors_origins or ["*"]
             self.enable_docs = enable_docs
             self.enable_agent_json = enable_agent_json
 
@@ -405,9 +409,14 @@ if FASTAPI_AVAILABLE:
             )
 
             # WebSocket route for streaming
+            async def websocket_wrapper(websocket: "WebSocket") -> None:
+                # Extract path from the websocket path_info
+                path = websocket.url.path.lstrip("/")
+                await self._handle_websocket_connection(websocket, path)
+
             self.router.add_websocket_route(
                 "/{path:path}",
-                self._handle_websocket_connection,
+                websocket_wrapper,
                 name="websocket",
             )
 
@@ -519,7 +528,7 @@ if FASTAPI_AVAILABLE:
                     session_metadata["session_id"] = params.get("session_id")
 
                 # Extract headers
-                headers = {}
+                headers: Dict[str, str] = {}
                 # WebSocket doesn't give us headers directly, so use what we can
 
                 # Handle request and stream response
@@ -592,10 +601,15 @@ if FASTAPI_AVAILABLE:
             if not handler:
                 raise ConfigurationError("No HTTP handler registered")
 
-            # Handle request
-            return await handler.handle_request(
+            # Handle request - HTTP handlers return Coroutines
+            result = handler.handle_request(
                 path=path, params=params, headers=headers, **kwargs
             )
+            # Type check: HTTP handlers should return Coroutines
+            if asyncio.iscoroutine(result):
+                return await result
+            else:
+                raise ConfigurationError("HTTP handler returned unexpected result type")
 
         async def handle_websocket_request(
             self,
@@ -626,14 +640,21 @@ if FASTAPI_AVAILABLE:
                 raise ConfigurationError("No WebSocket handler registered")
 
             # Handle request
-            async for chunk in handler.handle_request(
+            result = handler.handle_request(
                 path=path, params=params, headers=headers, **kwargs
-            ):
-                yield chunk
+            )
+            # Check if result is async iterable
+            if hasattr(result, "__aiter__"):
+                async for chunk in result:  # type: ignore
+                    yield chunk
+            else:
+                # If not async iterable, treat as single result
+                response = await result  # type: ignore
+                yield response
 
 else:
     # Define a placeholder if FastAPI is not available
-    class FastAPIAgentServer(AgentServer):
+    class FastAPIAgentServer(AgentServer):  # type: ignore[no-redef]
         """Placeholder for FastAPIAgentServer when FastAPI is not installed."""
 
         def __init__(self, *args, **kwargs):

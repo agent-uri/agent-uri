@@ -8,7 +8,7 @@ using the agent:// protocol.
 import logging
 import urllib.parse
 import uuid
-from typing import Any, Dict, Iterator, Optional, Tuple
+from typing import Any, Dict, Iterator, NoReturn, Optional, Tuple
 
 from .auth import AuthProvider
 
@@ -380,11 +380,12 @@ class AgentClient:
             descriptor, metadata = self.resolver.resolve(uri)
 
             # Get endpoint from metadata
-            endpoint = metadata.get("endpoint")
-            if not endpoint:
+            endpoint_raw = metadata.get("endpoint")
+            if not endpoint_raw or not isinstance(endpoint_raw, str):
                 raise ResolutionError(
                     f"No endpoint found for agent URI: {uri.to_string()}"
                 )
+            endpoint = endpoint_raw
 
             # Get transport protocol from metadata
             transport = metadata.get("transport", "https")
@@ -431,7 +432,7 @@ class AgentClient:
                 f"No transport available for protocol '{protocol}': {str(e)}"
             )
 
-    def _handle_exception(self, exception: Exception) -> None:
+    def _handle_exception(self, exception: Exception) -> NoReturn:
         """
         Handle exceptions by raising appropriate client exceptions.
 
@@ -503,7 +504,7 @@ class AgentSession:
         self.context = context or {}
 
         # Descriptor cache
-        self._descriptor = None
+        self._descriptor: Optional[AgentDescriptor] = None
 
     def invoke(
         self,
@@ -633,6 +634,9 @@ class AgentSession:
             except AgentClientError as e:
                 raise SessionError(f"Failed to get agent descriptor: {str(e)}")
 
+        if self._descriptor is None:
+            raise SessionError("Failed to retrieve agent descriptor")
+
         return self._descriptor
 
     def _build_capability_uri(self, capability: str) -> str:
@@ -714,7 +718,7 @@ class AgentSession:
             Complete parameters dictionary
         """
         # Start with context parameters relevant to this request
-        session_params = {"session_id": self.session_id}
+        session_params: Dict[str, Any] = {"session_id": self.session_id}
 
         # Add context parameters if needed
         if self.context.get("include_context", False):

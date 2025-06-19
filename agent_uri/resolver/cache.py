@@ -39,7 +39,7 @@ except ImportError:
         def is_installed(self):
             return False
 
-    requests_cache = MockRequestsCache()
+    requests_cache = MockRequestsCache()  # type: ignore
 
 
 class CacheProvider:

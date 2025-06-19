@@ -135,7 +135,7 @@ def parse_http_error(
 
 
 def parse_websocket_error(
-    data: Union[str, Dict[str, Any]]
+    data: Union[str, Dict[str, Any]],
 ) -> Optional[AgentProblemDetail]:
     """
     Parse a WebSocket error message into a problem detail.

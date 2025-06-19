@@ -23,7 +23,7 @@ class TransportRegistry:
     of transports based on the protocol specified in agent URIs.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize an empty transport registry."""
         self._transports: Dict[str, Type[AgentTransport]] = {}
         self._instances: Dict[str, AgentTransport] = {}

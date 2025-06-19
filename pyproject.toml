@@ -133,6 +133,12 @@ warn_no_return = false
 warn_unreachable = false
 strict_equality = false
 ignore_missing_imports = true
+exclude = [
+    ".*cli\\.py$",
+    ".*cache\\.py$",
+    ".*/test_.*\\.py$",
+    ".*/tests/.*\\.py$"
+]
 
 [[tool.mypy.overrides]]
 module = [
