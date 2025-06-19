@@ -10,7 +10,7 @@ import logging
 import threading
 import time
 from queue import Empty, Queue
-from typing import Any, Dict, Iterator, Optional
+from typing import Any, Callable, Dict, Iterator, Optional, Union
 
 # Try importing websocket library, provide clear error message if missing
 try:
@@ -62,14 +62,14 @@ class WebSocketTransport(AgentTransport):
         self._reconnect_delay = reconnect_delay
 
         # Connection state
-        self._ws = None
+        self._ws: Optional[websocket.WebSocketApp] = None
         self._is_connected = False
-        self._message_queue = Queue()
-        self._response_queue = Queue()
-        self._ws_thread = None
+        self._message_queue: Queue[Union[Dict[str, Any], str, Exception]] = Queue()
+        self._response_queue: Queue[Dict[str, Any]] = Queue()
+        self._ws_thread: Optional[threading.Thread] = None
         self._request_id = 0
-        self._active_requests = {}
-        self._request_callbacks = {}
+        self._active_requests: Dict[str, Dict[str, Any]] = {}
+        self._request_callbacks: Dict[str, Callable[[Dict[str, Any]], None]] = {}
 
     @property
     def protocol(self) -> str:
@@ -119,6 +119,7 @@ class WebSocketTransport(AgentTransport):
         # Determine message format
         json_rpc = kwargs.get("json_rpc", True)
 
+        message: Dict[str, Any]
         if json_rpc:
             # JSON-RPC format
             message = {
@@ -156,6 +157,8 @@ class WebSocketTransport(AgentTransport):
         # Send message
         message_str = json.dumps(message)
         try:
+            if self._ws is None:
+                raise TransportError("WebSocket connection not established")
             self._ws.send(message_str)
         except Exception as e:
             del self._request_callbacks[request_id]
@@ -228,6 +231,7 @@ class WebSocketTransport(AgentTransport):
         # Determine message format
         json_rpc = kwargs.get("json_rpc", True)
 
+        message: Dict[str, Any]
         if json_rpc:
             # JSON-RPC format
             message = {
@@ -243,13 +247,14 @@ class WebSocketTransport(AgentTransport):
                 "id": request_id,
                 "capability": capability,
                 "stream": True,
-                **(message_format or {}),
             }
+            if message_format:
+                message.update(message_format)
             if params:
                 message["params"] = params
 
         # Set up message queue for this request
-        message_queue = Queue()
+        message_queue: Queue[Dict[str, Any]] = Queue()
         streaming_complete = threading.Event()
 
         def on_stream_message(msg):
@@ -268,6 +273,8 @@ class WebSocketTransport(AgentTransport):
         # Send message
         message_str = json.dumps(message)
         try:
+            if self._ws is None:
+                raise TransportError("WebSocket connection not established")
             self._ws.send(message_str)
         except Exception as e:
             del self._request_callbacks[request_id]
@@ -283,7 +290,7 @@ class WebSocketTransport(AgentTransport):
                     yield self.parse_response(msg)
                 except Empty:
                     # No message received within timeout
-                    if self._ws.connected:
+                    if self._ws and self._is_connected:
                         continue  # Still connected, keep waiting
                     else:
                         raise TransportError("WebSocket connection closed")
@@ -344,7 +351,8 @@ class WebSocketTransport(AgentTransport):
                 },
                 daemon=True,
             )
-            self._ws_thread.start()
+            if self._ws_thread is not None:
+                self._ws_thread.start()
 
             # Wait for connection to establish
             for _ in range(10):  # Wait up to 5 seconds
@@ -417,7 +425,9 @@ class WebSocketTransport(AgentTransport):
                     request_id = data.get("id")
                     if request_id in self._request_callbacks:
                         callback = self._request_callbacks[request_id]
-                        callback(data.get("result"))
+                        result = data.get("result")
+                        if result is not None:
+                            callback(result)
                         return
 
             # Put in the general message queue if no specific handler
