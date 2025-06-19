@@ -7,7 +7,7 @@ This example demonstrates a simple agent implementation using the agent:// proto
 The Echo Agent demonstrates:
 
 1. Basic capability implementation
-2. Agent URI protocol 
+2. Agent URI protocol
 3. HTTP transport
 4. Server and client implementations
 5. Different ways to interact with an agent
@@ -15,14 +15,14 @@ The Echo Agent demonstrates:
 ## Components
 
 ### ✅ Working Examples:
-- `echo_agent.py`: **FIXED** - Server implementation with the echo capability  
+- `echo_agent.py`: **FIXED** - Server implementation with the echo capability
 - `simple_client.py`: **FIXED** - Simple HTTP client for testing the echo agent
 - `direct_client.py`: Direct HTTP client using custom HTTP transport
 - Basic URI parsing functionality
 
 ### ⚠️ Examples that need testing:
 - `client_test.py`: Agent client SDK implementation (full agent:// protocol)
-- `http_transport.py`: HTTP transport implementation  
+- `http_transport.py`: HTTP transport implementation
 - `tests.py`: Unit and integration tests
 
 > **Note**: Most examples are now working with the single `agent-uri` package!
@@ -41,7 +41,7 @@ The Echo Agent implements a simple capability that:
   ```bash
   # Option 1: Install from PyPI (once published)
   pip install agent-uri
-  
+
   # Option 2: Install from local development (for now)
   # From the agent-uri root directory:
   pip install -e .
@@ -85,7 +85,7 @@ This client uses the full agent:// protocol stack with:
 - Transport binding
 - Agent descriptor resolution
 
-#### Direct HTTP Client 
+#### Direct HTTP Client
 
 ```bash
 python direct_client.py

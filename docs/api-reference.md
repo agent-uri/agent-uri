@@ -233,17 +233,17 @@ from typing import Any, Dict, AsyncIterator, Optional
 
 class Transport:
     """Interface for all transport implementations"""
-    
-    async def send(self, endpoint: str, capability: str, 
+
+    async def send(self, endpoint: str, capability: str,
                   params: Any, options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Send a request to an agent"""
         pass
-    
+
     async def stream(self, endpoint: str, capability: str,
                     params: Any, options: Optional[Dict[str, Any]] = None) -> AsyncIterator[Dict[str, Any]]:
         """Stream a request to an agent"""
         pass
-    
+
     async def close(self) -> None:
         """Close the transport (e.g., WebSocket connections)"""
         pass

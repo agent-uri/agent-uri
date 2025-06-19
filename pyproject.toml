@@ -110,7 +110,7 @@ multi_line_output = 3
 line_length = 88
 known_first_party = [
     "agent_uri",
-    "agent_descriptor", 
+    "agent_descriptor",
     "agent_resolver",
     "agent_transport",
     "agent_client",
@@ -170,7 +170,7 @@ python_functions = [
 ]
 markers = [
     "unit: Unit tests",
-    "integration: Integration tests", 
+    "integration: Integration tests",
     "e2e: End-to-end tests",
     "slow: Slow tests",
     "network: Tests that require network access"

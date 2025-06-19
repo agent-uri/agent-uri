@@ -120,7 +120,7 @@ uv = "^0.4.0"
 [tool.uv]
 dev-dependencies = [
     "pytest>=7.0.0",
-    "pytest-cov>=4.0.0", 
+    "pytest-cov>=4.0.0",
     "black>=23.0.0",
     "isort>=5.12.0",
     "flake8>=6.0.0",
@@ -146,13 +146,13 @@ multi_line_output = 3
 # packages/transport/agent_transport/security.py
 class InputValidator:
     """Validate and sanitize all transport inputs"""
-    
+
     def validate_uri(self, uri: str) -> str:
         """Validate URI format and sanitize potentially dangerous content"""
-        
+
     def validate_payload_size(self, payload: bytes, max_size: int = 10_000_000):
         """Enforce maximum payload size limits"""
-        
+
     def sanitize_headers(self, headers: Dict[str, str]) -> Dict[str, str]:
         """Remove or sanitize dangerous headers"""
 ```
@@ -162,10 +162,10 @@ class InputValidator:
 # packages/transport/agent_transport/middleware.py
 class RateLimitMiddleware:
     """Rate limiting middleware for all transports"""
-    
+
     def __init__(self, requests_per_minute: int = 60):
         self.rate_limiter = TokenBucketRateLimiter(requests_per_minute)
-    
+
     async def process_request(self, request: TransportRequest) -> TransportRequest:
         if not self.rate_limiter.allow_request(request.client_id):
             raise RateLimitExceededError("Too many requests")
@@ -179,18 +179,18 @@ class RateLimitMiddleware:
 # packages/client/agent_client/auth_v2.py
 class SecureJWTAuthenticator(AgentAuthenticator):
     """Production-ready JWT authentication with proper validation"""
-    
-    def __init__(self, 
+
+    def __init__(self,
                  secret_key: str,
                  algorithm: str = "HS256",
                  token_ttl: int = 3600,
                  refresh_threshold: int = 300):
         self.token_validator = JWTValidator(secret_key, algorithm)
         self.refresh_manager = TokenRefreshManager(token_ttl, refresh_threshold)
-    
+
     async def authenticate(self, request: AgentRequest) -> AgentRequest:
         """Add validated JWT token to request"""
-        
+
     async def refresh_token_if_needed(self) -> Optional[str]:
         """Automatically refresh tokens before expiration"""
 ```
@@ -202,14 +202,14 @@ class SecureJWTAuthenticator(AgentAuthenticator):
 # packages/transport/agent_transport/transports/secure_https.py
 class SecureHttpsTransport(HttpsTransport):
     """Hardened HTTPS transport with security best practices"""
-    
+
     def __init__(self):
         super().__init__()
         self.session = self._create_secure_session()
-    
+
     def _create_secure_session(self) -> requests.Session:
         session = requests.Session()
-        
+
         # Enable connection pooling
         adapter = HTTPAdapter(
             pool_connections=10,
@@ -221,14 +221,14 @@ class SecureHttpsTransport(HttpsTransport):
             )
         )
         session.mount("https://", adapter)
-        
+
         # Security headers
         session.headers.update({
             'User-Agent': f'agent-uri-client/{__version__}',
             'Accept': 'application/json',
             'Connection': 'keep-alive'
         })
-        
+
         return session
 ```
 
@@ -241,8 +241,8 @@ class SecureHttpsTransport(HttpsTransport):
 # packages/resolver/agent_resolver/resilience.py
 class CircuitBreakerResolver(AgentResolver):
     """Resolver with circuit breaker for failed endpoints"""
-    
-    def __init__(self, 
+
+    def __init__(self,
                  failure_threshold: int = 5,
                  recovery_timeout: int = 60,
                  half_open_max_calls: int = 3):
@@ -251,7 +251,7 @@ class CircuitBreakerResolver(AgentResolver):
             recovery_timeout=recovery_timeout,
             half_open_max_calls=half_open_max_calls
         )
-    
+
     async def resolve(self, uri: AgentUri) -> Tuple[AgentDescriptor, Dict[str, Any]]:
         """Resolve with circuit breaker protection"""
         try:
@@ -268,17 +268,17 @@ class CircuitBreakerResolver(AgentResolver):
 # packages/resolver/agent_resolver/cache_v2.py
 class SmartCacheProvider(CacheProvider):
     """Intelligent caching with TTL management and background refresh"""
-    
-    def __init__(self, 
+
+    def __init__(self,
                  default_ttl: int = 300,
                  background_refresh: bool = True,
                  max_size: int = 1000):
         self.cache = TTLCache(maxsize=max_size, ttl=default_ttl)
         self.background_refresher = BackgroundRefresher() if background_refresh else None
-    
+
     async def get_with_refresh(self, key: str, refresh_func: Callable) -> Any:
         """Get from cache with automatic background refresh"""
-        
+
     async def warm_cache(self, keys: List[str], refresh_funcs: List[Callable]):
         """Pre-populate cache with commonly used items"""
 ```
@@ -290,19 +290,19 @@ class SmartCacheProvider(CacheProvider):
 # packages/transport/agent_transport/connection.py
 class ConnectionManager:
     """Manage HTTP connections with pooling and health checks"""
-    
-    def __init__(self, 
+
+    def __init__(self,
                  pool_size: int = 10,
                  health_check_interval: int = 30):
         self.pool = ConnectionPool(pool_size)
         self.health_checker = HealthChecker(health_check_interval)
-    
+
     async def get_connection(self, endpoint: str) -> Connection:
         """Get healthy connection from pool"""
-        
+
     async def health_check(self, endpoint: str) -> bool:
         """Check if endpoint is healthy"""
-        
+
     async def cleanup_unhealthy_connections(self):
         """Remove failed connections from pool"""
 ```
@@ -316,14 +316,14 @@ class ConnectionManager:
 # packages/common/agent_common/logging.py
 class AgentLogger:
     """Structured logging with correlation IDs and standard fields"""
-    
+
     def __init__(self, service_name: str, log_level: str = "INFO"):
         self.logger = structlog.get_logger(service=service_name)
         self.correlation_id_context = contextvars.ContextVar('correlation_id')
-    
+
     def log_agent_request(self, uri: str, capability: str, correlation_id: str):
         """Log agent request with standard fields"""
-        
+
     def log_resolution_attempt(self, uri: str, strategy: str, success: bool):
         """Log resolution attempts for debugging"""
 ```
@@ -335,18 +335,18 @@ class AgentLogger:
 # packages/common/agent_common/metrics.py
 class AgentMetrics:
     """Collect and expose Prometheus metrics"""
-    
+
     def __init__(self):
-        self.request_counter = Counter('agent_requests_total', 
+        self.request_counter = Counter('agent_requests_total',
                                      ['uri', 'capability', 'status'])
         self.request_duration = Histogram('agent_request_duration_seconds',
                                         ['uri', 'capability'])
         self.resolution_counter = Counter('agent_resolutions_total',
                                         ['strategy', 'status'])
-    
+
     def record_request(self, uri: str, capability: str, duration: float, status: str):
         """Record request metrics"""
-        
+
     def record_resolution(self, strategy: str, status: str):
         """Record resolution metrics"""
 ```
@@ -358,17 +358,17 @@ class AgentMetrics:
 # packages/server/agent_server/health.py
 class HealthCheckManager:
     """Comprehensive health checking for agent services"""
-    
+
     def __init__(self):
         self.checks = {
             'database': DatabaseHealthCheck(),
             'cache': CacheHealthCheck(),
             'external_deps': ExternalDependencyHealthCheck()
         }
-    
+
     async def get_health_status(self) -> HealthStatus:
         """Get overall service health"""
-        
+
     async def get_detailed_health(self) -> Dict[str, HealthCheckResult]:
         """Get detailed health check results"""
 ```
@@ -382,13 +382,13 @@ class HealthCheckManager:
 # packages/uri-parser/agent_uri/advanced_parser.py
 class AdvancedAgentUriParser(AgentUriParser):
     """Enhanced parser with normalization and validation"""
-    
+
     def normalize_uri(self, uri: str) -> str:
         """Normalize URI according to RFC 3986"""
-        
+
     def validate_idn_domain(self, domain: str) -> bool:
         """Validate internationalized domain names"""
-        
+
     def extract_version_info(self, uri: str) -> Optional[VersionInfo]:
         """Extract version information from URI"""
 ```
@@ -400,14 +400,14 @@ class AdvancedAgentUriParser(AgentUriParser):
 # packages/descriptor/agent_descriptor/advanced_validator.py
 class SemanticValidator:
     """Advanced semantic validation for agent descriptors"""
-    
+
     def validate_capability_consistency(self, descriptor: AgentDescriptor) -> ValidationResult:
         """Check that capabilities are internally consistent"""
-        
-    def validate_schema_evolution(self, old_desc: AgentDescriptor, 
+
+    def validate_schema_evolution(self, old_desc: AgentDescriptor,
                                  new_desc: AgentDescriptor) -> ValidationResult:
         """Validate backward compatibility between descriptor versions"""
-        
+
     def suggest_improvements(self, descriptor: AgentDescriptor) -> List[ValidationSuggestion]:
         """Suggest improvements to descriptor quality"""
 ```
@@ -419,11 +419,11 @@ class SemanticValidator:
 # packages/transport/agent_transport/middleware/base.py
 class TransportMiddleware(ABC):
     """Base class for transport middleware"""
-    
+
     @abstractmethod
     async def process_request(self, request: TransportRequest) -> TransportRequest:
         """Process outgoing request"""
-        
+
     @abstractmethod
     async def process_response(self, response: TransportResponse) -> TransportResponse:
         """Process incoming response"""
@@ -431,10 +431,10 @@ class TransportMiddleware(ABC):
 # Built-in middleware
 class CompressionMiddleware(TransportMiddleware):
     """Automatic request/response compression"""
-    
+
 class RetryMiddleware(TransportMiddleware):
     """Automatic retry with exponential backoff"""
-    
+
 class TracingMiddleware(TransportMiddleware):
     """Distributed tracing integration"""
 ```

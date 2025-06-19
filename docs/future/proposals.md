@@ -134,7 +134,7 @@ agent-uri should remain focused on its fundamental purpose: **addressing, resolv
 
 ## Implementation Roadmap
 
-### Phase 1: Core Protocol 
+### Phase 1: Core Protocol
 1. Complete missing transport implementations
 2. Enhanced resolution framework with caching
 3. Protocol bridge layer for A2A/MCP compatibility

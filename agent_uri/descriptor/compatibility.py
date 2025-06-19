@@ -99,9 +99,9 @@ class Agent2AgentConverter:
                 descriptor.authentication.details
                 and "credentials" in descriptor.authentication.details
             ):
-                agent_card["authentication"][
-                    "credentials"
-                ] = descriptor.authentication.details["credentials"]
+                agent_card["authentication"]["credentials"] = (
+                    descriptor.authentication.details["credentials"]
+                )
 
         # Add defaultInputModes and defaultOutputModes
         agent_card["defaultInputModes"] = descriptor.default_input_modes

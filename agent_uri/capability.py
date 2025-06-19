@@ -113,9 +113,9 @@ class CapabilityMetadata:
             behavioral_metadata["isDeterministic"] = self.is_deterministic
 
         if self.expected_output_variability:
-            behavioral_metadata[
-                "expectedOutputVariability"
-            ] = self.expected_output_variability
+            behavioral_metadata["expectedOutputVariability"] = (
+                self.expected_output_variability
+            )
 
         if self.requires_context is not None:
             behavioral_metadata["requiresContext"] = self.requires_context

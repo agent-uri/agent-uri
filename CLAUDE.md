@@ -62,7 +62,7 @@ The codebase is organized as a single `agent_uri` package with modular component
 
 ```
 agent_uri/
-├── parser.py          # Core: Parse and validate agent:// URIs  
+├── parser.py          # Core: Parse and validate agent:// URIs
 ├── common/            # Shared utilities and RFC 7807 error handling
 ├── descriptor/        # Data models for agent.json descriptors
 ├── resolver/          # Discovery layer: resolve URIs to descriptors
@@ -212,7 +212,7 @@ packages/package-name/
 ## Build Notes
 
 - Uses Poetry for dependency management
-- uv for fast dependency resolution  
+- uv for fast dependency resolution
 - Supports Python 3.9-3.12
 - Single package structure ready for PyPI publishing
 - No internal path dependencies - all components in one package

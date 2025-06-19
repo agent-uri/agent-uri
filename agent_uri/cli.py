@@ -142,9 +142,11 @@ async def cmd_resolve(args: argparse.Namespace) -> int:
         descriptor, metadata = await resolver.resolve(args.uri)
 
         result = {
-            "descriptor": descriptor.to_dict()
-            if hasattr(descriptor, "to_dict")
-            else str(descriptor),
+            "descriptor": (
+                descriptor.to_dict()
+                if hasattr(descriptor, "to_dict")
+                else str(descriptor)
+            ),
             "metadata": metadata,
         }
 

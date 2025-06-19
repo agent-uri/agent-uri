@@ -30,13 +30,13 @@ run_linter() {
     local command="$2"
     local description="$3"
     local fix_available="${4:-false}"
-    
+
     echo -e "${BLUE}🔧 Running $description...${RESET}"
-    
+
     if [ "$FIX_MODE" = "true" ] && [ "$fix_available" = "true" ]; then
         echo -e "${YELLOW}   (Fix mode enabled)${RESET}"
     fi
-    
+
     if eval "$command"; then
         echo -e "${GREEN}✓ $tool_name passed${RESET}"
         return 0
@@ -54,7 +54,7 @@ check_black() {
     else
         fix_flag="--check --diff"
     fi
-    
+
     run_linter "Black" \
         "uv run black $fix_flag agent_uri/ examples/ scripts/" \
         "Black code formatting" \
@@ -69,7 +69,7 @@ check_isort() {
     else
         fix_flag="--check-only --diff"
     fi
-    
+
     run_linter "isort" \
         "uv run isort $fix_flag agent_uri/ examples/ scripts/" \
         "Import sorting with isort" \
@@ -90,7 +90,7 @@ check_mypy() {
     if [ "$STRICT_MODE" = "true" ]; then
         strict_flag="--strict"
     fi
-    
+
     run_linter "mypy" \
         "uv run mypy $strict_flag agent_uri/" \
         "Type checking with mypy" \
@@ -164,42 +164,42 @@ check_precommit() {
 # Function to check package structure
 check_package_structure() {
     echo -e "${BLUE}🏗️  Checking package structure...${RESET}"
-    
+
     # Package structure now uses single unified agent_uri package
     local packages=(
         "agent_uri"
     )
-    
+
     local structure_issues=0
-    
+
     for package in "${packages[@]}"; do
         if [ -d "$package" ]; then
             echo -e "${BLUE}   Checking $package...${RESET}"
-            
+
             # Check for __init__.py
             if [ ! -f "$package/__init__.py" ]; then
                 echo -e "${YELLOW}     ⚠️  Missing __init__.py${RESET}"
                 ((structure_issues++))
             fi
-            
+
             # Check for tests
             if [ ! -d "$package/tests" ]; then
                 echo -e "${YELLOW}     ⚠️  Missing tests directory${RESET}"
                 ((structure_issues++))
             fi
-            
+
             # Check for pyproject.toml (root level for unified package)
             if [ ! -f "pyproject.toml" ]; then
                 echo -e "${YELLOW}     ⚠️  Missing pyproject.toml${RESET}"
                 ((structure_issues++))
             fi
-            
+
         else
             echo -e "${RED}     ❌ Package directory $package not found${RESET}"
             ((structure_issues++))
         fi
     done
-    
+
     if [ $structure_issues -eq 0 ]; then
         echo -e "${GREEN}✓ Package structure looks good${RESET}"
         return 0
@@ -212,30 +212,30 @@ check_package_structure() {
 # Function to generate lint report
 generate_report() {
     echo -e "${BLUE}📊 Generating lint report...${RESET}"
-    
+
     local report_file="lint-report.txt"
     local json_report="lint-report.json"
-    
+
     {
         echo "Agent URI Code Quality Report"
         echo "Generated: $(date)"
         echo "=============================="
         echo ""
-        
+
         if [ -f "bandit-report.json" ]; then
             echo "Security Issues (Bandit):"
             jq -r '.results[] | "- \(.test_name): \(.issue_text)"' bandit-report.json 2>/dev/null || echo "Error parsing bandit report"
             echo ""
         fi
-        
+
         if [ -f "safety-report.json" ]; then
             echo "Dependency Vulnerabilities (Safety):"
             jq -r '.[] | "- \(.package): \(.vulnerability)"' safety-report.json 2>/dev/null || echo "Error parsing safety report"
             echo ""
         fi
-        
+
     } > "$report_file"
-    
+
     echo -e "${GREEN}✓ Report generated: $report_file${RESET}"
 }
 
@@ -249,7 +249,7 @@ main() {
     local mode="${1:-check}"
     local failed_checks=0
     local total_checks=0
-    
+
     # Parse arguments
     case "$mode" in
         "fix")
@@ -264,18 +264,18 @@ main() {
             echo -e "${BLUE}🔍 Running in check mode${RESET}"
             ;;
     esac
-    
+
     # Check dependencies
     if ! command_exists uv; then
         echo -e "${RED}❌ uv not found. Please install uv first.${RESET}"
         exit 1
     fi
-    
+
     echo -e "${BLUE}🎯 Mode: $mode${RESET}"
     echo -e "${BLUE}🔧 Fix mode: $FIX_MODE${RESET}"
     echo -e "${BLUE}🔒 Strict mode: $STRICT_MODE${RESET}"
     echo ""
-    
+
     # Run all checks
     local checks=(
         "check_black"
@@ -287,12 +287,12 @@ main() {
         "check_package_structure"
         "check_precommit"
     )
-    
+
     # Optional checks
     if [ "$STRICT_MODE" = "true" ]; then
         checks+=("check_docstrings" "check_complexity" "check_vulture")
     fi
-    
+
     for check in "${checks[@]}"; do
         ((total_checks++))
         echo ""
@@ -300,21 +300,21 @@ main() {
             ((failed_checks++))
         fi
     done
-    
+
     # Generate report
     echo ""
     generate_report
-    
+
     # Cleanup
     cleanup
-    
+
     # Summary
     echo ""
     echo -e "${BLUE}📈 Summary${RESET}"
     echo -e "   Total checks: $total_checks"
     echo -e "   Failed checks: $failed_checks"
     echo -e "   Success rate: $((100 * (total_checks - failed_checks) / total_checks))%"
-    
+
     if [ $failed_checks -eq 0 ]; then
         echo -e "${GREEN}🎉 All linting checks passed!${RESET}"
         if [ "$FIX_MODE" = "true" ]; then
