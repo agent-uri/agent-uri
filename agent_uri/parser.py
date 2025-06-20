@@ -7,8 +7,8 @@ in Section 4 of the RFC draft.
 
 import re
 import urllib.parse
-from dataclasses import dataclass
-from typing import Any, Dict, Optional, Union
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urlparse
 
 
@@ -32,7 +32,7 @@ class AgentUri:
     transport: Optional[str] = None
     authority: str = ""
     path: str = ""
-    query: Dict[str, Union[str, list]] = None
+    query: Optional[Dict[str, Union[str, List[str]]]] = field(default_factory=dict)
     fragment: Optional[str] = None
 
     # Parsed authority components
@@ -42,8 +42,9 @@ class AgentUri:
 
     def __post_init__(self):
         """Initialize default values and handle empty fields."""
+        # Handle explicit None passed for query
         if self.query is None:
-            self.query = {}
+            object.__setattr__(self, "query", {})
 
     @property
     def full_scheme(self) -> str:
@@ -188,7 +189,7 @@ def parse_agent_uri(uri: str) -> AgentUri:
         raise AgentUriError("Missing authority in agent URI")
 
     # Extract query parameters
-    query_params = {}
+    query_params: Dict[str, Union[str, List[str]]] = {}
     if parsed.query:
         # Split the query string manually to preserve '+' characters
         # which parse_qs would decode to spaces
@@ -203,10 +204,11 @@ def parse_agent_uri(uri: str) -> AgentUri:
                     value = urllib.parse.unquote(value)
 
                 if key in query_params:
-                    if isinstance(query_params[key], list):
-                        query_params[key].append(value)
+                    existing_value = query_params[key]
+                    if isinstance(existing_value, list):
+                        existing_value.append(value)
                     else:
-                        query_params[key] = [query_params[key], value]
+                        query_params[key] = [existing_value, value]
                 else:
                     query_params[key] = value
 

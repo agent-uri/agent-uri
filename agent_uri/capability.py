@@ -9,7 +9,7 @@ import asyncio
 import inspect
 import logging
 import uuid
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Type, cast
 
 from pydantic import BaseModel, ValidationError, create_model
 
@@ -91,7 +91,7 @@ class CapabilityMetadata:
         Returns:
             A dictionary representation of the metadata
         """
-        result = {
+        result: Dict[str, Any] = {
             "name": self.name,
             "version": self.version,
             "description": self.description,
@@ -107,7 +107,7 @@ class CapabilityMetadata:
             result["output"] = self.output_schema
 
         # Add behavioral metadata
-        behavioral_metadata = {}
+        behavioral_metadata: Dict[str, Any] = {}
 
         if self.is_deterministic is not None:
             behavioral_metadata["isDeterministic"] = self.is_deterministic
@@ -193,9 +193,11 @@ class Capability:
         )
 
         # Set up session tracking if memory is enabled
-        self.sessions = {} if self.metadata.memory_enabled else None
+        self.sessions: Optional[Dict[str, Dict[str, Any]]] = (
+            {} if self.metadata.memory_enabled else None
+        )
 
-    def _create_input_model(self) -> Type[BaseModel]:
+    def _create_input_model(self) -> Optional[Type[BaseModel]]:
         """
         Create a pydantic model for input validation based on the input schema.
 
@@ -203,6 +205,10 @@ class Capability:
             A pydantic model class for validating inputs
         """
         try:
+            # Check if schema exists
+            if self.metadata.input_schema is None:
+                return None
+
             # Create model name based on capability name
             model_name = f"{self.metadata.name.title().replace('-', '')}Input"
 
@@ -211,7 +217,7 @@ class Capability:
             required = self.metadata.input_schema.get("required", [])
 
             # Create field definitions
-            fields = {}
+            fields: Dict[str, Any] = {}
             for field_name, field_schema in properties.items():
                 field_type = self._schema_type_to_python(
                     field_schema.get("type", "string")
@@ -231,7 +237,7 @@ class Capability:
             logger.warning(f"Failed to create input model: {str(e)}")
             return None
 
-    def _schema_type_to_python(self, schema_type: str) -> Type:
+    def _schema_type_to_python(self, schema_type: str) -> Type[Any]:
         """
         Convert JSON Schema type to Python type.
 
@@ -241,7 +247,7 @@ class Capability:
         Returns:
             Corresponding Python type
         """
-        type_map = {
+        type_map: Dict[str, Type[Any]] = {
             "string": str,
             "integer": int,
             "number": float,
@@ -250,7 +256,7 @@ class Capability:
             "object": dict,
             "null": type(None),
         }
-        return type_map.get(schema_type, Any)
+        return type_map.get(schema_type, cast(Type[Any], Any))
 
     def validate_input(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -303,7 +309,11 @@ class Capability:
             validated_params = self.validate_input(params)
 
             # Handle session context if memory is enabled
-            if self.metadata.memory_enabled and session_id:
+            if (
+                self.metadata.memory_enabled
+                and session_id
+                and self.sessions is not None
+            ):
                 if session_id not in self.sessions:
                     self.sessions[session_id] = {"created_at": uuid.uuid4().hex}
 
@@ -324,7 +334,9 @@ class Capability:
 
                 # Add session context if function expects it
                 if "context" in sig.parameters:
-                    session_context = self.sessions.get(session_id, {})
+                    session_context = (
+                        self.sessions.get(session_id, {}) if self.sessions else {}
+                    )
                     # Update with new context if provided
                     if context:
                         session_context.update(context)
@@ -337,11 +349,17 @@ class Capability:
                 result = self.func(**validated_params, **kwargs)
 
             # Update session with response context if provided
-            if self.metadata.memory_enabled and session_id and isinstance(result, dict):
+            if (
+                self.metadata.memory_enabled
+                and session_id
+                and isinstance(result, dict)
+                and self.sessions is not None
+            ):
                 if "context" in result:
                     if session_id not in self.sessions:
                         self.sessions[session_id] = {}
-                    self.sessions[session_id].update(result.get("context", {}))
+                    if self.sessions is not None:
+                        self.sessions[session_id].update(result.get("context", {}))
 
             return result
 

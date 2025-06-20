@@ -22,6 +22,9 @@ class TestAuthProvider:
             def get_auth_headers(self):
                 return {"Auth": "Test"}
 
+            def refresh(self):
+                pass
+
         auth = TestAuth()
 
         # Default implementations

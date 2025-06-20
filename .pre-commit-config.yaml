@@ -41,12 +41,16 @@ repos:
         pass_filenames: false
         files: ^agent_uri/.*\.py$
 
-  # MyPy disabled for now - will be re-enabled after type fixes
-  # - repo: https://github.com/pre-commit/mirrors-mypy
-  #   rev: v1.16.1
-  #   hooks:
-  #     - id: mypy
-  #       files: ^agent_uri/.*\.py$
-  #       additional_dependencies:
-  #         - types-requests
-  #         - types-setuptools
+  # MyPy type checking (blocking)
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.16.1
+    hooks:
+      - id: mypy
+        files: ^agent_uri/.*\.py$
+        exclude: ^agent_uri/(cli\.py|resolver/cache\.py|.*/test_.*\.py|tests/.*\.py)$
+        additional_dependencies:
+          - types-requests
+          - types-setuptools
+          - pydantic
+          - websocket-client
+        verbose: true

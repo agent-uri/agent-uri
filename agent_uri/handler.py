@@ -8,7 +8,16 @@ over different transport protocols (HTTP, WebSocket, etc.)
 import abc
 import asyncio
 import logging
-from typing import Any, AsyncGenerator, Awaitable, Callable, Dict, Optional, Union
+from typing import (
+    Any,
+    AsyncGenerator,
+    Awaitable,
+    Callable,
+    Coroutine,
+    Dict,
+    Optional,
+    Union,
+)
 
 from .capability import Capability
 from .exceptions import (
@@ -29,7 +38,7 @@ class BaseHandler(abc.ABC):
     requests over different transport protocols.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the handler."""
         self._capabilities: Dict[str, Capability] = {}
         self._authenticator: Optional[Callable] = None
@@ -127,13 +136,13 @@ class BaseHandler(abc.ABC):
             raise AuthenticationError(f"Authentication failed: {str(e)}")
 
     @abc.abstractmethod
-    async def handle_request(
+    def handle_request(
         self,
         path: str,
         params: Dict[str, Any],
         headers: Optional[Dict[str, str]] = None,
         **kwargs,
-    ) -> Any:
+    ) -> Union[Coroutine[Any, Any, Any], AsyncGenerator[Any, None]]:
         """
         Handle a capability request.
 
@@ -161,17 +170,17 @@ class HTTPHandler(BaseHandler):
     support for authentication, content negotiation, and error handling.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the HTTP handler."""
         super().__init__()
 
-    async def handle_request(
+    def handle_request(
         self,
         path: str,
         params: Dict[str, Any],
         headers: Optional[Dict[str, str]] = None,
         **kwargs,
-    ) -> Any:
+    ) -> Coroutine[Any, Any, Any]:
         """
         Handle an HTTP capability request.
 
@@ -185,12 +194,24 @@ class HTTPHandler(BaseHandler):
                 - auth: Optional authentication data
 
         Returns:
-            The capability result
+            A coroutine that yields the capability result
 
         Raises:
             CapabilityNotFoundError: If no capability is registered at the path
             AuthenticationError: If authentication fails
             HandlerError: If the request cannot be handled
+        """
+        return self._handle_http_request(path, params, headers, **kwargs)
+
+    async def _handle_http_request(
+        self,
+        path: str,
+        params: Dict[str, Any],
+        headers: Optional[Dict[str, str]] = None,
+        **kwargs,
+    ) -> Any:
+        """
+        Internal async method to handle HTTP requests.
         """
         try:
             # Get the capability
@@ -252,11 +273,11 @@ class WebSocketHandler(BaseHandler):
     support for authentication, streaming responses, and error handling.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the WebSocket handler."""
         super().__init__()
 
-    async def handle_request(
+    def handle_request(
         self,
         path: str,
         params: Dict[str, Any],
@@ -283,6 +304,18 @@ class WebSocketHandler(BaseHandler):
             CapabilityNotFoundError: If no capability is registered at the path
             AuthenticationError: If authentication fails
             HandlerError: If the request cannot be handled
+        """
+        return self._handle_websocket_request(path, params, headers, **kwargs)
+
+    async def _handle_websocket_request(
+        self,
+        path: str,
+        params: Dict[str, Any],
+        headers: Optional[Dict[str, str]] = None,
+        **kwargs,
+    ) -> AsyncGenerator[Any, None]:
+        """
+        Internal async generator method to handle WebSocket requests.
         """
         try:
             # Get the capability

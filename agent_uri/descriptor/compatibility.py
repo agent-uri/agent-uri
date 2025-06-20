@@ -63,7 +63,7 @@ class Agent2AgentConverter:
             A dictionary representation of an Agent2Agent AgentCard
         """
         # Initialize the AgentCard with required fields
-        agent_card = {
+        agent_card: Dict[str, Any] = {
             "name": descriptor.name,
             "version": descriptor.version,
             "url": descriptor.url or f"agent://{descriptor.name}/",
@@ -110,7 +110,7 @@ class Agent2AgentConverter:
         # Convert skills
         agent_card["skills"] = []
         for skill in descriptor.skills:
-            skill_dict = {"id": skill.id, "name": skill.name}
+            skill_dict: Dict[str, Any] = {"id": skill.id, "name": skill.name}
 
             if skill.description:
                 skill_dict["description"] = skill.description

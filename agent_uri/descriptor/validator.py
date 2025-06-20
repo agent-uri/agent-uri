@@ -7,7 +7,7 @@ against schema requirements and check for required fields.
 
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Union
 
 from .models import AgentDescriptor
@@ -27,11 +27,7 @@ class ValidationResult:
     """Result of a validation operation."""
 
     valid: bool
-    errors: List[ValidationError] = None
-
-    def __post_init__(self):
-        if self.errors is None:
-            self.errors = []
+    errors: List[ValidationError] = field(default_factory=list)
 
     def add_error(self, path: str, message: str, severity: str = "error") -> None:
         """Add an error to the validation result."""
@@ -116,9 +112,9 @@ def validate_required_fields(descriptor_data: Dict[str, Any]) -> ValidationResul
 
     # Check for required top-level fields
     required_fields = ["name", "version", "capabilities"]
-    for field in required_fields:
-        if field not in descriptor_data:
-            result.add_error(field, f"Missing required field: {field}")
+    for field_name in required_fields:
+        if field_name not in descriptor_data:
+            result.add_error(field_name, f"Missing required field: {field_name}")
 
     # If no capabilities, no need to check further
     if "capabilities" not in descriptor_data:
@@ -153,10 +149,10 @@ def validate_required_fields(descriptor_data: Dict[str, Any]) -> ValidationResul
                 continue
 
             # Check required fields for each skill
-            for field in ["id", "name"]:
-                if field not in skill:
+            for field_name in ["id", "name"]:
+                if field_name not in skill:
                     result.add_error(
-                        f"skills[{i}]", f"Skill missing required field: {field}"
+                        f"skills[{i}]", f"Skill missing required field: {field_name}"
                     )
 
     # Check if authentication contains required fields
@@ -379,7 +375,7 @@ def validate_descriptor(descriptor_data: Dict[str, Any]) -> ValidationResult:
 
 
 def validate_agent_card_compatibility(
-    descriptor_data: Dict[str, Any]
+    descriptor_data: Dict[str, Any],
 ) -> ValidationResult:
     """
     Validate an agent descriptor for compatibility with the Agent2Agent
@@ -395,11 +391,11 @@ def validate_agent_card_compatibility(
 
     # Required fields for AgentCard
     required_fields = ["name", "url", "version", "capabilities", "skills"]
-    for field in required_fields:
-        if field not in descriptor_data:
+    for field_name in required_fields:
+        if field_name not in descriptor_data:
             result.add_error(
-                field,
-                f"Missing field required for AgentCard compatibility: {field}",
+                field_name,
+                f"Missing field required for AgentCard compatibility: {field_name}",
                 "warning",
             )
 
@@ -437,12 +433,12 @@ def validate_agent_card_compatibility(
                     continue
 
                 # Check required fields for each skill
-                for field in ["id", "name"]:
-                    if field not in skill:
+                for field_name in ["id", "name"]:
+                    if field_name not in skill:
                         result.add_error(
                             f"skills[{i}]",
                             f"For AgentCard compatibility, skill missing "
-                            f"required field: {field}",
+                            f"required field: {field_name}",
                             "warning",
                         )
 
