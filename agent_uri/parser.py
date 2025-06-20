@@ -32,7 +32,7 @@ class AgentUri:
     transport: Optional[str] = None
     authority: str = ""
     path: str = ""
-    query: Optional[Dict[str, Union[str, List[str]]]] = field(default_factory=dict)
+    query: Dict[str, Union[str, List[str]]] = field(default_factory=dict)
     fragment: Optional[str] = None
 
     # Parsed authority components
@@ -42,8 +42,8 @@ class AgentUri:
 
     def __post_init__(self):
         """Initialize default values and handle empty fields."""
-        # Handle explicit None passed for query
-        if self.query is None:
+        # Ensure query is always a dict
+        if not isinstance(self.query, dict):
             object.__setattr__(self, "query", {})
 
     @property
@@ -208,7 +208,7 @@ def parse_agent_uri(uri: str) -> AgentUri:
                     if isinstance(existing_value, list):
                         existing_value.append(value)
                     else:
-                        query_params[key] = [existing_value, value]
+                        query_params[key] = [str(existing_value), value]
                 else:
                     query_params[key] = value
 
@@ -236,7 +236,7 @@ def parse_agent_uri(uri: str) -> AgentUri:
         transport=transport,
         authority=parsed.netloc,
         path=parsed.path.lstrip("/"),  # Remove leading slash for consistency
-        query=query_params,
+        query=query_params if query_params else {},
         fragment=parsed.fragment or None,
         userinfo=userinfo,
         host=host,

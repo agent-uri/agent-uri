@@ -43,9 +43,9 @@ fastapi = "^0.115.0"  # Updated to support newer starlette
 uvicorn = "^0.24.0"
 
 # Security constraints for indirect dependencies
-anyio = ">=4.4.0"
+anyio = "^4.9.0"
 cryptography = "^45.0.4"  # Will get latest compatible version
-starlette = ">=0.40.0"
+starlette = ">=0.40.0,<0.47.0"
 
 [tool.poetry.group.dev.dependencies]
 # Testing
@@ -56,7 +56,7 @@ pytest-mock = "^3.12.0"
 pytest-xdist = "^3.5.0"
 
 # Code quality
-black = "^24.3.0"
+black = "^25.1.0"
 isort = "^5.13.0"
 flake8 = "^6.1.0"
 mypy = "^1.8.0"

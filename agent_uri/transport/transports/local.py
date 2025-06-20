@@ -174,7 +174,7 @@ class LocalAgentRegistry:
         self._running = False
 
         # Close all server sockets
-        for name, socket_obj in list(self._server_sockets.items()):
+        for _name, socket_obj in list(self._server_sockets.items()):
             try:
                 socket_obj.close()
             except Exception:  # nosec B110

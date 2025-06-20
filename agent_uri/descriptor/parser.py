@@ -59,7 +59,7 @@ def _convert_dict_keys(d: Any) -> Any:
     if not isinstance(d, dict):
         return d
 
-    result = {}
+    result: Dict[str, Any] = {}
     for key, value in d.items():
         snake_key = _camel_to_snake(key)
 
