@@ -1,5 +1,12 @@
 # Agent URI Reference Implementation
 
+[![Test Coverage](https://img.shields.io/badge/coverage-66%25-yellow.svg)](https://github.com/agent-uri/agent-uri/actions)
+[![Python Version](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](https://www.python.org)
+[![License](https://img.shields.io/badge/license-BSD--3--Clause-green.svg)](LICENSE)
+[![CI Status](https://github.com/agent-uri/agent-uri/actions/workflows/test-and-quality-checks.yml/badge.svg)](https://github.com/agent-uri/agent-uri/actions/workflows/test-and-quality-checks.yml)
+[![Security](https://img.shields.io/badge/security-bandit-informational.svg)](https://github.com/agent-uri/agent-uri/actions)
+[![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 This repository contains a reference implementation of the `agent://` protocol as defined in the [protocol specification](docs/rfc/draft-narvaneni-agent-uri-00.md).
 
 ## Overview
