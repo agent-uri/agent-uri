@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Standalone Echo Server - Implements a simple echo server without using the agent-server SDK.
+Standalone Echo Server - Implements a simple echo server without using
+the agent-server SDK.
 
 This is a simplified version that avoids the session_id parameter handling issues.
 """
@@ -9,7 +10,6 @@ import datetime
 import json
 import logging
 import os
-from typing import Any, Dict
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request

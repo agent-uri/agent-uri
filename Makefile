@@ -110,7 +110,7 @@ format: ## Auto-format code with black and isort
 
 type-check: ## Run type checking with mypy
 	@echo "$(BLUE)Running type checking with mypy...$(RESET)"
-	$(POETRY) run $(MYPY) agent_uri/ || echo "$(YELLOW)Type checking found issues (non-blocking for now)$(RESET)"
+	$(POETRY) run $(MYPY) agent_uri/
 
 security: ## Run security checks
 	@echo "$(BLUE)Running security checks with bandit...$(RESET)"
@@ -118,7 +118,7 @@ security: ## Run security checks
 	@echo "$(BLUE)Checking for known vulnerabilities with safety...$(RESET)"
 	$(POETRY) run safety check --ignore=67599
 	@echo "$(BLUE)Running pip audit for dependency vulnerabilities...$(RESET)"
-	$(POETRY) run pip-audit --desc --format json --output local-security-report.json || echo "$(YELLOW)Some packages could not be audited (local packages)$(RESET)"
+	$(POETRY) run pip-audit --desc --format json --output local-security-report.json
 	@echo "$(GREEN)Security report generated: local-security-report.json$(RESET)"
 	@echo "$(GREEN)✓ Security checks passed$(RESET)"
 

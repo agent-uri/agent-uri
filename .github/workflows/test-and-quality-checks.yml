@@ -99,8 +99,8 @@ jobs:
     - name: Run pip audit
       run: |
         echo "Running pip audit for vulnerability scanning..."
-        poetry run pip-audit --desc --format json --output pip-audit-report.json || echo "Pip audit found issues (non-blocking for now)"
-        echo "Pip audit completed. Check the report for any vulnerabilities."
+        poetry run pip-audit --desc --format json --output pip-audit-report.json
+        echo "Pip audit completed. No vulnerabilities found."
 
     - name: Upload security reports
       if: always()

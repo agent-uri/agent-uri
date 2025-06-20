@@ -1,9 +1,7 @@
 """HTTP Transport implementation for agent:// protocol communication."""
 
 import logging
-import os
 import re
-import sys
 from typing import Any, Dict, Optional, Tuple
 
 import requests
@@ -56,7 +54,8 @@ class HttpTransport(AgentTransport):
         Resolve an agent URI to an HTTP endpoint.
 
         Args:
-            uri: The agent URI (e.g., agent://localhost:8765 or agent+http://localhost:8765)
+            uri: The agent URI (e.g., agent://localhost:8765 or
+                agent+http://localhost:8765)
             capability: Optional capability to append to the path
 
         Returns:
