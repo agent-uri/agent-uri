@@ -66,7 +66,7 @@ jobs:
         poetry run mypy agent_uri/
 
     - name: Run tests
-      run: poetry run pytest --cov=agent_uri --cov-report=xml
+      run: poetry run pytest --cov=agent_uri --cov-report=xml --cov-fail-under=66
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
