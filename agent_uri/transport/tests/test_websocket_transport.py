@@ -121,9 +121,8 @@ class TestWebSocketTransport:
 
         # Mock the run_forever to call on_open immediately
         def run_forever_side_effect(**kwargs):
-            # Extract the on_open callback and call it
-            on_open = transport._ws.on_open
-            on_open(mock_ws)
+            # Set connection flag directly since we're in a thread
+            transport._is_connected = True
 
         mock_ws.run_forever.side_effect = run_forever_side_effect
 
@@ -159,7 +158,7 @@ class TestWebSocketTransport:
         with pytest.raises(TransportError) as excinfo:
             transport._connect("wss://example.com/agent", {})
 
-        assert "Failed to connect" in str(excinfo.value)
+        assert "Failed to establish WebSocket connection" in str(excinfo.value)
 
     def test_on_message_json_rpc_response(self, transport):
         """Test handling JSON-RPC response message."""

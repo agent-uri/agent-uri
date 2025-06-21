@@ -143,6 +143,15 @@ class WebSocketTransport(AgentTransport):
         if not self._is_connected:
             self._connect(url, headers)
 
+        # Set up a response queue for this request
+        response_queue: Queue[Any] = Queue()
+
+        # Register active request
+        self._active_requests[request_id] = {
+            "capability": capability,
+            "response_queue": response_queue,
+        }
+
         # Set up a response future
         response_event = threading.Event()
         response = [None]  # Use list for mutable closure
@@ -161,17 +170,29 @@ class WebSocketTransport(AgentTransport):
                 raise TransportError("WebSocket connection not established")
             self._ws.send(message_str)
         except Exception as e:
-            del self._request_callbacks[request_id]
+            # Clean up on error
+            if request_id in self._request_callbacks:
+                del self._request_callbacks[request_id]
+            if request_id in self._active_requests:
+                del self._active_requests[request_id]
             raise TransportError(f"Error sending WebSocket message: {str(e)}")
 
         # Wait for response with timeout
         if not response_event.wait(timeout):
-            del self._request_callbacks[request_id]
+            # Clean up on timeout
+            if request_id in self._request_callbacks:
+                del self._request_callbacks[request_id]
+            if request_id in self._active_requests:
+                del self._active_requests[request_id]
             raise TransportTimeoutError(
                 f"WebSocket request timed out after {timeout} seconds"
             )
 
-        del self._request_callbacks[request_id]
+        # Clean up after response
+        if request_id in self._request_callbacks:
+            del self._request_callbacks[request_id]
+        if request_id in self._active_requests:
+            del self._active_requests[request_id]
 
         # Check for errors
         if isinstance(response[0], Exception):
@@ -411,24 +432,82 @@ class WebSocketTransport(AgentTransport):
             data = json.loads(message)
 
             # Check if this is a response to a specific request
-            if isinstance(data, dict):
-                # Handle JSON-RPC response
-                if "id" in data:
-                    request_id = data.get("id")
-                    if request_id in self._request_callbacks:
-                        callback = self._request_callbacks[request_id]
-                        callback(data)
+            if isinstance(data, dict) and "id" in data:
+                request_id = data.get("id")
+
+                # Check for active requests first (used by invoke)
+                if request_id in self._active_requests:
+                    request_info = self._active_requests[request_id]
+                    response_queue = request_info.get("response_queue")
+
+                    if response_queue:
+                        # Handle JSON-RPC error response
+                        if "error" in data:
+                            error_info = data.get("error", {})
+                            error_msg = error_info.get("message", "Unknown error")
+                            error_code = error_info.get("code", -1)
+                            error = TransportError(f"{error_msg} (code: {error_code})")
+                            response_queue.put(error)
+                            return
+
+                        # Handle JSON-RPC result
+                        if "result" in data:
+                            response_queue.put(data["result"])
+                            # Also trigger callback if exists
+                            if request_id in self._request_callbacks:
+                                self._request_callbacks[request_id](data["result"])
+                            return
+
+                        # Handle streaming complete
+                        if data.get("complete"):
+                            # Mark stream as complete
+                            response_queue.put({"type": "complete"})
+                            # Clean up active request and callback
+                            if request_id in self._active_requests:
+                                del self._active_requests[request_id]
+                            if request_id in self._request_callbacks:
+                                del self._request_callbacks[request_id]
+                            return
+
+                # Check for request callbacks (used by stream)
+                if request_id in self._request_callbacks:
+                    callback = self._request_callbacks[request_id]
+
+                    # Handle JSON-RPC error response
+                    if "error" in data:
+                        error_info = data.get("error", {})
+                        error_msg = error_info.get("message", "Unknown error")
+                        error_code = error_info.get("code", -1)
+                        error = TransportError(f"{error_msg} (code: {error_code})")
+                        callback(error)  # type: ignore[arg-type]
+                        # Remove callback for non-streaming responses
+                        del self._request_callbacks[request_id]
                         return
 
-                # Handle stream message with a result field
-                if "result" in data and "id" in data:
-                    request_id = data.get("id")
-                    if request_id in self._request_callbacks:
-                        callback = self._request_callbacks[request_id]
-                        result = data.get("result")
-                        if result is not None:
-                            callback(result)
+                    # Handle streaming chunk
+                    if "chunk" in data and data.get("streaming"):
+                        callback(data["chunk"])
+                        # Keep callback for more chunks
                         return
+
+                    # Handle streaming complete
+                    if data.get("complete"):
+                        # Remove callback when streaming is complete
+                        del self._request_callbacks[request_id]
+                        return
+
+                    # Handle JSON-RPC result
+                    if "result" in data:
+                        callback(data["result"])
+                        # Remove callback for non-streaming responses
+                        del self._request_callbacks[request_id]
+                        return
+
+                    # Handle simple response with just id
+                    callback(data)
+                    # Remove callback for non-streaming responses
+                    del self._request_callbacks[request_id]
+                    return
 
             # Put in the general message queue if no specific handler
             self._message_queue.put(data)

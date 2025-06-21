@@ -185,18 +185,21 @@ class TestWebSocketTransportBasic:
             def fake_connect(url, headers):
                 transport._is_connected = True
                 transport._ws = Mock()
-                transport._ws.send = Mock()
+
+                # Mock the send method to register the callback
+                def fake_send(msg):
+                    msg_data = json.loads(msg)
+                    request_id = msg_data.get("id")
+                    # Simulate immediate completion
+                    if request_id in transport._request_callbacks:
+                        transport._request_callbacks[request_id]({"type": "complete"})
+
+                transport._ws.send = Mock(side_effect=fake_send)
 
             mock_connect.side_effect = fake_connect
 
-            # Create a generator that immediately stops
-            def immediate_stream():
-                return
-                yield  # Never reached
-
-            with patch.object(transport, "_stream_generator", immediate_stream):
-                # This should call connect
-                list(transport.stream("wss://example.com", "test", {}))
+            # Start streaming and consume
+            list(transport.stream("wss://example.com", "test", {}))
 
             mock_connect.assert_called_once()
 
