@@ -42,57 +42,65 @@ class TestWebSocketStreaming:
             sent_messages.append(msg_data)
             request_id = msg_data["id"]
 
-            # Immediately simulate responses when message is sent
-            # Send streaming chunks
-            transport._on_message(
-                None,
-                json.dumps(
-                    {
-                        "id": request_id,
-                        "chunk": {"index": 0, "data": "First chunk"},
-                        "streaming": True,
-                    }
-                ),
-            )
+            # Use a thread to simulate async responses with proper timing
+            def simulate_responses():
+                time.sleep(0.01)  # Small delay to ensure stream setup
 
-            transport._on_message(
-                None,
-                json.dumps(
-                    {
-                        "id": request_id,
-                        "chunk": {"index": 1, "data": "Second chunk"},
-                        "streaming": True,
-                    }
-                ),
-            )
+                # Send streaming chunks
+                transport._on_message(
+                    None,
+                    json.dumps(
+                        {
+                            "id": request_id,
+                            "chunk": {"index": 0, "data": "First chunk"},
+                            "streaming": True,
+                        }
+                    ),
+                )
 
-            transport._on_message(
-                None,
-                json.dumps(
-                    {
-                        "id": request_id,
-                        "chunk": {"index": 2, "data": "Third chunk"},
-                        "streaming": True,
-                    }
-                ),
-            )
+                time.sleep(0.01)
+                transport._on_message(
+                    None,
+                    json.dumps(
+                        {
+                            "id": request_id,
+                            "chunk": {"index": 1, "data": "Second chunk"},
+                            "streaming": True,
+                        }
+                    ),
+                )
 
-            # Signal completion properly
-            transport._on_message(
-                None,
-                json.dumps(
-                    {
-                        "id": request_id,
-                        "complete": True,
-                    }
-                ),
-            )
+                time.sleep(0.01)
+                transport._on_message(
+                    None,
+                    json.dumps(
+                        {
+                            "id": request_id,
+                            "chunk": {"index": 2, "data": "Third chunk"},
+                            "streaming": True,
+                        }
+                    ),
+                )
+
+                time.sleep(0.01)
+                # Signal completion properly
+                transport._on_message(
+                    None,
+                    json.dumps(
+                        {
+                            "id": request_id,
+                            "complete": True,
+                        }
+                    ),
+                )
+
+            threading.Thread(target=simulate_responses, daemon=True).start()
 
         mock_ws.send.side_effect = send_and_respond
 
-        # Start streaming - this tests real transport logic
+        # Start streaming - this tests real transport logic with short timeout
         stream_gen = transport.stream(
-            "wss://example.com", "data-stream", {"query": "test"}
+            "wss://example.com", "data-stream", {"query": "test"}, timeout=5
         )
 
         # Collect streamed data - send_and_respond called when consuming
@@ -191,27 +199,48 @@ class TestWebSocketStreaming:
         mock_ws.send.side_effect = lambda msg: sent_messages.append(json.loads(msg))
 
         # Start streaming
-        stream_gen = transport.stream("wss://example.com", "error-stream", {})
+        stream_gen = transport.stream(
+            "wss://example.com", "error-stream", {}, timeout=2
+        )
         request_id = sent_messages[0]["id"]
 
-        # Send some successful chunks first
-        transport._on_message(
-            None,
-            json.dumps(
-                {"id": request_id, "chunk": {"data": "chunk1"}, "streaming": True}
-            ),
-        )
+        # Use a thread to send messages with proper timing
+        def send_messages():
+            time.sleep(0.01)  # Let stream initialize
+
+            # Send some successful chunks first
+            transport._on_message(
+                None,
+                json.dumps(
+                    {"id": request_id, "chunk": {"data": "chunk1"}, "streaming": True}
+                ),
+            )
+
+            time.sleep(0.01)
+
+            # Send an error via the message handler (as real WebSocket would)
+            transport._on_message(
+                None,
+                json.dumps(
+                    {
+                        "id": request_id,
+                        "error": {"code": -32000, "message": "Stream error"},
+                    }
+                ),
+            )
+
+        message_thread = threading.Thread(target=send_messages, daemon=True)
+        message_thread.start()
 
         # Consume first chunk
         assert next(stream_gen) == {"data": "chunk1"}
-
-        # Now send an error
-        transport._request_callbacks[request_id](TransportError("Stream error"))
 
         # Next iteration should raise the error
         with pytest.raises(TransportError) as excinfo:
             next(stream_gen)
         assert "Stream error" in str(excinfo.value)
+
+        message_thread.join()
 
     @patch("websocket.WebSocketApp")
     def test_streaming_connection_lost(self, mock_ws_class, transport):
@@ -225,7 +254,9 @@ class TestWebSocketStreaming:
         mock_ws.send.side_effect = lambda msg: sent_messages.append(json.loads(msg))
 
         # Start streaming
-        stream_gen = transport.stream("wss://example.com", "fragile-stream", {})
+        stream_gen = transport.stream(
+            "wss://example.com", "fragile-stream", {}, timeout=2
+        )
         request_id = sent_messages[0]["id"]
 
         # Send first chunk
@@ -260,7 +291,7 @@ class TestWebSocketStreaming:
         mock_ws.send.side_effect = lambda msg: sent_messages.append(json.loads(msg))
 
         # Start streaming
-        stream_gen = transport.stream("wss://example.com", "bulk-stream", {})
+        stream_gen = transport.stream("wss://example.com", "bulk-stream", {}, timeout=5)
         request_id = sent_messages[0]["id"]
 
         # Send many chunks rapidly
@@ -277,15 +308,15 @@ class TestWebSocketStreaming:
                 ),
             )
 
-        # Consume slowly and verify order
-        received = []
-        for i, chunk in enumerate(stream_gen):
-            received.append(chunk["index"])
-            if i >= 10:  # Only consume first 10
-                break
-
-        # Complete the stream
+        # Complete the stream after sending all chunks
         transport._on_message(None, json.dumps({"id": request_id, "complete": True}))
+
+        # Consume all chunks and verify order
+        received = []
+        for chunk in stream_gen:
+            received.append(chunk["index"])
+            if len(received) >= 11:  # Only check first 11
+                break
 
         # Verify chunks were received in order
         assert received == list(range(11))
@@ -304,13 +335,19 @@ class TestWebSocketStreaming:
         # Test with close_on_complete=False
         with patch.object(transport, "_disconnect") as mock_disconnect:
             stream_gen = transport.stream(
-                "wss://example.com", "persistent-stream", {}, close_on_complete=False
+                "wss://example.com",
+                "persistent-stream",
+                {},
+                close_on_complete=False,
+                timeout=2,
             )
 
             request_id = sent_messages[0]["id"]
 
-            # Complete the stream
-            transport._request_callbacks[request_id]({"type": "complete"})
+            # Complete the stream via message handler
+            transport._on_message(
+                None, json.dumps({"id": request_id, "complete": True})
+            )
             list(stream_gen)
 
             # Should not disconnect
@@ -320,13 +357,19 @@ class TestWebSocketStreaming:
         sent_messages.clear()
         with patch.object(transport, "_disconnect") as mock_disconnect:
             stream_gen = transport.stream(
-                "wss://example.com", "closing-stream", {}, close_on_complete=True
+                "wss://example.com",
+                "closing-stream",
+                {},
+                close_on_complete=True,
+                timeout=2,
             )
 
-            request_id = sent_messages[1]["id"]
+            request_id = sent_messages[0]["id"]  # Reset, so back to index 0
 
-            # Complete the stream
-            transport._request_callbacks[request_id]({"type": "complete"})
+            # Complete the stream via message handler
+            transport._on_message(
+                None, json.dumps({"id": request_id, "complete": True})
+            )
             list(stream_gen)
 
             # Should disconnect
@@ -352,7 +395,9 @@ class TestWebSocketStreaming:
         mock_ws.send.side_effect = capture_send
 
         # Start streaming
-        stream_gen = transport.stream("wss://example.com", "sparse-stream", {})
+        stream_gen = transport.stream(
+            "wss://example.com", "sparse-stream", {}, timeout=5
+        )
 
         # Send mix of empty and non-empty chunks in thread
         def send_chunks():

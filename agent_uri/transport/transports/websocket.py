@@ -282,6 +282,10 @@ class WebSocketTransport(AgentTransport):
             try:
                 if isinstance(msg, dict) and msg.get("type") == "complete":
                     streaming_complete.set()
+                elif isinstance(msg, Exception):
+                    # Handle error by putting it in queue and marking complete
+                    message_queue.put(msg)
+                    streaming_complete.set()
                 else:
                     message_queue.put(msg)
             except Exception as e:
@@ -317,7 +321,9 @@ class WebSocketTransport(AgentTransport):
                     )
 
                 # Calculate remaining timeout for this iteration
-                remaining_timeout = min(timeout or 5, max_wait_time - elapsed)
+                remaining_timeout = min(
+                    timeout or 1, max_wait_time - elapsed
+                )  # Reduced default from 5 to 1 second
                 if remaining_timeout <= 0:
                     raise TransportTimeoutError("Streaming timeout exceeded")
 
