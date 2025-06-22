@@ -196,19 +196,14 @@ class TestWebSocketStreaming:
         transport._is_connected = True
 
         sent_messages = []
-        mock_ws.send.side_effect = lambda msg: sent_messages.append(json.loads(msg))
 
-        # Start streaming
-        stream_gen = transport.stream(
-            "wss://example.com", "error-stream", {}, timeout=2
-        )
-        request_id = sent_messages[0]["id"]
+        # Mock send to capture and respond immediately
+        def send_and_respond(msg):
+            msg_data = json.loads(msg)
+            sent_messages.append(msg_data)
+            request_id = msg_data["id"]
 
-        # Use a thread to send messages with proper timing
-        def send_messages():
-            time.sleep(0.01)  # Let stream initialize
-
-            # Send some successful chunks first
+            # Send chunk immediately
             transport._on_message(
                 None,
                 json.dumps(
@@ -216,9 +211,7 @@ class TestWebSocketStreaming:
                 ),
             )
 
-            time.sleep(0.01)
-
-            # Send an error via the message handler (as real WebSocket would)
+            # Then send error
             transport._on_message(
                 None,
                 json.dumps(
@@ -229,8 +222,12 @@ class TestWebSocketStreaming:
                 ),
             )
 
-        message_thread = threading.Thread(target=send_messages, daemon=True)
-        message_thread.start()
+        mock_ws.send.side_effect = send_and_respond
+
+        # Start streaming
+        stream_gen = transport.stream(
+            "wss://example.com", "error-stream", {}, timeout=2
+        )
 
         # Consume first chunk
         assert next(stream_gen) == {"data": "chunk1"}
@@ -239,8 +236,6 @@ class TestWebSocketStreaming:
         with pytest.raises(TransportError) as excinfo:
             next(stream_gen)
         assert "Stream error" in str(excinfo.value)
-
-        message_thread.join()
 
     @patch("websocket.WebSocketApp")
     def test_streaming_connection_lost(self, mock_ws_class, transport):
