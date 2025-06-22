@@ -302,10 +302,27 @@ class WebSocketTransport(AgentTransport):
             raise TransportError(f"Error sending WebSocket message: {str(e)}")
 
         # Yield messages as they arrive
+        import time
+
+        start_time = time.time()
+        max_wait_time = timeout or 60  # Default to 60 seconds total
+
         try:
             while not streaming_complete.is_set():
+                # Check total elapsed time to prevent infinite loops
+                elapsed = time.time() - start_time
+                if elapsed >= max_wait_time:
+                    raise TransportTimeoutError(
+                        f"Streaming timed out after {elapsed:.1f} seconds"
+                    )
+
+                # Calculate remaining timeout for this iteration
+                remaining_timeout = min(timeout or 5, max_wait_time - elapsed)
+                if remaining_timeout <= 0:
+                    raise TransportTimeoutError("Streaming timeout exceeded")
+
                 try:
-                    msg = message_queue.get(timeout=timeout)
+                    msg = message_queue.get(timeout=remaining_timeout)
                     if isinstance(msg, Exception):
                         raise TransportError(f"WebSocket error: {str(msg)}")
                     yield self.parse_response(msg)
@@ -492,6 +509,8 @@ class WebSocketTransport(AgentTransport):
 
                     # Handle streaming complete
                     if data.get("complete"):
+                        # Signal completion to the stream
+                        callback({"type": "complete"})
                         # Remove callback when streaming is complete
                         del self._request_callbacks[request_id]
                         return
