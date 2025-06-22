@@ -24,36 +24,92 @@ class TestWebSocketStreaming:
         """Create a WebSocketTransport instance."""
         return WebSocketTransport()
 
-    def test_basic_streaming(self, transport):
-        """Test basic streaming functionality using mock generator."""
+    @patch("websocket.WebSocketApp")
+    def test_basic_streaming(self, mock_ws_class, transport):
+        """Test basic streaming functionality with proper WebSocket simulation."""
+        mock_ws = Mock()
+        mock_ws_class.return_value = mock_ws
+        transport._ws = mock_ws
+        transport._is_connected = True
 
-        # Mock the stream method to return a simple generator
-        def mock_stream_data():
-            yield {"index": 0, "data": "First chunk"}
-            yield {"index": 1, "data": "Second chunk"}
-            yield {"index": 2, "data": "Third chunk"}
+        # Capture sent messages and set up response simulation
+        sent_messages = []
+        request_id = None
 
-        # Replace stream method with mock
-        transport.stream = Mock(return_value=mock_stream_data())
+        def send_and_respond(msg):
+            nonlocal request_id
+            msg_data = json.loads(msg)
+            sent_messages.append(msg_data)
+            request_id = msg_data["id"]
 
-        # Test streaming
+            # Immediately simulate responses when message is sent
+            # Send streaming chunks
+            transport._on_message(
+                None,
+                json.dumps(
+                    {
+                        "id": request_id,
+                        "chunk": {"index": 0, "data": "First chunk"},
+                        "streaming": True,
+                    }
+                ),
+            )
+
+            transport._on_message(
+                None,
+                json.dumps(
+                    {
+                        "id": request_id,
+                        "chunk": {"index": 1, "data": "Second chunk"},
+                        "streaming": True,
+                    }
+                ),
+            )
+
+            transport._on_message(
+                None,
+                json.dumps(
+                    {
+                        "id": request_id,
+                        "chunk": {"index": 2, "data": "Third chunk"},
+                        "streaming": True,
+                    }
+                ),
+            )
+
+            # Signal completion properly
+            transport._on_message(
+                None,
+                json.dumps(
+                    {
+                        "id": request_id,
+                        "complete": True,
+                    }
+                ),
+            )
+
+        mock_ws.send.side_effect = send_and_respond
+
+        # Start streaming - this tests real transport logic
         stream_gen = transport.stream(
             "wss://example.com", "data-stream", {"query": "test"}
         )
 
-        # Collect streamed data
+        # Collect streamed data - send_and_respond called when consuming
         received_chunks = list(stream_gen)
+
+        # Verify the sent message format
+        assert len(sent_messages) == 1
+        assert sent_messages[0]["jsonrpc"] == "2.0"
+        assert sent_messages[0]["method"] == "data-stream"
+        assert sent_messages[0]["params"] == {"query": "test"}
+        assert sent_messages[0]["id"] == request_id
 
         # Verify chunks received correctly
         assert len(received_chunks) == 3
         assert received_chunks[0] == {"index": 0, "data": "First chunk"}
         assert received_chunks[1] == {"index": 1, "data": "Second chunk"}
         assert received_chunks[2] == {"index": 2, "data": "Third chunk"}
-
-        # Verify stream was called with correct parameters
-        transport.stream.assert_called_once_with(
-            "wss://example.com", "data-stream", {"query": "test"}
-        )
 
     def test_streaming_with_custom_format(self, transport):
         """Test streaming with custom message format (simplified)."""
