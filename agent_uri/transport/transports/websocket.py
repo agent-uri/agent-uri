@@ -283,9 +283,9 @@ class WebSocketTransport(AgentTransport):
                 if isinstance(msg, dict) and msg.get("type") == "complete":
                     streaming_complete.set()
                 elif isinstance(msg, Exception):
-                    # Handle error by putting it in queue and marking complete
+                    # Handle error by putting it in queue, but don't mark complete yet
+                    # The stream loop will process the error and then complete
                     message_queue.put(msg)
-                    streaming_complete.set()
                 else:
                     message_queue.put(msg)
             except Exception as e:
@@ -302,7 +302,9 @@ class WebSocketTransport(AgentTransport):
                 raise TransportError("WebSocket connection not established")
             self._ws.send(message_str)
         except Exception as e:
-            del self._request_callbacks[request_id]
+            # Clean up on send error
+            if request_id in self._request_callbacks:
+                del self._request_callbacks[request_id]
             raise TransportError(f"Error sending WebSocket message: {str(e)}")
 
         # Yield messages as they arrive
@@ -322,14 +324,16 @@ class WebSocketTransport(AgentTransport):
 
                 # Calculate remaining timeout for this iteration
                 remaining_timeout = min(
-                    timeout or 1, max_wait_time - elapsed
-                )  # Reduced default from 5 to 1 second
+                    1.0, max_wait_time - elapsed
+                )  # Use 1 second chunks for better responsiveness
                 if remaining_timeout <= 0:
                     raise TransportTimeoutError("Streaming timeout exceeded")
 
                 try:
                     msg = message_queue.get(timeout=remaining_timeout)
                     if isinstance(msg, Exception):
+                        # Error received - mark stream as complete and raise
+                        streaming_complete.set()
                         raise TransportError(f"WebSocket error: {str(msg)}")
                     yield self.parse_response(msg)
                 except Empty:
