@@ -337,8 +337,9 @@ class WebSocketTransport(AgentTransport):
                         raise
                     raise TransportError(f"Error processing stream: {str(e)}")
         finally:
-            # Clean up
-            del self._request_callbacks[request_id]
+            # Clean up - use safe deletion in case callback was already removed
+            if request_id in self._request_callbacks:
+                del self._request_callbacks[request_id]
             if close_on_complete and self._is_connected:
                 self._disconnect()
 
