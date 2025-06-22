@@ -265,11 +265,15 @@ class TestLocalTransportAgentHandling:
 
         def generator_handler(capability: str, params: dict):
             if capability == "fibonacci":
-                n = params.get("count", 5)
-                a, b = 0, 1
-                for _ in range(n):
-                    yield {"value": a}
-                    a, b = b, a + b
+
+                def fibonacci_generator():
+                    n = params.get("count", 5)
+                    a, b = 0, 1
+                    for _ in range(n):
+                        yield {"value": a}
+                        a, b = b, a + b
+
+                return fibonacci_generator()
             else:
                 return "non-streaming response"
 
