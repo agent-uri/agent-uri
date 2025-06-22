@@ -355,14 +355,14 @@ class WebSocketTransport(AgentTransport):
 
     def _connect(self, url: str, headers: Optional[Dict[str, str]] = None) -> None:
         """
-        Establish a WebSocket connection.
+        Establish a WebSocket connection with retry logic.
 
         Args:
             url: The WebSocket URL to connect to
             headers: Optional headers to include in the handshake
 
         Raises:
-            TransportError: If connection fails
+            TransportError: If connection fails after all retries
         """
         if self._is_connected:
             return
@@ -379,41 +379,56 @@ class WebSocketTransport(AgentTransport):
         elif not (ws_url.startswith("ws://") or ws_url.startswith("wss://")):
             ws_url = f"wss://{ws_url}"
 
-        # Create WebSocket client
-        try:
-            self._ws = websocket.WebSocketApp(
-                ws_url,
-                header=ws_headers,
-                on_open=self._on_open,
-                on_message=self._on_message,
-                on_error=self._on_error,
-                on_close=self._on_close,
-            )
+        # Retry connection attempts
+        last_error = None
+        for attempt in range(self._reconnect_tries + 1):  # +1 for initial attempt
+            try:
+                self._ws = websocket.WebSocketApp(
+                    ws_url,
+                    header=ws_headers,
+                    on_open=self._on_open,
+                    on_message=self._on_message,
+                    on_error=self._on_error,
+                    on_close=self._on_close,
+                )
 
-            # Start WebSocket thread
-            self._ws_thread = threading.Thread(
-                target=self._ws.run_forever,
-                kwargs={
-                    "ping_interval": self._ping_interval,
-                    "ping_timeout": self._ping_timeout,
-                    "sslopt": {"cert_reqs": 2 if self._verify_ssl else 0},
-                },
-                daemon=True,
-            )
-            if self._ws_thread is not None:
-                self._ws_thread.start()
+                # Start WebSocket thread
+                self._ws_thread = threading.Thread(
+                    target=self._ws.run_forever,
+                    kwargs={
+                        "ping_interval": self._ping_interval,
+                        "ping_timeout": self._ping_timeout,
+                        "sslopt": {"cert_reqs": 2 if self._verify_ssl else 0},
+                    },
+                    daemon=True,
+                )
+                if self._ws_thread is not None:
+                    self._ws_thread.start()
 
-            # Wait for connection to establish
-            for _ in range(10):  # Wait up to 5 seconds
-                if self._is_connected:
-                    break
-                time.sleep(0.5)
+                # Wait for connection to establish
+                for _ in range(10):  # Wait up to 5 seconds
+                    if self._is_connected:
+                        return  # Success!
+                    time.sleep(0.5)
 
-            if not self._is_connected:
-                raise TransportError("Failed to establish WebSocket connection")
+                # Connection failed, prepare for retry
+                self._is_connected = False
+                last_error = Exception("Connection timeout")
 
-        except Exception as e:
-            raise TransportError(f"WebSocket connection error: {str(e)}")
+            except Exception as e:
+                last_error = e
+                self._is_connected = False
+
+            # If this wasn't the last attempt, wait before retrying
+            if attempt < self._reconnect_tries:
+                time.sleep(self._reconnect_delay)
+
+        # All attempts failed
+        attempts = self._reconnect_tries + 1
+        error_msg = (
+            f"Failed to establish WebSocket connection after {attempts} attempts"
+        )
+        raise TransportError(f"{error_msg}: {str(last_error)}")
 
     def close(self) -> None:
         """Close the WebSocket connection."""
@@ -427,12 +442,13 @@ class WebSocketTransport(AgentTransport):
             except Exception:  # nosec B110
                 pass  # Ignore errors on close
 
-            self._is_connected = False
-            self._ws = None
+        # Always clear connection state
+        self._is_connected = False
+        self._ws = None
 
-            # Clear queues
-            self._clear_queue(self._message_queue)
-            self._clear_queue(self._response_queue)
+        # Clear queues
+        self._clear_queue(self._message_queue)
+        self._clear_queue(self._response_queue)
 
     def _clear_queue(self, queue: Queue) -> None:
         """Clear all items from a queue."""
@@ -582,6 +598,26 @@ class WebSocketTransport(AgentTransport):
         logger.debug(
             f"WebSocket closed (code: {close_status_code}, " f"reason: {close_reason})"
         )
+
+        # Clear all pending requests and callbacks
+        self._active_requests.clear()
+        self._request_callbacks.clear()
+
+        # Clear message queues
+        self._clear_queue(self._message_queue)
+        self._clear_queue(self._response_queue)
+
+    def format_body(self, params: Any) -> Union[str, bytes]:
+        """
+        Format the parameters into a request body.
+
+        Handles strings as plain text, and dicts/lists as pretty-printed JSON.
+        """
+        if isinstance(params, str):
+            return params  # Return strings as-is
+        elif isinstance(params, (dict, list)):
+            return json.dumps(params, indent=2)
+        return json.dumps(params)
 
     def _build_url(self, endpoint: str, capability: str) -> str:
         """

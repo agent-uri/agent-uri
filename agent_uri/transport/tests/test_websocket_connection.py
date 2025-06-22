@@ -116,14 +116,23 @@ class TestWebSocketConnection:
 
         thread_kwargs_captured = {}
 
-        def capture_thread_kwargs(*args, **kwargs):
-            thread_kwargs_captured.update(kwargs)
-            transport._is_connected = True
-
+        # Mock threading.Thread to capture kwargs and simulate connection
         with patch("threading.Thread") as mock_thread_class:
-            mock_thread = Mock()
-            mock_thread_class.return_value = mock_thread
-            mock_ws.run_forever = capture_thread_kwargs
+
+            def thread_init(target=None, kwargs=None, daemon=None):
+                # Capture the kwargs passed to Thread
+                thread_kwargs_captured.update(kwargs or {})
+
+                # Create a mock thread that sets connection flag when started
+                mock_thread = Mock()
+
+                def thread_start():
+                    transport._is_connected = True
+
+                mock_thread.start = thread_start
+                return mock_thread
+
+            mock_thread_class.side_effect = thread_init
 
             transport._connect("wss://self-signed.example.com", {})
 
@@ -136,10 +145,21 @@ class TestWebSocketConnection:
         thread_kwargs_captured.clear()
 
         with patch("threading.Thread") as mock_thread_class:
-            mock_thread = Mock()
-            mock_thread_class.return_value = mock_thread
-            mock_ws.run_forever = capture_thread_kwargs
-            transport2._ws = mock_ws
+
+            def thread_init(target=None, kwargs=None, daemon=None):
+                # Capture the kwargs passed to Thread
+                thread_kwargs_captured.update(kwargs or {})
+
+                # Create a mock thread that sets connection flag when started
+                mock_thread = Mock()
+
+                def thread_start():
+                    transport2._is_connected = True
+
+                mock_thread.start = thread_start
+                return mock_thread
+
+            mock_thread_class.side_effect = thread_init
 
             transport2._connect("wss://secure.example.com", {})
 
@@ -155,14 +175,23 @@ class TestWebSocketConnection:
 
         thread_kwargs_captured = {}
 
-        def capture_thread_kwargs(*args, **kwargs):
-            thread_kwargs_captured.update(kwargs)
-            transport._is_connected = True
-
+        # Mock threading.Thread to capture kwargs and simulate connection
         with patch("threading.Thread") as mock_thread_class:
-            mock_thread = Mock()
-            mock_thread_class.return_value = mock_thread
-            mock_ws.run_forever = capture_thread_kwargs
+
+            def thread_init(target=None, kwargs=None, daemon=None):
+                # Capture the kwargs passed to Thread
+                thread_kwargs_captured.update(kwargs or {})
+
+                # Create a mock thread that sets connection flag when started
+                mock_thread = Mock()
+
+                def thread_start():
+                    transport._is_connected = True
+
+                mock_thread.start = thread_start
+                return mock_thread
+
+            mock_thread_class.side_effect = thread_init
 
             transport._connect("wss://example.com", {})
 

@@ -123,12 +123,17 @@ class TestWebSocketMessageFormatting:
             '{"invalid": json}',  # Unquoted value
             "",  # Empty string
             "not json at all",  # Plain text
-            '{"duplicate": 1, "duplicate": 2}',  # Duplicate keys (valid JSON but weird)
         ]
 
+        # Test truly malformed cases
         for malformed in malformed_cases:
             parsed = transport.parse_response(malformed)
             assert parsed == malformed  # Should return as-is when not valid JSON
+
+        # Test valid JSON with duplicate keys (should parse successfully)
+        duplicate_key_json = '{"duplicate": 1, "duplicate": 2}'
+        parsed = transport.parse_response(duplicate_key_json)
+        assert parsed == {"duplicate": 2}  # Should keep last value
 
     def test_parse_response_with_json_arrays(self, transport):
         """Test parsing JSON array responses."""

@@ -407,27 +407,40 @@ class TestWebSocketTransport:
         """Test streaming when not connected."""
         # Should auto-connect
         with patch.object(transport, "_connect") as mock_connect:
-            with patch.object(transport, "_ws") as mock_ws:
-                mock_ws.send = Mock()
-                transport._is_connected = True  # Pretend connect succeeded
+            # Mock the connection to succeed immediately
+            def mock_connect_impl(url, headers):
+                transport._is_connected = True
+                transport._ws = Mock()
+                transport._ws.send = Mock()
 
-                # Set up to immediately complete
-                def simulate_complete():
-                    time.sleep(0.1)
-                    # Find the request and complete it
-                    for req_id, _req_data in transport._active_requests.items():
-                        transport._on_message(
-                            None, json.dumps({"id": req_id, "complete": True})
-                        )
+            mock_connect.side_effect = mock_connect_impl
 
-                complete_thread = threading.Thread(target=simulate_complete)
-                complete_thread.start()
+            # Set up to immediately complete the stream
+            def simulate_complete():
+                # Wait for the request to be registered
+                timeout = 0.5
+                start = time.time()
+                while (
+                    not transport._request_callbacks and time.time() - start < timeout
+                ):
+                    time.sleep(0.01)
 
-                # Try to stream
-                list(transport.stream("wss://example.com", "test", {}))
+                # Send completion message for the registered request
+                if transport._request_callbacks:
+                    req_id = next(iter(transport._request_callbacks.keys()))
+                    transport._on_message(
+                        None, json.dumps({"id": req_id, "complete": True})
+                    )
 
-                # Verify connect was called
-                mock_connect.assert_called_once()
+            complete_thread = threading.Thread(target=simulate_complete)
+            complete_thread.start()
+
+            # Try to stream
+            results = list(transport.stream("wss://example.com", "test", {}))
+
+            # Verify connect was called and stream completed
+            mock_connect.assert_called_once()
+            assert results == []  # No data chunks expected, just completion
 
     def test_close_connection(self, transport):
         """Test closing WebSocket connection."""
