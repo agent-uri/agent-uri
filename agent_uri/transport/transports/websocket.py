@@ -411,6 +411,10 @@ class WebSocketTransport(AgentTransport):
         except Exception as e:
             raise TransportError(f"WebSocket connection error: {str(e)}")
 
+    def close(self) -> None:
+        """Close the WebSocket connection."""
+        self._disconnect()
+
     def _disconnect(self) -> None:
         """Close the WebSocket connection."""
         if self._ws and self._is_connected:
