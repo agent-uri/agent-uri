@@ -246,14 +246,39 @@ class TestWebSocketStreaming:
         transport._is_connected = True
 
         sent_messages = []
-        mock_ws.send.side_effect = lambda msg: sent_messages.append(json.loads(msg))
+        request_id = None
+
+        def capture_send(msg):
+            nonlocal request_id
+            msg_data = json.loads(msg)
+            sent_messages.append(msg_data)
+            request_id = msg_data["id"]
+
+        mock_ws.send.side_effect = capture_send
 
         # Start streaming
         stream_gen = transport.stream(
             "wss://example.com", "fragile-stream", {}, timeout=2
         )
-        request_id = sent_messages[0]["id"]
 
+        # Start the generator in background to trigger send and get request_id
+        import threading
+        import time
+
+        first_chunk_result = []
+
+        def start_generator():
+            try:
+                chunk = next(stream_gen)
+                first_chunk_result.append(chunk)
+            except Exception as e:
+                first_chunk_result.append(e)
+
+        gen_thread = threading.Thread(target=start_generator, daemon=True)
+        gen_thread.start()
+        time.sleep(0.05)  # Give time for generator to start and send message
+
+        # Now request_id should be available from the callback
         # Send first chunk
         transport._on_message(
             None,
@@ -262,8 +287,10 @@ class TestWebSocketStreaming:
             ),
         )
 
-        # Consume first chunk
-        assert next(stream_gen) == {"data": "chunk1"}
+        # Wait for the generator thread to complete and get the result
+        gen_thread.join(timeout=1)
+        assert len(first_chunk_result) > 0
+        assert first_chunk_result[0] == {"data": "chunk1"}
 
         # Simulate connection loss
         transport._is_connected = False
@@ -283,38 +310,61 @@ class TestWebSocketStreaming:
         transport._is_connected = True
 
         sent_messages = []
-        mock_ws.send.side_effect = lambda msg: sent_messages.append(json.loads(msg))
+        request_id = None
+        chunks_sent = 0
+
+        def capture_send(msg):
+            nonlocal request_id
+            msg_data = json.loads(msg)
+            sent_messages.append(msg_data)
+            request_id = msg_data["id"]
+
+            # Send chunks immediately after stream setup
+            def send_chunks():
+                nonlocal chunks_sent
+                time.sleep(0.01)  # Small delay to ensure callback is registered
+
+                # Send many chunks rapidly but don't complete yet
+                num_chunks = 50
+                for i in range(num_chunks):
+                    transport._on_message(
+                        None,
+                        json.dumps(
+                            {
+                                "id": request_id,
+                                "chunk": {"index": i, "data": f"chunk_{i}"},
+                                "streaming": True,
+                            }
+                        ),
+                    )
+                    chunks_sent += 1
+                    # Add a tiny delay every few chunks to ensure queue processing
+                    if i % 10 == 9:
+                        time.sleep(0.001)
+
+            threading.Thread(target=send_chunks, daemon=True).start()
+
+        mock_ws.send.side_effect = capture_send
 
         # Start streaming
         stream_gen = transport.stream("wss://example.com", "bulk-stream", {}, timeout=5)
-        request_id = sent_messages[0]["id"]
 
-        # Send many chunks rapidly
-        num_chunks = 50
-        for i in range(num_chunks):
-            transport._on_message(
-                None,
-                json.dumps(
-                    {
-                        "id": request_id,
-                        "chunk": {"index": i, "data": f"chunk_{i}"},
-                        "streaming": True,
-                    }
-                ),
-            )
-
-        # Complete the stream after sending all chunks
-        transport._on_message(None, json.dumps({"id": request_id, "complete": True}))
-
-        # Consume all chunks and verify order
+        # Consume chunks and verify order
         received = []
         for chunk in stream_gen:
             received.append(chunk["index"])
             if len(received) >= 11:  # Only check first 11
+                # Send complete message after we've consumed what we need
+                transport._on_message(
+                    None, json.dumps({"id": request_id, "complete": True})
+                )
                 break
 
         # Verify chunks were received in order
         assert received == list(range(11))
+
+        # Ensure we sent enough chunks
+        assert chunks_sent >= 11
 
     @patch("websocket.WebSocketApp")
     def test_streaming_close_on_complete(self, mock_ws_class, transport):
@@ -325,7 +375,24 @@ class TestWebSocketStreaming:
         transport._is_connected = True
 
         sent_messages = []
-        mock_ws.send.side_effect = lambda msg: sent_messages.append(json.loads(msg))
+        request_id = None
+
+        def capture_send(msg):
+            nonlocal request_id
+            msg_data = json.loads(msg)
+            sent_messages.append(msg_data)
+            request_id = msg_data["id"]
+
+            # Send complete message after stream setup
+            def send_complete():
+                time.sleep(0.01)  # Small delay to ensure callback is registered
+                transport._on_message(
+                    None, json.dumps({"id": request_id, "complete": True})
+                )
+
+            threading.Thread(target=send_complete, daemon=True).start()
+
+        mock_ws.send.side_effect = capture_send
 
         # Test with close_on_complete=False
         with patch.object(transport, "_disconnect") as mock_disconnect:
@@ -337,12 +404,6 @@ class TestWebSocketStreaming:
                 timeout=2,
             )
 
-            request_id = sent_messages[0]["id"]
-
-            # Complete the stream via message handler
-            transport._on_message(
-                None, json.dumps({"id": request_id, "complete": True})
-            )
             list(stream_gen)
 
             # Should not disconnect
@@ -350,6 +411,8 @@ class TestWebSocketStreaming:
 
         # Test with close_on_complete=True (default)
         sent_messages.clear()
+        request_id = None  # Reset for new request
+
         with patch.object(transport, "_disconnect") as mock_disconnect:
             stream_gen = transport.stream(
                 "wss://example.com",
@@ -359,12 +422,6 @@ class TestWebSocketStreaming:
                 timeout=2,
             )
 
-            request_id = sent_messages[0]["id"]  # Reset, so back to index 0
-
-            # Complete the stream via message handler
-            transport._on_message(
-                None, json.dumps({"id": request_id, "complete": True})
-            )
             list(stream_gen)
 
             # Should disconnect
