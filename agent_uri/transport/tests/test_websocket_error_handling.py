@@ -188,15 +188,27 @@ class TestWebSocketErrorHandling:
         transport._is_connected = True
 
         sent_messages = []
-        mock_ws.send.side_effect = lambda msg: sent_messages.append(json.loads(msg))
+        request_id = None
+
+        def capture_send(msg):
+            nonlocal request_id
+            msg_data = json.loads(msg)
+            sent_messages.append(msg_data)
+            request_id = msg_data["id"]
+
+            # Trigger callback error after a short delay
+            def trigger_error():
+                time.sleep(0.01)
+                error = TransportError("Callback processing failed")
+                if request_id in transport._request_callbacks:
+                    transport._request_callbacks[request_id](error)
+
+            threading.Thread(target=trigger_error, daemon=True).start()
+
+        mock_ws.send.side_effect = capture_send
 
         # Start streaming
         stream_gen = transport.stream("wss://example.com", "error-stream", {})
-        request_id = sent_messages[0]["id"]
-
-        # Manually trigger callback error
-        error = TransportError("Callback processing failed")
-        transport._request_callbacks[request_id](error)
 
         # Should raise error when consumed
         with pytest.raises(TransportError) as excinfo:
@@ -209,16 +221,21 @@ class TestWebSocketErrorHandling:
         mock_ws = Mock()
         mock_ws_class.return_value = mock_ws
 
-        # Simulate connection error
+        # Simulate connection error - call the error handler explicitly
+        # since that's how the real websocket library would behave
         def run_forever_side_effect(**kwargs):
-            raise Exception("Network unreachable")
+            error = Exception("Network unreachable")
+            # Simulate the library calling the error handler
+            transport._on_error(mock_ws, error)
+            raise error
 
         mock_ws.run_forever.side_effect = run_forever_side_effect
 
         with pytest.raises(TransportError) as excinfo:
             transport._connect("wss://unreachable.example.com", {})
 
-        assert "WebSocket connection error" in str(excinfo.value)
+        # With retry logic, the error message includes retry information
+        assert "Failed to establish WebSocket connection" in str(excinfo.value)
         assert "Network unreachable" in str(excinfo.value)
 
     @patch("websocket.WebSocketApp")

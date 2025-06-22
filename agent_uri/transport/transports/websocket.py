@@ -69,7 +69,9 @@ class WebSocketTransport(AgentTransport):
         self._ws_thread: Optional[threading.Thread] = None
         self._request_id = 0
         self._active_requests: Dict[str, Dict[str, Any]] = {}
-        self._request_callbacks: Dict[str, Callable[[Dict[str, Any]], None]] = {}
+        self._request_callbacks: Dict[
+            str, Callable[[Union[Dict[str, Any], Exception]], None]
+        ] = {}
 
     @property
     def protocol(self) -> str:
@@ -409,12 +411,23 @@ class WebSocketTransport(AgentTransport):
                 for _ in range(10):  # Wait up to 5 seconds
                     if self._is_connected:
                         return  # Success!
+
+                    # Check for errors that occurred during connection
+                    try:
+                        error = self._message_queue.get_nowait()
+                        if isinstance(error, Exception):
+                            last_error = error
+                            break
+                    except Exception:  # nosec B110
+                        pass  # No error queued
+
                     time.sleep(0.5)
 
                 # Connection failed, prepare for retry
                 self._is_connected = False
-                last_error = Exception("Connection timeout")
-
+                # Only set timeout error if no previous error was captured
+                if last_error is None:
+                    last_error = Exception("Connection timeout")
             except Exception as e:
                 last_error = e
                 self._is_connected = False
@@ -496,12 +509,15 @@ class WebSocketTransport(AgentTransport):
                             error_code = error_info.get("code", -1)
                             error = TransportError(f"{error_msg} (code: {error_code})")
                             response_queue.put(error)
+                            # Also trigger callback if exists to unblock waiting threads
+                            if request_id in self._request_callbacks:
+                                self._request_callbacks[request_id](error)
                             return
 
                         # Handle JSON-RPC result
                         if "result" in data:
                             response_queue.put(data["result"])
-                            # Also trigger callback if exists
+                            # Also trigger callback if exists to unblock waiting threads
                             if request_id in self._request_callbacks:
                                 self._request_callbacks[request_id](data["result"])
                             return
