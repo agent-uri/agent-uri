@@ -582,17 +582,23 @@ class LocalTransport(AgentTransport):
             Agent name
         """
         # Remove protocol prefix if present
-        if endpoint.startswith(("local://", "agent+local://")):
+        if endpoint.startswith(("local://", "agent+local://", "agent://")):
             if endpoint.startswith("local://"):
                 agent_name = endpoint[len("local://") :]
-            else:
+            elif endpoint.startswith("agent+local://"):
                 agent_name = endpoint[len("agent+local://") :]
+            else:  # agent://
+                agent_name = endpoint[len("agent://") :]
         else:
             agent_name = endpoint
 
         # Remove path components if present
         if "/" in agent_name:
             agent_name = agent_name.split("/", 1)[0]
+
+        # Remove query parameters if present
+        if "?" in agent_name:
+            agent_name = agent_name.split("?", 1)[0]
 
         return agent_name
 

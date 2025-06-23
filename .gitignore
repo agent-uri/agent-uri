@@ -79,3 +79,5 @@ CLAUDE.md
 # Security reports
 *-security-report.json
 pip-audit-report.json
+
+ISSUES.md

@@ -69,7 +69,9 @@ class WebSocketTransport(AgentTransport):
         self._ws_thread: Optional[threading.Thread] = None
         self._request_id = 0
         self._active_requests: Dict[str, Dict[str, Any]] = {}
-        self._request_callbacks: Dict[str, Callable[[Dict[str, Any]], None]] = {}
+        self._request_callbacks: Dict[
+            str, Callable[[Union[Dict[str, Any], Exception]], None]
+        ] = {}
 
     @property
     def protocol(self) -> str:
@@ -143,6 +145,15 @@ class WebSocketTransport(AgentTransport):
         if not self._is_connected:
             self._connect(url, headers)
 
+        # Set up a response queue for this request
+        response_queue: Queue[Any] = Queue()
+
+        # Register active request
+        self._active_requests[request_id] = {
+            "capability": capability,
+            "response_queue": response_queue,
+        }
+
         # Set up a response future
         response_event = threading.Event()
         response = [None]  # Use list for mutable closure
@@ -161,17 +172,29 @@ class WebSocketTransport(AgentTransport):
                 raise TransportError("WebSocket connection not established")
             self._ws.send(message_str)
         except Exception as e:
-            del self._request_callbacks[request_id]
+            # Clean up on error
+            if request_id in self._request_callbacks:
+                del self._request_callbacks[request_id]
+            if request_id in self._active_requests:
+                del self._active_requests[request_id]
             raise TransportError(f"Error sending WebSocket message: {str(e)}")
 
         # Wait for response with timeout
         if not response_event.wait(timeout):
-            del self._request_callbacks[request_id]
+            # Clean up on timeout
+            if request_id in self._request_callbacks:
+                del self._request_callbacks[request_id]
+            if request_id in self._active_requests:
+                del self._active_requests[request_id]
             raise TransportTimeoutError(
                 f"WebSocket request timed out after {timeout} seconds"
             )
 
-        del self._request_callbacks[request_id]
+        # Clean up after response
+        if request_id in self._request_callbacks:
+            del self._request_callbacks[request_id]
+        if request_id in self._active_requests:
+            del self._active_requests[request_id]
 
         # Check for errors
         if isinstance(response[0], Exception):
@@ -261,6 +284,10 @@ class WebSocketTransport(AgentTransport):
             try:
                 if isinstance(msg, dict) and msg.get("type") == "complete":
                     streaming_complete.set()
+                elif isinstance(msg, Exception):
+                    # Handle error by putting it in queue, but don't mark complete yet
+                    # The stream loop will process the error and then complete
+                    message_queue.put(msg)
                 else:
                     message_queue.put(msg)
             except Exception as e:
@@ -277,15 +304,38 @@ class WebSocketTransport(AgentTransport):
                 raise TransportError("WebSocket connection not established")
             self._ws.send(message_str)
         except Exception as e:
-            del self._request_callbacks[request_id]
+            # Clean up on send error
+            if request_id in self._request_callbacks:
+                del self._request_callbacks[request_id]
             raise TransportError(f"Error sending WebSocket message: {str(e)}")
 
         # Yield messages as they arrive
+        import time
+
+        start_time = time.time()
+        max_wait_time = timeout or 60  # Default to 60 seconds total
+
         try:
             while not streaming_complete.is_set():
+                # Check total elapsed time to prevent infinite loops
+                elapsed = time.time() - start_time
+                if elapsed >= max_wait_time:
+                    raise TransportTimeoutError(
+                        f"Streaming timed out after {elapsed:.1f} seconds"
+                    )
+
+                # Calculate remaining timeout for this iteration
+                remaining_timeout = min(
+                    1.0, max_wait_time - elapsed
+                )  # Use 1 second chunks for better responsiveness
+                if remaining_timeout <= 0:
+                    raise TransportTimeoutError("Streaming timeout exceeded")
+
                 try:
-                    msg = message_queue.get(timeout=timeout)
+                    msg = message_queue.get(timeout=remaining_timeout)
                     if isinstance(msg, Exception):
+                        # Error received - mark stream as complete and raise
+                        streaming_complete.set()
                         raise TransportError(f"WebSocket error: {str(msg)}")
                     yield self.parse_response(msg)
                 except Empty:
@@ -299,21 +349,22 @@ class WebSocketTransport(AgentTransport):
                         raise
                     raise TransportError(f"Error processing stream: {str(e)}")
         finally:
-            # Clean up
-            del self._request_callbacks[request_id]
+            # Clean up - use safe deletion in case callback was already removed
+            if request_id in self._request_callbacks:
+                del self._request_callbacks[request_id]
             if close_on_complete and self._is_connected:
                 self._disconnect()
 
     def _connect(self, url: str, headers: Optional[Dict[str, str]] = None) -> None:
         """
-        Establish a WebSocket connection.
+        Establish a WebSocket connection with retry logic.
 
         Args:
             url: The WebSocket URL to connect to
             headers: Optional headers to include in the handshake
 
         Raises:
-            TransportError: If connection fails
+            TransportError: If connection fails after all retries
         """
         if self._is_connected:
             return
@@ -330,41 +381,71 @@ class WebSocketTransport(AgentTransport):
         elif not (ws_url.startswith("ws://") or ws_url.startswith("wss://")):
             ws_url = f"wss://{ws_url}"
 
-        # Create WebSocket client
-        try:
-            self._ws = websocket.WebSocketApp(
-                ws_url,
-                header=ws_headers,
-                on_open=self._on_open,
-                on_message=self._on_message,
-                on_error=self._on_error,
-                on_close=self._on_close,
-            )
+        # Retry connection attempts
+        last_error = None
+        for attempt in range(self._reconnect_tries + 1):  # +1 for initial attempt
+            try:
+                self._ws = websocket.WebSocketApp(
+                    ws_url,
+                    header=ws_headers,
+                    on_open=self._on_open,
+                    on_message=self._on_message,
+                    on_error=self._on_error,
+                    on_close=self._on_close,
+                )
 
-            # Start WebSocket thread
-            self._ws_thread = threading.Thread(
-                target=self._ws.run_forever,
-                kwargs={
-                    "ping_interval": self._ping_interval,
-                    "ping_timeout": self._ping_timeout,
-                    "sslopt": {"cert_reqs": 2 if self._verify_ssl else 0},
-                },
-                daemon=True,
-            )
-            if self._ws_thread is not None:
-                self._ws_thread.start()
+                # Start WebSocket thread
+                self._ws_thread = threading.Thread(
+                    target=self._ws.run_forever,
+                    kwargs={
+                        "ping_interval": self._ping_interval,
+                        "ping_timeout": self._ping_timeout,
+                        "sslopt": {"cert_reqs": 2 if self._verify_ssl else 0},
+                    },
+                    daemon=True,
+                )
+                if self._ws_thread is not None:
+                    self._ws_thread.start()
 
-            # Wait for connection to establish
-            for _ in range(10):  # Wait up to 5 seconds
-                if self._is_connected:
-                    break
-                time.sleep(0.5)
+                # Wait for connection to establish
+                for _ in range(10):  # Wait up to 5 seconds
+                    if self._is_connected:
+                        return  # Success!
 
-            if not self._is_connected:
-                raise TransportError("Failed to establish WebSocket connection")
+                    # Check for errors that occurred during connection
+                    try:
+                        error = self._message_queue.get_nowait()
+                        if isinstance(error, Exception):
+                            last_error = error
+                            break
+                    except Exception:  # nosec B110
+                        pass  # No error queued
 
-        except Exception as e:
-            raise TransportError(f"WebSocket connection error: {str(e)}")
+                    time.sleep(0.5)
+
+                # Connection failed, prepare for retry
+                self._is_connected = False
+                # Only set timeout error if no previous error was captured
+                if last_error is None:
+                    last_error = Exception("Connection timeout")
+            except Exception as e:
+                last_error = e
+                self._is_connected = False
+
+            # If this wasn't the last attempt, wait before retrying
+            if attempt < self._reconnect_tries:
+                time.sleep(self._reconnect_delay)
+
+        # All attempts failed
+        attempts = self._reconnect_tries + 1
+        error_msg = (
+            f"Failed to establish WebSocket connection after {attempts} attempts"
+        )
+        raise TransportError(f"{error_msg}: {str(last_error)}")
+
+    def close(self) -> None:
+        """Close the WebSocket connection."""
+        self._disconnect()
 
     def _disconnect(self) -> None:
         """Close the WebSocket connection."""
@@ -374,12 +455,13 @@ class WebSocketTransport(AgentTransport):
             except Exception:  # nosec B110
                 pass  # Ignore errors on close
 
-            self._is_connected = False
-            self._ws = None
+        # Always clear connection state
+        self._is_connected = False
+        self._ws = None
 
-            # Clear queues
-            self._clear_queue(self._message_queue)
-            self._clear_queue(self._response_queue)
+        # Clear queues
+        self._clear_queue(self._message_queue)
+        self._clear_queue(self._response_queue)
 
     def _clear_queue(self, queue: Queue) -> None:
         """Clear all items from a queue."""
@@ -411,24 +493,87 @@ class WebSocketTransport(AgentTransport):
             data = json.loads(message)
 
             # Check if this is a response to a specific request
-            if isinstance(data, dict):
-                # Handle JSON-RPC response
-                if "id" in data:
-                    request_id = data.get("id")
-                    if request_id in self._request_callbacks:
-                        callback = self._request_callbacks[request_id]
-                        callback(data)
+            if isinstance(data, dict) and "id" in data:
+                request_id = data.get("id")
+
+                # Check for active requests first (used by invoke)
+                if request_id in self._active_requests:
+                    request_info = self._active_requests[request_id]
+                    response_queue = request_info.get("response_queue")
+
+                    if response_queue:
+                        # Handle JSON-RPC error response
+                        if "error" in data:
+                            error_info = data.get("error", {})
+                            error_msg = error_info.get("message", "Unknown error")
+                            error_code = error_info.get("code", -1)
+                            error = TransportError(f"{error_msg} (code: {error_code})")
+                            response_queue.put(error)
+                            # Also trigger callback if exists to unblock waiting threads
+                            if request_id in self._request_callbacks:
+                                self._request_callbacks[request_id](error)
+                            return
+
+                        # Handle JSON-RPC result
+                        if "result" in data:
+                            response_queue.put(data["result"])
+                            # Also trigger callback if exists to unblock waiting threads
+                            if request_id in self._request_callbacks:
+                                self._request_callbacks[request_id](data["result"])
+                            return
+
+                        # Handle streaming complete
+                        if data.get("complete"):
+                            # Mark stream as complete
+                            response_queue.put({"type": "complete"})
+                            # Clean up active request and callback
+                            if request_id in self._active_requests:
+                                del self._active_requests[request_id]
+                            if request_id in self._request_callbacks:
+                                del self._request_callbacks[request_id]
+                            return
+
+                # Check for request callbacks (used by stream)
+                if request_id in self._request_callbacks:
+                    callback = self._request_callbacks[request_id]
+
+                    # Handle JSON-RPC error response
+                    if "error" in data:
+                        error_info = data.get("error", {})
+                        error_msg = error_info.get("message", "Unknown error")
+                        error_code = error_info.get("code", -1)
+                        error = TransportError(f"{error_msg} (code: {error_code})")
+                        callback(error)  # type: ignore[arg-type]
+                        # Remove callback for non-streaming responses
+                        del self._request_callbacks[request_id]
                         return
 
-                # Handle stream message with a result field
-                if "result" in data and "id" in data:
-                    request_id = data.get("id")
-                    if request_id in self._request_callbacks:
-                        callback = self._request_callbacks[request_id]
-                        result = data.get("result")
-                        if result is not None:
-                            callback(result)
+                    # Handle streaming chunk
+                    if "chunk" in data and data.get("streaming"):
+                        callback(data["chunk"])
+                        # Keep callback for more chunks
                         return
+
+                    # Handle streaming complete
+                    if data.get("complete"):
+                        # Signal completion to the stream
+                        callback({"type": "complete"})
+                        # Remove callback when streaming is complete
+                        del self._request_callbacks[request_id]
+                        return
+
+                    # Handle JSON-RPC result
+                    if "result" in data:
+                        callback(data["result"])
+                        # Remove callback for non-streaming responses
+                        del self._request_callbacks[request_id]
+                        return
+
+                    # Handle simple response with just id
+                    callback(data)
+                    # Remove callback for non-streaming responses
+                    del self._request_callbacks[request_id]
+                    return
 
             # Put in the general message queue if no specific handler
             self._message_queue.put(data)
@@ -469,6 +614,26 @@ class WebSocketTransport(AgentTransport):
         logger.debug(
             f"WebSocket closed (code: {close_status_code}, " f"reason: {close_reason})"
         )
+
+        # Clear all pending requests and callbacks
+        self._active_requests.clear()
+        self._request_callbacks.clear()
+
+        # Clear message queues
+        self._clear_queue(self._message_queue)
+        self._clear_queue(self._response_queue)
+
+    def format_body(self, params: Any) -> Union[str, bytes]:
+        """
+        Format the parameters into a request body.
+
+        Handles strings as plain text, and dicts/lists as pretty-printed JSON.
+        """
+        if isinstance(params, str):
+            return params  # Return strings as-is
+        elif isinstance(params, (dict, list)):
+            return json.dumps(params, indent=2)
+        return json.dumps(params)
 
     def _build_url(self, endpoint: str, capability: str) -> str:
         """
