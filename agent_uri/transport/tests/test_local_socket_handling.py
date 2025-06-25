@@ -544,7 +544,7 @@ class TestLocalTransportSocketHandling:
             mock_socket.listen.assert_called_with(5)
 
     def test_start_agent_server_unix_cleanup(self, registry):
-        """Test _start_agent_server cleans up existing Unix socket."""
+        """Test _start_agent_server cleans up Unix socket with secure permissions."""
         # Create a temporary socket file
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
             socket_path = tmp.name
@@ -558,12 +558,20 @@ class TestLocalTransportSocketHandling:
             with patch("os.path.exists", return_value=True):
                 with patch("os.unlink") as mock_unlink:
                     with patch("os.chmod") as mock_chmod:
-                        registry._start_agent_server("unix-agent")
+                        with patch("os.umask") as mock_umask:
+                            # Mock umask returns original umask value
+                            mock_umask.return_value = 0o022
 
-                        # Should unlink existing file
-                        mock_unlink.assert_called_with(socket_path)
-                        # Should set permissions
-                        mock_chmod.assert_called_with(socket_path, 0o700)
+                            registry._start_agent_server("unix-agent")
+
+                            # Should unlink existing file
+                            mock_unlink.assert_called_with(socket_path)
+                            # Should set restrictive umask before socket creation
+                            mock_umask.assert_any_call(0o077)
+                            # Should restore original umask after socket creation
+                            mock_umask.assert_any_call(0o022)
+                            # Should set explicit permissions
+                            mock_chmod.assert_called_with(socket_path, 0o700)
 
     def test_unregister_agent_socket_close_error(self, registry):
         """Test unregister_agent handles socket close errors."""
