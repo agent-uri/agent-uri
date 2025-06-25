@@ -25,6 +25,12 @@ from ..base import AgentTransport, TransportError, TransportTimeoutError
 
 logger = logging.getLogger(__name__)
 
+# Security configuration constants
+MAX_MESSAGE_SIZE = 1048576  # 1MB maximum message size
+MAX_JSON_DEPTH = 64  # Maximum JSON nesting depth
+MAX_JSON_OBJECTS = 10000  # Maximum JSON objects/arrays
+MAX_QUEUE_SIZE = 1000  # Maximum message queue size
+
 
 class WebSocketTransport(AgentTransport):
     """
@@ -42,6 +48,9 @@ class WebSocketTransport(AgentTransport):
         ping_timeout: int = 10,
         reconnect_tries: int = 3,
         reconnect_delay: int = 2,
+        max_message_size: int = MAX_MESSAGE_SIZE,
+        max_json_depth: int = MAX_JSON_DEPTH,
+        max_queue_size: int = MAX_QUEUE_SIZE,
     ):
         """
         Initialize a WebSocket transport adapter.
@@ -53,6 +62,9 @@ class WebSocketTransport(AgentTransport):
             ping_timeout: Timeout waiting for pong response (seconds)
             reconnect_tries: Number of reconnection attempts
             reconnect_delay: Delay between reconnection attempts (seconds)
+            max_message_size: Maximum allowed message size in bytes
+            max_json_depth: Maximum allowed JSON nesting depth
+            max_queue_size: Maximum number of queued messages
         """
         self._user_agent = user_agent
         self._verify_ssl = verify_ssl
@@ -61,11 +73,21 @@ class WebSocketTransport(AgentTransport):
         self._reconnect_tries = reconnect_tries
         self._reconnect_delay = reconnect_delay
 
+        # Security configuration
+        self._max_message_size = max_message_size
+        self._max_json_depth = max_json_depth
+        self._max_queue_size = max_queue_size
+
         # Connection state
         self._ws: Optional[websocket.WebSocketApp] = None
         self._is_connected = False
-        self._message_queue: Queue[Union[Dict[str, Any], str, Exception]] = Queue()
-        self._response_queue: Queue[Dict[str, Any]] = Queue()
+        # Security: Limit queue sizes to prevent memory exhaustion
+        self._message_queue: Queue[Union[Dict[str, Any], str, Exception]] = Queue(
+            maxsize=self._max_queue_size
+        )
+        self._response_queue: Queue[Dict[str, Any]] = Queue(
+            maxsize=self._max_queue_size
+        )
         self._ws_thread: Optional[threading.Thread] = None
         self._request_id = 0
         self._active_requests: Dict[str, Dict[str, Any]] = {}
@@ -472,6 +494,120 @@ class WebSocketTransport(AgentTransport):
             except Empty:
                 break
 
+    def _validate_message_size(self, message: Union[str, bytes]) -> None:
+        """
+        Validate message size against security limits.
+
+        Args:
+            message: Message to validate
+
+        Raises:
+            TransportError: If message exceeds size limits
+        """
+        if isinstance(message, bytes):
+            size = len(message)
+        else:
+            size = len(message.encode("utf-8"))
+
+        if size > self._max_message_size:
+            raise TransportError(
+                f"Message size {size} bytes exceeds maximum allowed size "
+                f"{self._max_message_size} bytes"
+            )
+
+    def _validate_json_structure(self, data: Any, depth: int = 0) -> None:
+        """
+        Validate JSON structure against security limits.
+
+        Args:
+            data: Parsed JSON data to validate
+            depth: Current nesting depth
+
+        Raises:
+            TransportError: If JSON structure violates security limits
+        """
+        if depth > self._max_json_depth:
+            raise TransportError(
+                f"JSON nesting depth {depth} exceeds maximum allowed depth "
+                f"{self._max_json_depth}"
+            )
+
+        if isinstance(data, dict):
+            if len(data) > MAX_JSON_OBJECTS:
+                raise TransportError(
+                    f"JSON object count exceeds maximum allowed {MAX_JSON_OBJECTS}"
+                )
+            for value in data.values():
+                self._validate_json_structure(value, depth + 1)
+        elif isinstance(data, list):
+            if len(data) > MAX_JSON_OBJECTS:
+                raise TransportError(
+                    f"JSON array length exceeds maximum allowed {MAX_JSON_OBJECTS}"
+                )
+            for item in data:
+                self._validate_json_structure(item, depth + 1)
+
+    def _safe_json_parse(self, message: str) -> Any:
+        """
+        Safely parse JSON with validation.
+
+        Args:
+            message: JSON string to parse
+
+        Returns:
+            Parsed JSON data
+
+        Raises:
+            TransportError: If JSON is invalid or violates security limits
+        """
+        try:
+            data = json.loads(message)
+            self._validate_json_structure(data)
+            return data
+        except json.JSONDecodeError as e:
+            raise TransportError(f"Invalid JSON format: {e}")
+        except TransportError:
+            raise  # Re-raise security validation errors
+        except Exception as e:
+            raise TransportError(f"JSON parsing error: {e}")
+
+    def _sanitize_error_message(self, error_msg: str) -> str:
+        """
+        Sanitize error messages to prevent information disclosure.
+
+        Args:
+            error_msg: Raw error message
+
+        Returns:
+            Sanitized error message safe for client exposure
+        """
+        # Remove potentially sensitive information
+        import re
+
+        # Remove file paths (absolute and relative)
+        error_msg = re.sub(r"[/\\][\w\-_./\\]+", "[path]", error_msg)
+
+        # Remove IP addresses
+        error_msg = re.sub(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", "[ip]", error_msg)
+
+        # Remove port numbers
+        error_msg = re.sub(r":\d{1,5}\b", ":[port]", error_msg)
+
+        # Remove stack trace patterns
+        error_msg = re.sub(
+            r'File "[^"]*", line \d+', 'File "[file]", line [line]', error_msg
+        )
+
+        # Remove internal variable names and memory addresses
+        error_msg = re.sub(r"0x[0-9a-fA-F]+", "[address]", error_msg)
+
+        # Limit message length to prevent information leakage
+        max_length = 200
+        if len(error_msg) > max_length:
+            error_msg = error_msg[:max_length] + "..."
+
+        return error_msg
+
     def _on_open(self, ws) -> None:
         """Handle WebSocket open event."""
         self._is_connected = True
@@ -479,18 +615,33 @@ class WebSocketTransport(AgentTransport):
 
     def _on_message(self, ws, message: str) -> None:
         """
-        Handle incoming WebSocket messages.
+        Handle incoming WebSocket messages with security validation.
 
         Args:
             ws: WebSocket instance
             message: Message received
         """
         try:
-            # Parse message as JSON
+            # Security: Validate message size before processing
+            self._validate_message_size(message)
+
+            # Convert bytes to string if needed
             if isinstance(message, bytes):
                 message = message.decode("utf-8")
 
-            data = json.loads(message)
+            # First try to parse as JSON
+            try:
+                parsed_data = json.loads(message)
+                # Security: Validate the parsed JSON structure
+                self._validate_json_structure(parsed_data)
+                data = parsed_data
+            except json.JSONDecodeError:
+                # Not valid JSON - queue as-is for backward compatibility
+                self._message_queue.put(message)
+                return
+            except TransportError:
+                # Security validation failed - reraise to be caught below
+                raise
 
             # Check if this is a response to a specific request
             if isinstance(data, dict) and "id" in data:
@@ -505,9 +656,13 @@ class WebSocketTransport(AgentTransport):
                         # Handle JSON-RPC error response
                         if "error" in data:
                             error_info = data.get("error", {})
-                            error_msg = error_info.get("message", "Unknown error")
+                            raw_error_msg = error_info.get("message", "Unknown error")
                             error_code = error_info.get("code", -1)
-                            error = TransportError(f"{error_msg} (code: {error_code})")
+                            # Security: Sanitize error message before exposing to client
+                            sanitized_msg = self._sanitize_error_message(raw_error_msg)
+                            error = TransportError(
+                                f"{sanitized_msg} (code: {error_code})"
+                            )
                             response_queue.put(error)
                             # Also trigger callback if exists to unblock waiting threads
                             if request_id in self._request_callbacks:
@@ -540,9 +695,11 @@ class WebSocketTransport(AgentTransport):
                     # Handle JSON-RPC error response
                     if "error" in data:
                         error_info = data.get("error", {})
-                        error_msg = error_info.get("message", "Unknown error")
+                        raw_error_msg = error_info.get("message", "Unknown error")
                         error_code = error_info.get("code", -1)
-                        error = TransportError(f"{error_msg} (code: {error_code})")
+                        # Security: Sanitize error message before exposing to client
+                        sanitized_msg = self._sanitize_error_message(raw_error_msg)
+                        error = TransportError(f"{sanitized_msg} (code: {error_code})")
                         callback(error)  # type: ignore[arg-type]
                         # Remove callback for non-streaming responses
                         del self._request_callbacks[request_id]
@@ -578,9 +735,10 @@ class WebSocketTransport(AgentTransport):
             # Put in the general message queue if no specific handler
             self._message_queue.put(data)
 
-        except json.JSONDecodeError:
-            # Handle non-JSON messages
-            self._message_queue.put(message)
+        except TransportError as e:
+            # Security validation failed - log error and queue the error
+            logger.error(f"Security validation failed for WebSocket message: {str(e)}")
+            self._message_queue.put(e)
         except Exception as e:
             logger.error(f"Error processing WebSocket message: {str(e)}")
             self._message_queue.put(e)

@@ -223,10 +223,17 @@ class LocalAgentRegistry:
             if os.path.exists(socket_path):
                 os.unlink(socket_path)
 
-            server_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            server_socket.bind(socket_path)
-            # Set appropriate permissions
-            os.chmod(socket_path, 0o700)
+            # Set restrictive umask before socket creation to prevent race condition
+            old_umask = os.umask(0o077)  # Creates files with 0o600 permissions
+            try:
+                server_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                server_socket.bind(socket_path)
+                # Socket is now created with secure permissions from the start
+                # Additional chmod for explicit permission setting
+                os.chmod(socket_path, 0o700)
+            finally:
+                # Restore original umask
+                os.umask(old_umask)
 
         server_socket.listen(5)
         self._server_sockets[name] = server_socket
