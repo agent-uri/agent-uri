@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "agent-uri"
-version = "0.2.1"
+version = "0.3.0"
 description = "Agent URI Protocol Implementation - A complete suite for addressing and interacting with AI agents"
 authors = ["Yaswanth Narvaneni <yaswanth@gmail.com>"]
 license = "BSD-3-Clause"
