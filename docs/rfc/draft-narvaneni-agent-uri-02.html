@@ -1,0 +1,2822 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>The agent:// Protocol -- A URI-Based Framework for Interoperable Agents</title>
+<meta content="Yaswanth Narvaneni" name="author">
+<meta content="
+       This document defines the  agent://  protocol, a URI template-based framework as described in RFC 6570 for addressing, invoking, and interoperating with autonomous and semi-autonomous software agents. It introduces a layered architecture that supports minimal implementations (addressing and transport) and extensible features (capability discovery, contracts, orchestration). The protocol aims to foster interoperability among agents across ecosystems, platforms, and modalities, enabling composable and collaborative intelligent systems. 
+    " name="description">
+<meta content="xml2rfc 3.20.0" name="generator">
+<meta content="Internet-Draft" name="keyword">
+<meta content="draft-narvaneni-agent-uri-02" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.20.0
+    Python 3.12.3
+    ConfigArgParse 1.7
+    google-i18n-address 2.4.0
+    intervaltree 3.0.2
+    Jinja2 3.1.2
+    lxml 5.2.1
+    platformdirs 4.2.0
+    pycountry 23.12.11
+    PyYAML 6.0.1
+    requests 2.31.0
+    setuptools 68.1.2
+    six 1.16.0
+    wcwidth 0.2.5
+    weasyprint 61.1
+-->
+<link href="draft-narvaneni-agent-uri-02.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">/*
+
+  NOTE: Changes at the bottom of this file overrides some earlier settings.
+
+  Once the style has stabilized and has been adopted as an official RFC style,
+  this can be consolidated so that style settings occur only in one place, but
+  for now the contents of this file consists first of the initial CSS work as
+  provided to the RFC Formatter (xml2rfc) work, followed by itemized and
+  commented changes found necessary during the development of the v3
+  formatters.
+
+*/
+
+/* fonts */
+@import url('https://fonts.googleapis.com/css?family=Noto+Sans'); /* Sans-serif */
+@import url('https://fonts.googleapis.com/css?family=Noto+Serif'); /* Serif (print) */
+@import url('https://fonts.googleapis.com/css?family=Roboto+Mono'); /* Monospace */
+
+:root {
+  --font-sans: 'Noto Sans', Arial, Helvetica, sans-serif;
+  --font-serif: 'Noto Serif', 'Times', 'Times New Roman', serif;
+  --font-mono: 'Roboto Mono', Courier, 'Courier New', monospace;
+}
+
+@viewport {
+  zoom: 1.0;
+}
+@-ms-viewport {
+  width: extend-to-zoom;
+  zoom: 1.0;
+}
+/* general and mobile first */
+html {
+}
+body {
+  max-width: 90%;
+  margin: 1.5em auto;
+  color: #222;
+  background-color: #fff;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  scroll-behavior: smooth;
+  overflow-wrap: break-word;
+}
+.ears {
+  display: none;
+}
+
+/* headings */
+#title, h1, h2, h3, h4, h5, h6 {
+  margin: 1em 0 0.5em;
+  font-weight: bold;
+  line-height: 1.3;
+}
+#title {
+  clear: both;
+  border-bottom: 1px solid #ddd;
+  margin: 0 0 0.5em 0;
+  padding: 1em 0 0.5em;
+}
+.author {
+  padding-bottom: 4px;
+}
+h1 {
+  font-size: 26px;
+  margin: 1em 0;
+}
+h2 {
+  font-size: 22px;
+  margin-top: -20px;  /* provide offset for in-page anchors */
+  padding-top: 33px;
+}
+h3 {
+  font-size: 18px;
+  margin-top: -36px;  /* provide offset for in-page anchors */
+  padding-top: 42px;
+}
+h4 {
+  font-size: 16px;
+  margin-top: -36px;  /* provide offset for in-page anchors */
+  padding-top: 42px;
+}
+h5, h6 {
+  font-size: 14px;
+}
+#n-copyright-notice {
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 1em;
+  margin-bottom: 1em;
+}
+/* general structure */
+p {
+  padding: 0;
+  margin: 0 0 1em 0;
+  text-align: left;
+}
+div, span {
+  position: relative;
+}
+div {
+  margin: 0;
+}
+.alignRight.art-text {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 3px;
+  padding: 1em 1em 0;
+  margin-bottom: 1.5em;
+}
+.alignRight.art-text pre {
+  padding: 0;
+}
+.alignRight {
+  margin: 1em 0;
+}
+.alignRight > *:first-child {
+  border: none;
+  margin: 0;
+  float: right;
+  clear: both;
+}
+.alignRight > *:nth-child(2) {
+  clear: both;
+  display: block;
+  border: none;
+}
+svg {
+  display: block;
+}
+svg[font-family~="serif" i], svg [font-family~="serif" i] {
+  font-family: var(--font-serif);
+}
+svg[font-family~="sans-serif" i], svg [font-family~="sans-serif" i] {
+  font-family: var(--font-sans);
+}
+svg[font-family~="monospace" i], svg [font-family~="monospace" i] {
+  font-family: var(--font-mono);
+}
+.alignCenter.art-text {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 3px;
+  padding: 1em 1em 0;
+  margin-bottom: 1.5em;
+}
+.alignCenter.art-text pre {
+  padding: 0;
+}
+.alignCenter {
+  margin: 1em 0;
+}
+.alignCenter > *:first-child {
+  display: table;
+  border: none;
+  margin: 0 auto;
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 1em 2em;
+}
+ol ol, ul ul, ol ul, ul ol {
+  margin-left: 1em;
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+.ulCompact li {
+  margin: 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+}
+ul.empty li, .ulEmpty li {
+  margin-top: 0.5em;
+}
+ul.ulBare, li.ulBare {
+  margin-left: 0em !important;
+}
+ul.compact, .ulCompact,
+ol.compact, .olCompact {
+  line-height: 100%;
+  margin: 0 0 0 2em;
+}
+
+/* definition lists */
+dl {
+}
+dl > dt {
+  float: left;
+  margin-right: 1em;
+}
+/* 
+dl.nohang > dt {
+  float: none;
+}
+*/
+dl > dd {
+  margin-bottom: .8em;
+  min-height: 1.3em;
+}
+dl.compact > dd, .dlCompact > dd {
+  margin-bottom: 0em;
+}
+dl > dd > dl {
+  margin-top: 0.5em;
+  margin-bottom: 0em;
+}
+
+/* links */
+a {
+  text-decoration: none;
+}
+a[href] {
+  color: #22e; /* Arlen: WCAG 2019 */
+}
+a[href]:hover {
+  background-color: #f2f2f2;
+}
+figcaption a[href],
+a[href].selfRef {
+  color: #222;
+}
+/* XXX probably not this:
+a.selfRef:hover {
+  background-color: transparent;
+  cursor: default;
+} */
+
+/* Figures */
+tt, code, pre {
+  background-color: #f9f9f9;
+  font-family: var(--font-mono);
+}
+pre {
+  border: 1px solid #eee;
+  margin: 0;
+  padding: 1em;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0;
+}
+figure blockquote {
+  margin: 0.8em 0.4em 0.4em;
+}
+figcaption {
+  font-style: italic;
+  margin: 0 0 1em 0;
+}
+@media screen {
+  pre {
+    overflow-x: auto;
+    max-width: 100%;
+    max-width: calc(100% - 22px);
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 1.2em 2em;
+}
+blockquote {
+  background-color: #f9f9f9;
+  color: #111; /* Arlen: WCAG 2019 */
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  margin: 1em 0;
+}
+blockquote > *:last-child {
+  margin-bottom: 0;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+
+/* tables */
+table {
+  width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+  border: 1px solid #eee;
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.5em 0.75em;
+}
+th {
+  text-align: left;
+  background-color: #e9e9e9;
+}
+tr:nth-child(2n+1) > td {
+  background-color: #f5f5f5;
+}
+table caption {
+  font-style: italic;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+table p {
+  /* XXX to avoid bottom margin on table row signifiers. If paragraphs should
+     be allowed within tables more generally, it would be far better to select on a class. */
+  margin: 0;
+}
+
+/* pilcrow */
+a.pilcrow {
+  color: #666; /* Arlen: AHDJ 2019 */
+  text-decoration: none;
+  visibility: hidden;
+  user-select: none;
+  -ms-user-select: none;
+  -o-user-select:none;
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+@media screen {
+  aside:hover > a.pilcrow,
+  p:hover > a.pilcrow,
+  blockquote:hover > a.pilcrow,
+  div:hover > a.pilcrow,
+  li:hover > a.pilcrow,
+  pre:hover > a.pilcrow {
+    visibility: visible;
+  }
+  a.pilcrow:hover {
+    background-color: transparent;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid #eee;
+}
+.bcp14 {
+  font-variant: small-caps;
+}
+
+.role {
+  font-variant: all-small-caps;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: 0.9em;
+}
+#identifiers dt {
+  width: 3em;
+  clear: left;
+}
+#identifiers dd {
+  float: left;
+  margin-bottom: 0;
+}
+/* Fix PDF info block run off issue */
+@media print {
+  #identifiers dd {
+    float: none;
+  }
+}
+#identifiers .authors .author {
+  display: inline-block;
+  margin-right: 1.5em;
+}
+#identifiers .authors .org {
+  font-style: italic;
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #666; /* Arlen: WCAG 2019 */
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+}
+.docInfo .prepared {
+  float: left;
+}
+.docInfo .prepared {
+  float: right;
+}
+
+/* table of contents */
+#toc  {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+}
+nav.toc ul {
+  margin: 0 0.5em 0 0;
+  padding: 0;
+  list-style: none;
+}
+nav.toc li {
+  line-height: 1.3em;
+  margin: 0.75em 0;
+  padding-left: 1.2em;
+  text-indent: -1.2em;
+}
+/* references */
+.references dt {
+  text-align: right;
+  font-weight: bold;
+  min-width: 7em;
+}
+.references dd {
+  margin-left: 8em;
+  overflow: auto;
+}
+
+.refInstance {
+  margin-bottom: 1.25em;
+}
+
+.refSubseries {
+  margin-bottom: 1.25em;
+}
+
+.references .ascii {
+  margin-bottom: 0.25em;
+}
+
+/* index */
+.index ul {
+  margin: 0 0 0 1em;
+  padding: 0;
+  list-style: none;
+}
+.index ul ul {
+  margin: 0;
+}
+.index li {
+  margin: 0;
+  text-indent: -2em;
+  padding-left: 2em;
+  padding-bottom: 5px;
+}
+.indexIndex {
+  margin: 0.5em 0 1em;
+}
+.index a {
+  font-weight: 700;
+}
+/* make the index two-column on all but the smallest screens */
+@media (min-width: 600px) {
+  .index ul {
+    -moz-column-count: 2;
+    -moz-column-gap: 20px;
+  }
+  .index ul ul {
+    -moz-column-count: 1;
+    -moz-column-gap: 0;
+  }
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  margin: 1em 0;
+}
+
+address.vcard .nameRole {
+  font-weight: 700;
+  margin-left: 0;
+}
+address.vcard .label {
+  font-family: var(--font-sans);
+  margin: 0.5em 0;
+}
+address.vcard .type {
+  display: none;
+}
+.alternative-contact {
+  margin: 1.5em 0 1em;
+}
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+
+/* temporary notes */
+.rfcEditorRemove::before {
+  position: absolute;
+  top: 0.2em;
+  right: 0.2em;
+  padding: 0.2em;
+  content: "The RFC Editor will remove this note";
+  color: #9e2a00; /* Arlen: WCAG 2019 */
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+}
+.rfcEditorRemove {
+  position: relative;
+  padding-top: 1.8em;
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+  border-radius: 3px;
+}
+.cref {
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+/* alternative layout for smaller screens */
+@media screen and (max-width: 1023px) {
+  body {
+    padding-top: 2em;
+  }
+  #title {
+    padding: 1em 0;
+  }
+  h1 {
+    font-size: 24px;
+  }
+  h2 {
+    font-size: 20px;
+    margin-top: -18px;  /* provide offset for in-page anchors */
+    padding-top: 38px;
+  }
+  #identifiers dd {
+    max-width: 60%;
+  }
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 0;
+    margin: 0;
+    background-color: inherit;
+    border-bottom: 1px solid #ccc;
+  }
+  #toc h2 {
+    margin: -1px 0 0 0;
+    padding: 4px 0 4px 6px;
+    padding-right: 1em;
+    min-width: 190px;
+    font-size: 1.1em;
+    text-align: right;
+    background-color: #444;
+    color: white;
+    cursor: pointer;
+  }
+  #toc h2::before { /* css hamburger */
+    float: right;
+    position: relative;
+    width: 1em;
+    height: 1px;
+    left: -164px;
+    margin: 6px 0 0 0;
+    background: white none repeat scroll 0 0;
+    box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+    content: "";
+  }
+  #toc nav {
+    display: none;
+    padding: 0.5em 1em 1em;
+    overflow: auto;
+    height: calc(100vh - 48px);
+    border-left: 1px solid #ddd;
+  }
+}
+
+/* alternative layout for wide screens */
+@media screen and (min-width: 1024px) {
+  body {
+    max-width: 724px;
+    margin: 42px auto;
+    padding-left: 1.5em;
+    padding-right: 29em;
+  }
+  #toc {
+    position: fixed;
+    top: 42px;
+    right: 42px;
+    width: 25%;
+    margin: 0;
+    padding: 0 1em;
+    z-index: 1;
+  }
+  #toc h2 {
+    border-top: none;
+    border-bottom: 1px solid #ddd;
+    font-size: 1em;
+    font-weight: normal;
+    margin: 0;
+    padding: 0.25em 1em 1em 0;
+  }
+  #toc nav {
+    display: block;
+    height: calc(90vh - 84px);
+    bottom: 0;
+    padding: 0.5em 0 0;
+    overflow: auto;
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc, #n-introduction {
+    page-break-before: always;
+  }
+  #toc {
+    border-top: none;
+    padding-top: 0;
+  }
+  figure, pre {
+    page-break-inside: avoid;
+  }
+  figure {
+    overflow: scroll;
+  }
+  .breakable pre {
+    break-inside: auto;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  h2+*, h3+*, h4+*, h5+*, h6+* {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+}
+
+/* This is commented out here, as the string-set: doesn't
+   pass W3C validation currently */
+/*
+.ears thead .left {
+  string-set: ears-top-left content();
+}
+
+.ears thead .center {
+  string-set: ears-top-center content();
+}
+
+.ears thead .right {
+  string-set: ears-top-right content();
+}
+
+.ears tfoot .left {
+  string-set: ears-bottom-left content();
+}
+
+.ears tfoot .center {
+  string-set: ears-bottom-center content();
+}
+
+.ears tfoot .right {
+  string-set: ears-bottom-right content();
+}
+*/
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+  /* The following is commented out here, but set appropriately by in code, as
+     the content depends on the document */
+  /*
+  @top-left {
+    content: 'Internet-Draft';
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-left {
+    content: string(ears-top-left);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-center {
+    content: string(ears-top-center);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-right {
+    content: string(ears-top-right);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @bottom-left {
+    content: string(ears-bottom-left);
+    vertical-align: top;
+    border-top: solid 1px #ccc;
+  }
+  @bottom-center {
+    content: string(ears-bottom-center);
+    vertical-align: top;
+    border-top: solid 1px #ccc;
+  }
+  @bottom-right {
+      content: '[Page ' counter(page) ']';
+      vertical-align: top;
+      border-top: solid 1px #ccc;
+  }
+  */
+
+}
+
+/* Changes introduced to fix issues found during implementation */
+/* Make sure links are clickable even if overlapped by following H* */
+a {
+  z-index: 2;
+}
+/* Separate body from document info even without intervening H1 */
+section {
+  clear: both;
+}
+
+
+/* Top align author divs, to avoid names without organization dropping level with org names */
+.author {
+  vertical-align: top;
+}
+
+/* Leave room in document info to show Internet-Draft on one line */
+#identifiers dt {
+  width: 8em;
+}
+
+/* Don't waste quite as much whitespace between label and value in doc info */
+#identifiers dd {
+  margin-left: 1em;
+}
+
+/* Give floating toc a background color (needed when it's a div inside section */
+#toc {
+  background-color: white;
+}
+
+/* Make the collapsed ToC header render white on gray also when it's a link */
+@media screen and (max-width: 1023px) {
+  #toc h2 a,
+  #toc h2 a:link,
+  #toc h2 a:focus,
+  #toc h2 a:hover,
+  #toc a.toplink,
+  #toc a.toplink:hover {
+    color: white;
+    background-color: #444;
+    text-decoration: none;
+  }
+}
+
+/* Give the bottom of the ToC some whitespace */
+@media screen and (min-width: 1024px) {
+  #toc {
+    padding: 0 0 1em 1em;
+  }
+}
+
+/* Style section numbers with more space between number and title */
+.section-number {
+  padding-right: 0.5em;
+}
+
+/* prevent monospace from becoming overly large */
+tt, code, pre {
+  font-size: 95%;
+}
+
+/* Fix the height/width aspect for ascii art*/
+.sourcecode pre,
+.art-text pre {
+  line-height: 1.12;
+}
+
+
+/* Add styling for a link in the ToC that points to the top of the document */
+a.toplink {
+  float: right;
+  margin-right: 0.5em;
+}
+
+/* Fix the dl styling to match the RFC 7992 attributes */
+dl > dt,
+dl.dlParallel > dt {
+  float: left;
+  margin-right: 1em;
+}
+dl.dlNewline > dt {
+  float: none;
+}
+
+/* Provide styling for table cell text alignment */
+table td.text-left,
+table th.text-left {
+  text-align: left;
+}
+table td.text-center,
+table th.text-center {
+  text-align: center;
+}
+table td.text-right,
+table th.text-right {
+  text-align: right;
+}
+
+/* Make the alternative author contact information look less like just another
+   author, and group it closer with the primary author contact information */
+.alternative-contact {
+  margin: 0.5em 0 0.25em 0;
+}
+address .non-ascii {
+  margin: 0 0 0 2em;
+}
+
+/* With it being possible to set tables with alignment
+  left, center, and right, { width: 100%; } does not make sense */
+table {
+  width: auto;
+}
+
+/* Avoid reference text that sits in a block with very wide left margin,
+   because of a long floating dt label.*/
+.references dd {
+  overflow: visible;
+}
+
+/* Control caption placement */
+caption {
+  caption-side: bottom;
+}
+
+/* Limit the width of the author address vcard, so names in right-to-left
+   script don't end up on the other side of the page. */
+
+address.vcard {
+  max-width: 30em;
+  margin-right: auto;
+}
+
+/* For address alignment dependent on LTR or RTL scripts */
+address div.left {
+  text-align: left;
+}
+address div.right {
+  text-align: right;
+}
+
+/* Provide table alignment support.  We can't use the alignX classes above
+   since they do unwanted things with caption and other styling. */
+table.right {
+ margin-left: auto;
+ margin-right: 0;
+}
+table.center {
+ margin-left: auto;
+ margin-right: auto;
+}
+table.left {
+ margin-left: 0;
+ margin-right: auto;
+}
+
+/* Give the table caption label the same styling as the figcaption */
+caption a[href] {
+  color: #222;
+}
+
+@media print {
+  .toplink {
+    display: none;
+  }
+
+  /* avoid overwriting the top border line with the ToC header */
+  #toc {
+    padding-top: 1px;
+  }
+
+  /* Avoid page breaks inside dl and author address entries */
+  .vcard {
+    page-break-inside: avoid;
+  }
+
+}
+/* Tweak the bcp14 keyword presentation */
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+/* Tweak the invisible space above H* in order not to overlay links in text above */
+ h2 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 31px;
+ }
+ h3 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 24px;
+ }
+ h4 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 24px;
+ }
+/* Float artwork pilcrow to the right */
+@media screen {
+  .artwork a.pilcrow {
+    display: block;
+    line-height: 0.7;
+    margin-top: 0.15em;
+  }
+}
+/* Make pilcrows on dd visible */
+@media screen {
+  dd:hover > a.pilcrow {
+    visibility: visible;
+  }
+}
+/* Make the placement of figcaption match that of a table's caption
+   by removing the figure's added bottom margin */
+.alignLeft.art-text,
+.alignCenter.art-text,
+.alignRight.art-text {
+   margin-bottom: 0;
+}
+.alignLeft,
+.alignCenter,
+.alignRight {
+  margin: 1em 0 0 0;
+}
+/* In print, the pilcrow won't show on hover, so prevent it from taking up space,
+   possibly even requiring a new line */
+@media print {
+  a.pilcrow {
+    display: none;
+  }
+}
+/* Styling for the external metadata */
+div#external-metadata {
+  background-color: #eee;
+  padding: 0.5em;
+  margin-bottom: 0.5em;
+  display: none;
+}
+div#internal-metadata {
+  padding: 0.5em;                       /* to match the external-metadata padding */
+}
+/* Styling for title RFC Number */
+h1#rfcnum {
+  clear: both;
+  margin: 0 0 -1em;
+  padding: 1em 0 0 0;
+}
+/* Make .olPercent look the same as <ol><li> */
+dl.olPercent > dd {
+  margin-bottom: 0.25em;
+  min-height: initial;
+}
+/* Give aside some styling to set it apart */
+aside {
+  border-left: 1px solid #ddd;
+  margin: 1em 0 1em 2em;
+  padding: 0.2em 2em;
+}
+aside > dl,
+aside > ol,
+aside > ul,
+aside > table,
+aside > p {
+  margin-bottom: 0.5em;
+}
+/* Additional page break settings */
+@media print {
+  figcaption, table caption {
+    page-break-before: avoid;
+  }
+}
+/* Font size adjustments for print */
+@media print {
+  body  { font-size: 10pt;      line-height: normal; max-width: 96%; }
+  h1    { font-size: 1.72em;    padding-top: 1.5em; } /* 1*1.2*1.2*1.2 */
+  h2    { font-size: 1.44em;    padding-top: 1.5em; } /* 1*1.2*1.2 */
+  h3    { font-size: 1.2em;     padding-top: 1.5em; } /* 1*1.2 */
+  h4    { font-size: 1em;       padding-top: 1.5em; }
+  h5, h6 { font-size: 1em;      margin: initial; padding: 0.5em 0 0.3em; }
+}
+/* Sourcecode margin in print, when there's no pilcrow */
+@media print {
+  .artwork,
+  .artwork > pre,
+  .sourcecode {
+    margin-bottom: 1em;
+  }
+}
+/* Avoid narrow tables forcing too narrow table captions, which may render badly */
+table {
+  min-width: 20em;
+}
+/* ol type a */
+ol.type-a { list-style-type: lower-alpha; }
+ol.type-A { list-style-type: upper-alpha; }
+ol.type-i { list-style-type: lower-roman; }
+ol.type-I { list-style-type: lower-roman; }
+/* Apply the print table and row borders in general, on request from the RPC,
+and increase the contrast between border and odd row background slightly */
+table {
+  border: 1px solid #ddd;
+}
+td {
+  border-top: 1px solid #ddd;
+}
+tr {
+  break-inside: avoid;
+}
+tr:nth-child(2n+1) > td {
+  background-color: #f8f8f8;
+}
+/* Use style rules to govern display of the TOC. */
+@media screen and (max-width: 1023px) {
+  #toc nav { display: none; }
+  #toc.active nav { display: block; }
+}
+/* Add support for keepWithNext */
+.keepWithNext {
+  break-after: avoid-page;
+  break-after: avoid-page;
+}
+/* Add support for keepWithPrevious */
+.keepWithPrevious {
+  break-before: avoid-page;
+}
+/* Change the approach to avoiding breaks inside artwork etc. */
+figure, pre, table, .artwork, .sourcecode  {
+  break-before: auto;
+  break-after: auto;
+}
+/* Avoid breaks between <dt> and <dd> */
+dl {
+  break-before: auto;
+  break-inside: auto;
+}
+dt {
+  break-before: auto;
+  break-after: avoid-page;
+}
+dd {
+  break-before: avoid-page;
+  break-after: auto;
+  orphans: 3;
+  widows: 3
+}
+span.break, dd.break {
+  margin-bottom: 0;
+  min-height: 0;
+  break-before: auto;
+  break-inside: auto;
+  break-after: auto;
+}
+/* Undo break-before ToC */
+@media print {
+  #toc {
+    break-before: auto;
+  }
+}
+/* Text in compact lists should not get extra bottom margin space,
+   since that would makes the list not compact */
+ul.compact p, .ulCompact p,
+ol.compact p, .olCompact p {
+ margin: 0;
+}
+/* But the list as a whole needs the extra space at the end */
+section ul.compact,
+section .ulCompact,
+section ol.compact,
+section .olCompact {
+  margin-bottom: 1em;                    /* same as p not within ul.compact etc. */
+}
+/* The tt and code background above interferes with for instance table cell
+   backgrounds.  Changed to something a bit more selective. */
+tt, code {
+  background-color: transparent;
+}
+p tt, p code, li tt, li code {
+  background-color: #f8f8f8;
+}
+/* Tweak the pre margin -- 0px doesn't come out well */
+pre {
+   margin-top: 0.5px;
+}
+/* Tweak the compact list text */
+ul.compact, .ulCompact,
+ol.compact, .olCompact,
+dl.compact, .dlCompact {
+  line-height: normal;
+}
+/* Don't add top margin for nested lists */
+li > ul, li > ol, li > dl,
+dd > ul, dd > ol, dd > dl,
+dl > dd > dl {
+  margin-top: initial;
+}
+/* Elements that should not be rendered on the same line as a <dt> */
+/* This should match the element list in writer.text.TextWriter.render_dl() */
+dd > div.artwork:first-child,
+dd > aside:first-child,
+dd > figure:first-child,
+dd > ol:first-child,
+dd > div.sourcecode:first-child,
+dd > table:first-child,
+dd > ul:first-child {
+  clear: left;
+}
+/* fix for weird browser behaviour when <dd/> is empty */
+dt+dd:empty::before{
+  content: "\00a0";
+}
+/* Make paragraph spacing inside <li> smaller than in body text, to fit better within the list */
+li > p {
+  margin-bottom: 0.5em
+}
+/* Don't let p margin spill out from inside list items */
+li > p:last-of-type:only-child {
+  margin-bottom: 0;
+}
+</style>
+<link href="rfc-local.css" rel="stylesheet" type="text/css">
+<script type="application/javascript">async function addMetadata(){try{const e=document.styleSheets[0].cssRules;for(let t=0;t<e.length;t++)if(/#identifiers/.exec(e[t].selectorText)){const a=e[t].cssText.replace("#identifiers","#external-updates");document.styleSheets[0].insertRule(a,document.styleSheets[0].cssRules.length)}}catch(e){console.log(e)}const e=document.getElementById("external-metadata");if(e)try{var t,a="",o=function(e){const t=document.getElementsByTagName("meta");for(let a=0;a<t.length;a++)if(t[a].getAttribute("name")===e)return t[a].getAttribute("content");return""}("rfc.number");if(o){t="https://www.rfc-editor.org/rfc/rfc"+o+".json";try{const e=await fetch(t);a=await e.json()}catch(e){t=document.URL.indexOf("html")>=0?document.URL.replace(/html$/,"json"):document.URL+".json";const o=await fetch(t);a=await o.json()}}if(!a)return;e.style.display="block";const s="",d="https://datatracker.ietf.org/doc",n="https://datatracker.ietf.org/ipr/search",c="https://www.rfc-editor.org/info",l=a.doc_id.toLowerCase(),i=a.doc_id.slice(0,3).toLowerCase(),f=a.doc_id.slice(3).replace(/^0+/,""),u={status:"Status",obsoletes:"Obsoletes",obsoleted_by:"Obsoleted By",updates:"Updates",updated_by:"Updated By",see_also:"See Also",errata_url:"Errata"};let h="<dl style='overflow:hidden' id='external-updates'>";["status","obsoletes","obsoleted_by","updates","updated_by","see_also","errata_url"].forEach(e=>{if("status"==e){a[e]=a[e].toLowerCase();var t=a[e].split(" "),o=t.length,w="",p=1;for(let e=0;e<o;e++)p<o?w=w+r(t[e])+" ":w+=r(t[e]),p++;a[e]=w}else if("obsoletes"==e||"obsoleted_by"==e||"updates"==e||"updated_by"==e){var g,m="",b=1;g=a[e].length;for(let t=0;t<g;t++)a[e][t]&&(a[e][t]=String(a[e][t]).toLowerCase(),m=b<g?m+"<a href='"+s+"/rfc/".concat(a[e][t])+"'>"+a[e][t].slice(3)+"</a>, ":m+"<a href='"+s+"/rfc/".concat(a[e][t])+"'>"+a[e][t].slice(3)+"</a>",b++);a[e]=m}else if("see_also"==e){var y,L="",C=1;y=a[e].length;for(let t=0;t<y;t++)if(a[e][t]){a[e][t]=String(a[e][t]);var _=a[e][t].slice(0,3),v=a[e][t].slice(3).replace(/^0+/,"");L=C<y?"RFC"!=_?L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+_+" "+v+"</a>, ":L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+v+"</a>, ":"RFC"!=_?L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+_+" "+v+"</a>":L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+v+"</a>",C++}a[e]=L}else if("errata_url"==e){var R="";R=a[e]?R+"<a href='"+a[e]+"'>Errata exist</a> | <a href='"+d+"/"+l+"'>Datatracker</a>| <a href='"+n+"/?"+i+"="+f+"&submit="+i+"'>IPR</a> | <a href='"+c+"/"+l+"'>Info page</a>":"<a href='"+d+"/"+l+"'>Datatracker</a> | <a href='"+n+"/?"+i+"="+f+"&submit="+i+"'>IPR</a> | <a href='"+c+"/"+l+"'>Info page</a>",a[e]=R}""!=a[e]?"Errata"==u[e]?h+=`<dt>More info:</dt><dd>${a[e]}</dd>`:h+=`<dt>${u[e]}:</dt><dd>${a[e]}</dd>`:"Errata"==u[e]&&(h+=`<dt>More info:</dt><dd>${a[e]}</dd>`)}),h+="</dl>",e.innerHTML=h}catch(e){console.log(e)}else console.log("Could not locate metadata <div> element");function r(e){return e.charAt(0).toUpperCase()+e.slice(1)}}window.removeEventListener("load",addMetadata),window.addEventListener("load",addMetadata);</script>
+</head>
+<body class="xml2rfc">
+<script src="metadata.min.js"></script>
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">agent-uri</td>
+<td class="right">October 2025</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">Narvaneni</td>
+<td class="center">Expires 19 April 2026</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">Independent Submission</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-narvaneni-agent-uri-02</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2025-10-16" class="published">16 October 2025</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Experimental</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2026-04-19">19 April 2026</time></dd>
+<dt class="label-authors">Author:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">Y. Narvaneni</div>
+<div class="org">Independent Researcher</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">The agent:// Protocol -- A URI-Based Framework for Interoperable Agents</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">This document defines the <code>agent://</code> protocol, a URI template-based framework as described in RFC 6570 for addressing, invoking, and interoperating with autonomous and semi-autonomous software agents. It introduces a layered architecture that supports minimal implementations (addressing and transport) and extensible features (capability discovery, contracts, orchestration). The protocol aims to foster interoperability among agents across ecosystems, platforms, and modalities, enabling composable and collaborative intelligent systems.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 19 April 2026.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2025 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1" class="keepWithNext"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-terminology" class="internal xref">Terminology</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1" class="keepWithNext"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-protocol-scope-and-layering" class="internal xref">Protocol Scope and Layering</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-uri-scheme-specification" class="internal xref">URI Scheme Specification</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-components" class="internal xref">Components</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2">
+                <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-abnf-for-agent-uri" class="internal xref">ABNF for <code>agent://</code> URI</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-resolution-framework" class="internal xref">Resolution Framework</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-ecosystem-registries" class="internal xref">Ecosystem Registries</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
+                <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-trust-anchors" class="internal xref">Trust Anchors</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-transport-bindings" class="internal xref">Transport Bindings</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.1">
+                <p id="section-toc.1-1.6.2.1.1"><a href="#section-6.1" class="auto internal xref">6.1</a>.  <a href="#name-explicit-transport-binding" class="internal xref">Explicit Transport Binding</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.2">
+                <p id="section-toc.1-1.6.2.2.1"><a href="#section-6.2" class="auto internal xref">6.2</a>.  <a href="#name-default-fallback-behavior" class="internal xref">Default Fallback Behavior</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.3">
+                <p id="section-toc.1-1.6.2.3.1"><a href="#section-6.3" class="auto internal xref">6.3</a>.  <a href="#name-use-cases-and-recommended-b" class="internal xref">Use Cases and Recommended Bindings</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-capability-framework" class="internal xref">Capability Framework</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-interaction-patterns-intera" class="internal xref">Interaction Patterns        {# interaction-patterns}</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.1">
+                <p id="section-toc.1-1.8.2.1.1"><a href="#section-8.1" class="auto internal xref">8.1</a>.  <a href="#name-stateful-interactions-state" class="internal xref">Stateful Interactions        {# stateful-interactions}</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.1.2.1">
+                    <p id="section-toc.1-1.8.2.1.2.1.1"><a href="#section-8.1.1" class="auto internal xref">8.1.1</a>.  <a href="#name-recommended-practices" class="internal xref">Recommended practices:</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.2">
+                <p id="section-toc.1-1.8.2.2.1"><a href="#section-8.2" class="auto internal xref">8.2</a>.  <a href="#name-orchestration-patterns" class="internal xref">Orchestration Patterns</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.3">
+                <p id="section-toc.1-1.8.2.3.1"><a href="#section-8.3" class="auto internal xref">8.3</a>.  <a href="#name-typical-interaction-flows" class="internal xref">Typical Interaction Flows</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.3.2.1">
+                    <p id="section-toc.1-1.8.2.3.2.1.1"><a href="#section-8.3.1" class="auto internal xref">8.3.1</a>.  <a href="#name-client-to-agent-interaction" class="internal xref">Client-to-Agent Interaction</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.3.2.2">
+                    <p id="section-toc.1-1.8.2.3.2.2.1"><a href="#section-8.3.2" class="auto internal xref">8.3.2</a>.  <a href="#name-agent-to-agent-interaction" class="internal xref">Agent-to-Agent Interaction</a></p>
+</li>
+                </ul>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-error-handling-error-handli" class="internal xref">Error Handling        {# error-handling}</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-security-and-privacy-consid" class="internal xref">Security and Privacy Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.1">
+                <p id="section-toc.1-1.10.2.1.1"><a href="#section-10.1" class="auto internal xref">10.1</a>.  <a href="#name-compliance-and-regulatory-c" class="internal xref">Compliance and Regulatory Considerations</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref">11</a>. <a href="#name-extensibility" class="internal xref">Extensibility</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#section-12" class="auto internal xref">12</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.1">
+                <p id="section-toc.1-1.12.2.1.1"><a href="#section-12.1" class="auto internal xref">12.1</a>.  <a href="#name-uri-scheme-registration-tem" class="internal xref">URI Scheme Registration Template</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.2">
+                <p id="section-toc.1-1.12.2.2.1"><a href="#section-12.2" class="auto internal xref">12.2</a>.  <a href="#name-well-known-uri-registration" class="internal xref">Well-Known URI Registrations</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.3">
+                <p id="section-toc.1-1.12.2.3.1"><a href="#section-12.3" class="auto internal xref">12.3</a>.  <a href="#name-media-type-registration-for" class="internal xref">Media Type Registration for application/agent+json</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
+            <p id="section-toc.1-1.13.1"><a href="#section-13" class="auto internal xref">13</a>. <a href="#name-appendix-a-example-agent-de" class="internal xref">Appendix A. Example Agent Descriptor</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
+            <p id="section-toc.1-1.14.1"><a href="#section-14" class="auto internal xref">14</a>. <a href="#name-appendix-b-use-cases" class="internal xref">Appendix B. Use Cases</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
+            <p id="section-toc.1-1.15.1"><a href="#section-15" class="auto internal xref">15</a>. <a href="#name-appendix-c-reference-implem" class="internal xref">Appendix C. Reference Implementation</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.16">
+            <p id="section-toc.1-1.16.1"><a href="#section-16" class="auto internal xref"></a><a href="#name-acknowledgements" class="internal xref">Acknowledgements</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.17">
+            <p id="section-toc.1-1.17.1"><a href="#section-17" class="auto internal xref"></a><a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.17.2.1">
+                <p id="section-toc.1-1.17.2.1.1"><a href="#section-17.1" class="auto internal xref"></a><a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.17.2.2">
+                <p id="section-toc.1-1.17.2.2.1"><a href="#section-17.2" class="auto internal xref"></a><a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.18">
+            <p id="section-toc.1-1.18.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">The rise of intelligent software agents necessitates a standardized way to identify, invoke, and coordinate them across diverse platforms. While protocols like <span><a href="#RFC9110" class="internal xref">HTTP</a> [<a href="#RFC9110" class="cite xref">RFC9110</a>]</span> provide a transport mechanism for static APIs, agents differ significantly in behavior, output variability, and interaction patterns. The <code>agent://</code> proposes a URI scheme and resolution model designed to complement existing agent communication protocols and libraries like <span>[<a href="#Agent2Agent" class="cite xref">Agent2Agent</a>]</span>, <span>[<a href="#FIPA-ACL" class="cite xref">FIPA-ACL</a>]</span>, <span><a href="#FIPA-CNP" class="internal xref">Contract Net Protocol</a> [<a href="#FIPA-CNP" class="cite xref">FIPA-CNP</a>]</span>, <span>[<a href="#LangChain" class="cite xref">LangChain</a>]</span>, <span><a href="#MCP" class="internal xref">Model Context Protocol</a> [<a href="#MCP" class="cite xref">MCP</a>]</span>, <span>[<a href="#AutoGen" class="cite xref">AutoGen</a>]</span>, <span>[<a href="#SemanticKernel" class="cite xref">SemanticKernel</a>]</span> etc. This document defines a resolution algorithm that maps <code>agent://</code> URIs to transport endpoints using HTTPS, WebSocket, or local bindings as defined later. It serves as an addressing and discovery layer that works alongside these communication protocols.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">The <code>agent://</code> protocol supports diverse agent deployment models through a unified addressing scheme:<a href="#section-1-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-1-3.1">
+          <p id="section-1-3.1.1">Cloud-based agents accessible via standard web protocols<a href="#section-1-3.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-3.2">
+          <p id="section-1-3.2.1">Local agents running on the user's device through the <code>agent+local://</code> scheme<a href="#section-1-3.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-3.3">
+          <p id="section-1-3.3.1">On-premises agents within organizational boundaries<a href="#section-1-3.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-3.4">
+          <p id="section-1-3.4.1">Decentralized agents operating across distributed networks<a href="#section-1-3.4.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-1-4">This flexibility addresses a critical gap in current agent ecosystems, enabling applications (including browsers) to discover and invoke agents consistently regardless of where they're hosted. By providing standardized URI<span>[<a href="#RFC6570" class="cite xref">RFC6570</a>]</span> patterns for both remote and local agents, the protocol simplifies previously complex integration scenarios like browser-to-local-agent delegation for privileged operations.<a href="#section-1-4" class="pilcrow">¶</a></p>
+<span id="name-agent-protocol-stack-archit"></span><div id="fig-protocol-stack">
+<figure id="figure-1">
+        <div class="alignLeft art-text artwork" id="section-1-5.1">
+<pre>
++------------------+
+| Agent Applications|
++------------------+
+       &lt;-&gt;
++------------------+
+|   agent:// URI   | &lt;- Addressing, Resolution, Discovery
++------------------+
+       &lt;-&gt;
++------------------+  +------------------+
+|  Agent2Agent     |  |    CNP,. etc     | &lt;- Communication Protocols
++------------------+  +------------------+
+        &lt;-&gt;                   &lt;-&gt;
++------------------+  +------------------+
+| Transport Layer  |  | Transport Layer  | &lt;- HTTP, WebSockets, etc.
++------------------+  +------------------+
+</pre>
+</div>
+<figcaption><a href="#figure-1" class="selfRef">Figure 1</a>:
+<a href="#name-agent-protocol-stack-archit" class="selfRef">Agent Protocol Stack Architecture</a>
+        </figcaption></figure>
+</div>
+<p id="section-1-6">The <code>agent://</code> protocol supports:<a href="#section-1-6" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-1-7.1">
+          <p id="section-1-7.1.1">Unique and resolvable addressing of agents<a href="#section-1-7.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-7.2">
+          <p id="section-1-7.2.1">Optional self-describing capabilities<a href="#section-1-7.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-7.3">
+          <p id="section-1-7.3.1">Consistent invocation semantics over existing transports<a href="#section-1-7.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-7.4">
+          <p id="section-1-7.4.1">Progressive support for advanced patterns like delegation, collaboration, and orchestration<a href="#section-1-7.4.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-1-8">This document outlines the specification for the <code>agent://</code> protocol, beginning with its URI scheme and extending through capability description, transport bindings, and extensibility patterns.<a href="#section-1-8" class="pilcrow">¶</a></p>
+<p id="section-1-9">A reference implementation of the <code>agent://</code> protocol is available to demonstrate resolution, transport bindings, capability discovery, and orchestration patterns. Implementers and adopters can find this example implementation at: <span>[<a href="#AGENT-URI-REPO" class="cite xref">AGENT-URI-REPO</a>]</span><a href="#section-1-9" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="terminology">
+<section id="section-2">
+      <h2 id="name-terminology">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-terminology" class="section-name selfRef">Terminology</a>
+      </h2>
+<ul class="normal">
+<li class="normal" id="section-2-1.1">
+          <p id="section-2-1.1.1"><strong>Agent</strong>: An autonomous or semi-autonomous software entity that can receive instructions and perform actions.<a href="#section-2-1.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-2-1.2">
+          <p id="section-2-1.2.1"><strong>Agent Descriptor (agent.json)</strong>: A machine-readable document that describes an agent's identity, capabilities, and behavior.<a href="#section-2-1.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-2-1.3">
+          <p id="section-2-1.3.1"><strong>Capability</strong>: A self-contained function or behavior an agent offers.<a href="#section-2-1.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-2-1.4">
+          <p id="section-2-1.4.1"><strong>Resolver</strong>: A service or mechanism that maps a URI to a network endpoint or metadata.<a href="#section-2-1.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-2-1.5">
+          <p id="section-2-1.5.1"><strong>Invocation</strong>: The act of calling a capability on an agent with input parameters.<a href="#section-2-1.5.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-2-2">The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+"SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in
+RFC 2119, BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span>, <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when, they appear in all capitals, as shown here.<a href="#section-2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="protocol-scope">
+<section id="section-3">
+      <h2 id="name-protocol-scope-and-layering">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-protocol-scope-and-layering" class="section-name selfRef">Protocol Scope and Layering</a>
+      </h2>
+<p id="section-3-1">The <code>agent://</code> protocol is designed as a layered framework:<a href="#section-3-1" class="pilcrow">¶</a></p>
+<span id="name-protocol-layering-structure"></span><div id="tab-protocol-layers">
+<table class="center" id="table-1">
+        <caption>
+<a href="#table-1" class="selfRef">Table 1</a>:
+<a href="#name-protocol-layering-structure" class="selfRef">Protocol Layering Structure</a>
+        </caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">Layer</th>
+            <th class="text-left" rowspan="1" colspan="1">Purpose</th>
+            <th class="text-left" rowspan="1" colspan="1">Mandatory</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">URI Scheme</td>
+            <td class="text-left" rowspan="1" colspan="1">Unique addressing</td>
+            <td class="text-left" rowspan="1" colspan="1">Yes</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Transport Binding</td>
+            <td class="text-left" rowspan="1" colspan="1">Mechanism for invocation (e.g., HTTP, WSS, Matrix, IPC)</td>
+            <td class="text-left" rowspan="1" colspan="1">Yes</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Agent Descriptor</td>
+            <td class="text-left" rowspan="1" colspan="1">Self-describing agent interface</td>
+            <td class="text-left" rowspan="1" colspan="1">Optional</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Resolution Framework</td>
+            <td class="text-left" rowspan="1" colspan="1">Maps agent URIs to endpoints</td>
+            <td class="text-left" rowspan="1" colspan="1">Optional</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Application Semantics</td>
+            <td class="text-left" rowspan="1" colspan="1">Shared vocab for capability naming</td>
+            <td class="text-left" rowspan="1" colspan="1">Optional</td>
+          </tr>
+        </tbody>
+      </table>
+</div>
+<p id="section-3-3">This layering allows implementations to adopt minimal or full-featured configurations, depending on their needs.<a href="#section-3-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="uri-scheme-specification">
+<section id="section-4">
+      <h2 id="name-uri-scheme-specification">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-uri-scheme-specification" class="section-name selfRef">URI Scheme Specification</a>
+      </h2>
+<p id="section-4-1">The format of <code>agent://</code> URIs is:<a href="#section-4-1" class="pilcrow">¶</a></p>
+<span id="name-agent-uri-format"></span><div id="fig-uri-format">
+<figure id="figure-2">
+        <div class="alignLeft art-text artwork" id="section-4-2.1">
+<pre>
+agent://[authority]/[path]?[query]#[fragment]
+agent+&lt;protocol&gt;://[authority]/[path]
+</pre>
+</div>
+<figcaption><a href="#figure-2" class="selfRef">Figure 2</a>:
+<a href="#name-agent-uri-format" class="selfRef">Agent URI Format</a>
+        </figcaption></figure>
+</div>
+<p id="section-4-3">Examples:<a href="#section-4-3" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4-4.1">
+          <p id="section-4-4.1.1"><code>agent://example.com/planning/gen-iti?city=Paris</code><a href="#section-4-4.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-4-4.2">
+          <p id="section-4-4.2.1"><code>agent://planner.example.com/claude?text=Hello</code><a href="#section-4-4.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-4-4.3">
+          <p id="section-4-4.3.1"><code>agent+https://example.com/assistants/chatgpt?query=hello</code><a href="#section-4-4.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-4-4.4">
+          <p id="section-4-4.4.1"><code>agent+local://examplelocalagent</code><a href="#section-4-4.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-4-4.5">
+          <p id="section-4-4.5.1"><code>agent:///did:web:example.com:agent:researcher/get-article?doi=...</code><a href="#section-4-4.5.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-4-5">To resolve <code>agent://&lt;authority&gt;/&lt;path&gt;?&lt;query&gt;</code>:
+1. Fetch <code>https://&lt;authority&gt;/.well-known/agents.json</code> (if present)
+2. Locate <code>&lt;path&gt;</code> mapping -&gt; agent descriptor URL
+3. Fetch descriptor (<code>agent.json</code>)
+4. Extract <code>transport.endpoint</code> or <code>transport</code> metadata
+5. Invoke using indicated method or default:
+   - GET for read-only, POST for state-changing
+6. If none found -&gt; <code>agent+https://</code> fallback<a href="#section-4-5" class="pilcrow">¶</a></p>
+<div id="uri-components">
+<section id="section-4.1">
+        <h3 id="name-components">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-components" class="section-name selfRef">Components</a>
+        </h3>
+<ul class="normal">
+<li class="normal" id="section-4.1-1.1">
+            <p id="section-4.1-1.1.1"><strong>Authority</strong>: Uniquely identifies the agent or agent namespace (e.g., DNS or DID).<a href="#section-4.1-1.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.1-1.2">
+            <p id="section-4.1-1.2.1"><strong>Path</strong>: Specifies the agent being invoked. The <code>[path]</code> is opaque to <code>agent://</code> and can represent either a namespace or direct capability.<a href="#section-4.1-1.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.1-1.3">
+            <p id="section-4.1-1.3.1"><strong>Query</strong>: Contains serialized parameters. Query parameters SHOULD be URL-encoded as key=value pairs. If more complex structures are needed, clients SHOULD use HTTP <code>POST</code> requests with <code>application/json</code> bodies rather than base64-encoding payloads into query parameters.<a href="#section-4.1-1.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.1-1.4">
+            <p id="section-4.1-1.4.1"><strong>Fragment</strong>: Optional reference for context or sub-capability.<a href="#section-4.1-1.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.1-1.5">
+            <p id="section-4.1-1.5.1">The optional <code>+&lt;protocol&gt;</code> indicates explicit transport binding.<a href="#section-4.1-1.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.1-1.6">
+            <p id="section-4.1-1.6.1">If not specified, clients use resolution or fall back to HTTPS-based invocation.<a href="#section-4.1-1.6.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="uri-abnf">
+<section id="section-4.2">
+        <h3 id="name-abnf-for-agent-uri">
+<a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-abnf-for-agent-uri" class="section-name selfRef">ABNF for <code>agent://</code> URI</a>
+        </h3>
+<span id="name-abnf-grammar-for-agent-uri-"></span><div id="fig-abnf-grammar">
+<figure id="figure-3">
+          <div class="lang-abnf sourcecode" id="section-4.2-1.1">
+<pre>
+agent-uri      = "agent" ["+" protocol] ":" hier-part
+                 [ "?" query ] [ "#" fragment ]
+; hier-part from RFC3986, allowing both //authority and path-rootless
+
+protocol       = 1*( ALPHA / DIGIT / "-" )
+authority      = [ userinfo "@" ] host [ ":" port ]
+                 ; &lt;authority, defined in RFC3986, Section 3.2&gt;
+path           = path-abempty
+                 ; begins with "/" or is empty.
+                 ; Defined in RFC3986, Section 3.3
+query          = *( pchar / "/" / "?" )
+                 ; &lt;query, defined in RFC3986, Section 3.4&gt;
+fragment       = *( pchar / "/" / "?" )
+                 ; &lt;fragment, defined in RFC3986, Section 3.5&gt;
+
+pchar          = unreserved / pct-encoded / sub-delims / ":" / "@"
+unreserved     = ALPHA / DIGIT / "-" / "." / "_" / "~"
+pct-encoded    = "%" HEXDIG HEXDIG
+sub-delims     = "!" / "$" / "&amp;" / "'" / "(" / ")" /
+                 "*" / "+" / "," / ";" / "="
+
+; Character sets like pchar, unreserved, etc. are defined in RFC3986
+
+</pre>
+</div>
+<figcaption><a href="#figure-3" class="selfRef">Figure 3</a>:
+<a href="#name-abnf-grammar-for-agent-uri-" class="selfRef">ABNF Grammar for agent:// URI Scheme</a>
+          </figcaption></figure>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="resolution-framework">
+<section id="section-5">
+      <h2 id="name-resolution-framework">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-resolution-framework" class="section-name selfRef">Resolution Framework</a>
+      </h2>
+<p id="section-5-1">Every agent MAY expose a self-describing document at:<a href="#section-5-1" class="pilcrow">¶</a></p>
+<div class="lang-txt sourcecode" id="section-5-2">
+<pre>
+&lt;scheme&gt;://&lt;domain&gt;/&lt;path-to-agent&gt;/agent.json
+
+</pre><a href="#section-5-2" class="pilcrow">¶</a>
+</div>
+<p id="section-5-3">Agents reachable over the network SHOULD publish <code>/.well-known/agent.json</code><a href="#section-5-3" class="pilcrow">¶</a></p>
+<p id="section-5-4">If a single agent is deployed at the top level then it should be under <code>/.well-known</code>.<a href="#section-5-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-5-5.1">
+          <p id="section-5-5.1.1"><code>/.well-known/agent.json</code> -- For single-agent deployments (compatible with AgentCard)<a href="#section-5-5.1.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-5-6">Multi-agent domains MAY additionally expose <code>/.well-known/agents.json</code>.<a href="#section-5-6" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-5-7.1">
+          <p id="section-5-7.1.1"><code>/.well-known/agents.json</code> -- For multi-agent domains (maps agent names -&gt; descriptors)<a href="#section-5-7.1.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-5-8">This descriptor is OPTIONAL but RECOMMENDED. It enables capability discovery, transport resolution, and compatibility with ecosystem tools.<a href="#section-5-8" class="pilcrow">¶</a></p>
+<p id="section-5-9">When present, the descriptor MAY use the <span>[<a href="#AgentCard" class="cite xref">AgentCard</a>]</span> (as defined by Agent2Agent protocol by Google as of April 2025) schema as one possible format, or any equivalent <span>[<a href="#JSON-LD11" class="cite xref">JSON-LD11</a>]</span> based structure that expresses the agent's identity, capabilities, and behavioral metadata.<a href="#section-5-9" class="pilcrow">¶</a></p>
+<p id="section-5-10">If the agent is deployed at a subdomain (e.g., <code>planner.example.org</code>), the agent descriptor SHOULD be published at <code>/.well-known/agent.json</code> on that domain.<a href="#section-5-10" class="pilcrow">¶</a></p>
+<p id="section-5-11">Resolvers MUST restrict fetches to HTTPS schemes and MUST NOT resolve to private or loopback IP ranges. Resolvers SHOULD verify TLS certificates and may require signed descriptors.<a href="#section-5-11" class="pilcrow">¶</a></p>
+<div id="ecosystem-registries">
+<section id="section-5.1">
+        <h3 id="name-ecosystem-registries">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-ecosystem-registries" class="section-name selfRef">Ecosystem Registries</a>
+        </h3>
+<p id="section-5.1-1">Domains MAY publish:<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<div class="lang-txt sourcecode" id="section-5.1-2">
+<pre>
+https://&lt;domain&gt;/.well-known/agents.json
+
+</pre><a href="#section-5.1-2" class="pilcrow">¶</a>
+</div>
+<p id="section-5.1-3">This file should map agent names to their <code>agent.json</code> URLs for simplified enumeration. It is OPTIONAL but RECOMMENDED for better ecosystem interoperability.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
+<p id="section-5.1-4">Implementations MAY support resolution of agent URIs via:<a href="#section-5.1-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-5.1-5.1">
+            <p id="section-5.1-5.1.1">Static resolution maps<a href="#section-5.1-5.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-5.1-5.2">
+            <p id="section-5.1-5.2.1">DID resolution<a href="#section-5.1-5.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-5.1-5.3">
+            <p id="section-5.1-5.3.1">WebFinger or custom resolvers<a href="#section-5.1-5.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-5.1-6">Resolvers SHOULD support caching and capability introspection where applicable.<a href="#section-5.1-6" class="pilcrow">¶</a></p>
+<span id="name-agent-uri-resolution-proces"></span><div id="fig-resolution-flow">
+<figure id="figure-4">
+          <div class="alignLeft art-text artwork" id="section-5.1-7.1">
+<pre>
++---------+          +-------------+         +-------------+
+|  Client | --URI--&gt; |  Resolver   | --&gt;URL-&gt;| Agent Server|
++---------+          +-------------+         +-------------+
+                              |
+                      (agent.json or agents.json)
+
+</pre>
+</div>
+<figcaption><a href="#figure-4" class="selfRef">Figure 4</a>:
+<a href="#name-agent-uri-resolution-proces" class="selfRef">Agent URI Resolution Process</a>
+          </figcaption></figure>
+</div>
+<p id="section-5.1-8"><strong>Example</strong>:<a href="#section-5.1-8" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="section-5.1-9">
+<pre>
+{
+  "agents": {
+    "planner": "https://planner.example.com/.well-known/agent.json",
+    "translator": "https://example.com/translator/agent.json"
+  }
+}
+
+</pre><a href="#section-5.1-9" class="pilcrow">¶</a>
+</div>
+<p id="section-5.1-10">Agents SHOULD use standard HTTP caching mechanisms (<code>Cache-Control</code>, <code>ETag</code>, <code>Last-Modified</code>) to enable efficient resolution and minimize unnecessary descriptor fetches. Clients SHOULD respect these headers and cache descriptors appropriately<a href="#section-5.1-10" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="trust-anchors">
+<section id="section-5.2">
+        <h3 id="name-trust-anchors">
+<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-trust-anchors" class="section-name selfRef">Trust Anchors</a>
+        </h3>
+<p id="section-5.2-1">Domains MAY use trust anchors (e.g., DNSSEC, HTTPS certificates, or DID-based verification) to enhance identity assurance.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+<p id="section-5.2-2">A practical example of URI resolution, agent descriptor fetching, and caching strategies is included in the reference implementation available at: <span>[<a href="#AGENT-URI-REPO" class="cite xref">AGENT-URI-REPO</a>]</span><a href="#section-5.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="transport-binding">
+<section id="section-6">
+      <h2 id="name-transport-bindings">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-transport-bindings" class="section-name selfRef">Transport Bindings</a>
+      </h2>
+<div id="explicit-transport-bindings">
+<section id="section-6.1">
+        <h3 id="name-explicit-transport-binding">
+<a href="#section-6.1" class="section-number selfRef">6.1. </a><a href="#name-explicit-transport-binding" class="section-name selfRef">Explicit Transport Binding</a>
+        </h3>
+<p id="section-6.1-1">Use the <code>agent+&lt;protocol&gt;://</code> scheme for clarity:<a href="#section-6.1-1" class="pilcrow">¶</a></p>
+<span id="name-transport-binding-formats"></span><div id="tab-transport-bindings">
+<table class="center" id="table-2">
+          <caption>
+<a href="#table-2" class="selfRef">Table 2</a>:
+<a href="#name-transport-binding-formats" class="selfRef">Transport Binding Formats</a>
+          </caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Transport</th>
+              <th class="text-left" rowspan="1" colspan="1">Format</th>
+              <th class="text-left" rowspan="1" colspan="1">Method</th>
+              <th class="text-left" rowspan="1" colspan="1">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">HTTPS</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>agent+https://</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">GET/POST</td>
+              <td class="text-left" rowspan="1" colspan="1">Secure HTTP-based invocation</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">WebSocket Secure</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>agent+wss://</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">NDJSON stream</td>
+              <td class="text-left" rowspan="1" colspan="1">Real-time streaming</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Local</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>agent+local://</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">IPC/broker call</td>
+              <td class="text-left" rowspan="1" colspan="1">Runtime-registered local agents</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Unix Socket</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>agent+unix://</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Unix domain socket</td>
+              <td class="text-left" rowspan="1" colspan="1">IPC for co-located agents</td>
+            </tr>
+          </tbody>
+        </table>
+</div>
+<p id="section-6.1-3">The <code>agent+&lt;transport&gt;://</code> scheme allows explicit declaration of such bindings, enabling clarity, extensibility, and optimized routing. When no explicit transport is declared, clients MAY rely on resolution metadata (e.g., <code>agent.json</code>) or default to HTTPS-based invocation.<a href="#section-6.1-3" class="pilcrow">¶</a></p>
+<p id="section-6.1-4">This flexibility ensures the protocol can adapt to different performance, privacy, or coordination requirements while remaining consistent at the addressing and invocation layer.<a href="#section-6.1-4" class="pilcrow">¶</a></p>
+<p id="section-6.1-5">Local agents should be accessed using:<a href="#section-6.1-5" class="pilcrow">¶</a></p>
+<div class="lang-txt sourcecode" id="section-6.1-6">
+<pre>
+agent+local://&lt;agent-name&gt;
+
+</pre><a href="#section-6.1-6" class="pilcrow">¶</a>
+</div>
+<p id="section-6.1-7"><code>agent+local://</code> requires explicit user consent and origin binding. Implementations MUST prompt before first use.<a href="#section-6.1-7" class="pilcrow">¶</a></p>
+<p id="section-6.1-8">This allows agent runtimes to register their presence using a local resolver (e.g., via IPC, sockets, or service registry). The transport mechanism is implementation-specific.<a href="#section-6.1-8" class="pilcrow">¶</a></p>
+<p id="section-6.1-9">The <code>agent+local://</code> scheme specifically addresses the current lack of standardized methods for browser-based applications to invoke locally installed agents. This enables web applications to delegate tasks to local agents that can perform privileged operations such as file system access, desktop automation, or hardware interaction - capabilities that are typically restricted in browser environments. Security considerations for such invocations are discussed in <a href="#security-and-privacy" class="auto internal xref">Section 10</a>.<a href="#section-6.1-9" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="fallback-behavior">
+<section id="section-6.2">
+        <h3 id="name-default-fallback-behavior">
+<a href="#section-6.2" class="section-number selfRef">6.2. </a><a href="#name-default-fallback-behavior" class="section-name selfRef">Default Fallback Behavior</a>
+        </h3>
+<p id="section-6.2-1">If the protocol is omitted (i.e., <code>agent://</code> is used), clients:<a href="#section-6.2-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-6.2-2">
+<li id="section-6.2-2.1">
+            <p id="section-6.2-2.1.1">Check <code>.well-known/agents.json</code> (if available)<a href="#section-6.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-6.2-2.2">
+            <p id="section-6.2-2.2.1">Retrieve the agent descriptor at <code>agent.json</code> for the specified path<a href="#section-6.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-6.2-2.3">
+            <p id="section-6.2-2.3.1">Use the <code>transport</code> or <code>endpoint</code> hints from the descriptor<a href="#section-6.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="section-6.2-3">If nothing is found, clients MAY fall back to:<a href="#section-6.2-3" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-6.2-4.1">
+            <p id="section-6.2-4.1.1"><code>HTTPS</code> (default transport protocol)<a href="#section-6.2-4.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.2-4.2">
+            <p id="section-6.2-4.2.1">HTTP <code>POST</code> if payload present, otherwise <code>GET</code><a href="#section-6.2-4.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-6.2-5.1">
+            <p id="section-6.2-5.1.1">Note: This fallback behavior is provided for convenience and basic interoperability, but production systems SHOULD prefer explicit transport bindings or resolver-based discovery for robustness and clarity.<a href="#section-6.2-5.1.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-6.2-6">Clients SHOULD prefer explicit transport bindings (agent+https://) where available, and fall back to resolution-based discovery (agent://) when agent transport metadata is reliably available. Explicit binding reduces resolution ambiguity and improves latency.<a href="#section-6.2-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="usecases-and-recommendations">
+<section id="section-6.3">
+        <h3 id="name-use-cases-and-recommended-b">
+<a href="#section-6.3" class="section-number selfRef">6.3. </a><a href="#name-use-cases-and-recommended-b" class="section-name selfRef">Use Cases and Recommended Bindings</a>
+        </h3>
+<p id="section-6.3-1">The following table outlines some use cases and recommended bindings<a href="#section-6.3-1" class="pilcrow">¶</a></p>
+<span id="name-recommended-bindings-for-co"></span><div id="tab-use-cases">
+<table class="center" id="table-3">
+          <caption>
+<a href="#table-3" class="selfRef">Table 3</a>:
+<a href="#name-recommended-bindings-for-co" class="selfRef">Recommended Bindings for Common Use Cases</a>
+          </caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Use Case</th>
+              <th class="text-left" rowspan="1" colspan="1">Recommended Binding</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Agent with known HTTPS endpoint</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>agent+https://</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Local runtime agent</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>agent+local://</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Dynamic/multi-transport agents</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>agent://</code> with agent.json</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Inter-agent calls within a known context</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>agent://</code> or agent+matrix://</td>
+            </tr>
+          </tbody>
+        </table>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="capability-framework">
+<section id="section-7">
+      <h2 id="name-capability-framework">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-capability-framework" class="section-name selfRef">Capability Framework</a>
+      </h2>
+<p id="section-7-1">Agents SHOULD expose a descriptor document at:<a href="#section-7-1" class="pilcrow">¶</a></p>
+<div class="lang-txt sourcecode" id="section-7-2">
+<pre>
+&lt;agent-base-path&gt;/agent.json
+
+</pre><a href="#section-7-2" class="pilcrow">¶</a>
+</div>
+<p id="section-7-3">This descriptor MAY follow:<a href="#section-7-3" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7-4.1">
+          <p id="section-7-4.1.1">The AgentCard structure (as defined by Google's Agent2Agent protocol as of April 2025), or another equivalent format<a href="#section-7-4.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-7-4.2">
+          <p id="section-7-4.2.1">Any format other than AgentCard SHOULD be expressed in <span>[<a href="#JSON-LD11" class="cite xref">JSON-LD11</a>]</span> to enable semantic discovery<a href="#section-7-4.2.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-7-5">Agent descriptors SHOULD include:<a href="#section-7-5" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7-6.1">
+          <p id="section-7-6.1.1">Agent name and version<a href="#section-7-6.1.1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7-6.1.2.1">
+              <p id="section-7-6.1.2.1.1">MAY include <code>supportedVersions</code> indicating the list of older versions and their end-points.<a href="#section-7-6.1.2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-7-6.1.2.2">
+              <p id="section-7-6.1.2.2.1">Versioning should follow <span>[<a href="#SemVer" class="cite xref">SemVer</a>]</span> or later<a href="#section-7-6.1.2.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-7-6.1.2.3">
+              <p id="section-7-6.1.2.3.1">Clients SHOULD verify compatibility based on documented major, minor, and patch versions<a href="#section-7-6.1.2.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+</li>
+        <li class="normal" id="section-7-6.2">
+          <p id="section-7-6.2.1">Human-readable description<a href="#section-7-6.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-7-6.3">
+          <p id="section-7-6.3.1">Input/output schemas (e.g., JSON Schema)<a href="#section-7-6.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-7-6.4">
+          <p id="section-7-6.4.1">Capability list with IDs, descriptions, tags, version<a href="#section-7-6.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-7-6.5">
+          <p id="section-7-6.5.1">Optional behavioral metadata (e.g., <code>isDeterministic</code>, <code>expectedOutputVariability</code>, <code>requiresContext: boolean</code>, <code>memoryEnabled: boolean</code>, <code>responseLatency: "low" | "medium" | "high"</code>, <code>confidenceEstimation: boolean</code>)<a href="#section-7-6.5.1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7-6.5.2.1">
+              <p id="section-7-6.5.2.1.1"><code>isDeterministic</code> (boolean): Indicates whether repeated calls with identical inputs yield identical outputs.<a href="#section-7-6.5.2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-7-6.5.2.2">
+              <p id="section-7-6.5.2.2.1"><code>expectedOutputVariability</code>: indicates typical variability in outputs, similar to temperature setting<a href="#section-7-6.5.2.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-7-6.5.2.3">
+              <p id="section-7-6.5.2.3.1"><code>responseLatency</code>: Expected response time.<a href="#section-7-6.5.2.3.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-7-6.5.2.4">
+              <p id="section-7-6.5.2.4.1"><code>requiresContext</code> (boolean): Indicates whether the input needs context or the agent can work on its own<a href="#section-7-6.5.2.4.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-7-6.5.2.5">
+              <p id="section-7-6.5.2.5.1"><code>memoryEnabled</code> (boolean): Indicates whether the agent will remember the interactions<a href="#section-7-6.5.2.5.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+</li>
+        <li class="normal" id="section-7-6.6">
+          <p id="section-7-6.6.1">Optional transport or invocation hints<a href="#section-7-6.6.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-7-6.7">
+          <p id="section-7-6.7.1">Optional authentication or permission requirements<a href="#section-7-6.7.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-7-6.8">
+          <p id="section-7-6.8.1">Optional state management practices<a href="#section-7-6.8.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-7-6.9">
+          <p id="section-7-6.9.1">Optional <code>interactionModel</code> to indicate a way to interact (e.g. <code>agent2agent</code>, <code>fipa-acl</code>, <code>kqml</code>, <code>contract-net</code>, <code>emergent</code> etc). If mentioned, the message payload SHOULD follow the model's defined parameters if any.<a href="#section-7-6.9.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-7-7">Agents MAY expose <code>inputFormats</code> and <code>outputFormats</code> per capability using standard MIME types (e.g., <code>application/json</code>, <code>application/ld+json</code>, <code>application/fipa-acl</code>).<a href="#section-7-7" class="pilcrow">¶</a></p>
+<p id="section-7-8">Agent descriptors SHOULD include input/output schemas (e.g., JSON Schema) and MAY document content negotiation support via the <code>contentTypes</code> field per capability. This allows clients to understand and negotiate payload encoding, enabling interoperability across ecosystems that use JSON, <span>[<a href="#JSON-LD11" class="cite xref">JSON-LD11</a>]</span>, RDF/XML, <span>[<a href="#FIPA-ACL" class="cite xref">FIPA-ACL</a>]</span>, or other formats.<a href="#section-7-8" class="pilcrow">¶</a></p>
+<p id="section-7-9">Clients MAY use standard negotiation mechanisms such as <code>Content-Type</code> and Accept headers (in HTTP), or envelope metadata (in protocols like <span>[<a href="#JSON-RPC" class="cite xref">JSON-RPC</a>]</span>, <span>[<a href="#Matrix" class="cite xref">Matrix</a>]</span>, etc.).<a href="#section-7-9" class="pilcrow">¶</a></p>
+<p id="section-7-10">Implementations MAY advertise protocol compatility via metadata fields such as <code>interactionModel</code>, <code>orchestration</code>, or supported <code>envelopeSchemas</code> etc. These metadata fields enable clients and agent runtimes to interoperate across heterogeneous ecosystems and communication models.<a href="#section-7-10" class="pilcrow">¶</a></p>
+<p id="section-7-11">This extensibility ensures <code>agent://</code> can serve as a unifying addressing and invocation layer, bridging agents that follow established standards, platform-specific conventions, or learned behaviors in dynamic environments.<a href="#section-7-11" class="pilcrow">¶</a></p>
+<p id="section-7-12">If an <code>agent.json</code> is provided, it SHOULD contain at least: <code>name</code>, <code>version</code>, and one or more capabilities.<a href="#section-7-12" class="pilcrow">¶</a></p>
+<p id="section-7-13">Clients SHOULD explicitly specify the agent version either as a URI path segment, query parameter (<code>?version=3.1.4</code>), or HTTP header (<code>X-Agent-Version</code>). If omitted, servers SHOULD assume the latest version. Agents MUST document their preferred method for version negotiation clearly in their descriptor. Major version increments indicate breaking changes; clients default only within same major.<a href="#section-7-13" class="pilcrow">¶</a></p>
+<p id="section-7-14">While <code>.well-known/agents.json</code> MAY be used to enumerate all available agents under a domain, the individual <code>agent.json</code> files serve as the canonical source of truth.<a href="#section-7-14" class="pilcrow">¶</a></p>
+<p id="section-7-15">All published descriptors MUST use media type application/agent+json (or JSON-LD profile).<a href="#section-7-15" class="pilcrow">¶</a></p>
+<p id="section-7-16">Expressing descriptors in <span>[<a href="#JSON-LD11" class="cite xref">JSON-LD11</a>]</span> enables semantic interoperability and supports alignment with common web-based data models.<a href="#section-7-16" class="pilcrow">¶</a></p>
+<p id="section-7-17">Implementers MAY choose to embed, proxy, or map to other protocols within the <code>agent.json</code> descriptor or transport bindings, allowing for seamless orchestration and hybrid deployments.<a href="#section-7-17" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="interaction-patterns-interaction-patterns">
+<section id="section-8">
+      <h2 id="name-interaction-patterns-intera">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-interaction-patterns-intera" class="section-name selfRef">Interaction Patterns        {# interaction-patterns}</a>
+      </h2>
+<p id="section-8-1">Supported interaction types include:<a href="#section-8-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-8-2.1">
+          <p id="section-8-2.1.1">Request/Response (synchronous)<a href="#section-8-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-8-2.2">
+          <p id="section-8-2.2.1">Deferred response (polling or webhook) SHOULD include a <code>taskId</code> and polling interval hint.<a href="#section-8-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-8-2.3">
+          <p id="section-8-2.3.1">Streaming responses (e.g., Server-Sent Events, WebSocket). Streaming responses over <code>agent+wss://</code> SHOULD use newline-delimited JSON (NDJSON)<a href="#section-8-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-8-2.4">
+          <p id="section-8-2.4.1">Delegated invocation (calling other agents on behalf of user)<a href="#section-8-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-8-2.5">
+          <p id="section-8-2.5.1">Asynchronous event notifications via HTTP webhooks or WebSockets. Event notifications if available SHOULD include event types, payloads, and identifiers.<a href="#section-8-2.5.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-8-3">All interaction patterns (e.g., streaming, event-driven, polling) are transport-agnostic but MAY impose format constraints (e.g., NDJSON over WebSockets).<a href="#section-8-3" class="pilcrow">¶</a></p>
+<p id="section-8-4">Agents SHOULD include <code>traceparent</code> or <code>X-Task-ID</code> headers to correlate multi-agent workflows.<a href="#section-8-4" class="pilcrow">¶</a></p>
+<p id="section-8-5">Agents SHOULD include status and confidence metadata in responses where applicable.<a href="#section-8-5" class="pilcrow">¶</a></p>
+<div id="stateful-interactions-stateful-interactions">
+<section id="section-8.1">
+        <h3 id="name-stateful-interactions-state">
+<a href="#section-8.1" class="section-number selfRef">8.1. </a><a href="#name-stateful-interactions-state" class="section-name selfRef">Stateful Interactions        {# stateful-interactions}</a>
+        </h3>
+<p id="section-8.1-1">The <code>agent://</code> protocol leverages HTTP's established mechanisms for state management. Clients and agents SHOULD use standard HTTP headers or query parameters to pass identifiers such as <code>sessionId</code> or <code>taskId</code>. Agents MAY maintain state across interactions using these identifiers. Clients and agents SHOULD agree on session semantics via capability descriptors or invocation headers.<a href="#section-8.1-1" class="pilcrow">¶</a></p>
+<p id="section-8.1-2">Non-HTTP transports SHOULD include session or task identifiers within message envelopes (e.g., JSON-RPC headers, WebSocket message metadata, Matrix events). These fields SHOULD follow naming conventions similar to <code>sessionId</code>, <code>taskId</code>, etc.<a href="#section-8.1-2" class="pilcrow">¶</a></p>
+<p id="section-8.1-3">When the transport lacks a native header mechanism, agents SHOULD extract session information from the body or envelope metadata.<a href="#section-8.1-3" class="pilcrow">¶</a></p>
+<p id="section-8.1-4">When content negotiation fails or the requested format is not supported, agents SHOULD respond with a <code>406 Not Acceptable</code> HTTP error or equivalent, and MAY include supported formats in the response metadata.<a href="#section-8.1-4" class="pilcrow">¶</a></p>
+<div id="recommended-practices">
+<section id="section-8.1.1">
+          <h4 id="name-recommended-practices">
+<a href="#section-8.1.1" class="section-number selfRef">8.1.1. </a><a href="#name-recommended-practices" class="section-name selfRef">Recommended practices:</a>
+          </h4>
+<ul class="normal">
+<li class="normal" id="section-8.1.1-1.1">
+              <p id="section-8.1.1-1.1.1">Use HTTP headers (e.g., <code>X-Session-ID</code>, <code>X-Task-ID</code>) or query parameters for session and task identifiers.<a href="#section-8.1.1-1.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-8.1.1-1.2">
+              <p id="section-8.1.1-1.2.1">Clearly document state identifiers and their expected lifecycle in the agent's descriptor (agent.json).<a href="#section-8.1.1-1.2.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-8.1.1-2"><strong>Example</strong>:<a href="#section-8.1.1-2" class="pilcrow">¶</a></p>
+<div class="lang-http sourcecode" id="section-8.1.1-3">
+<pre>
+GET /tasks/1234 HTTP/1.1
+Host: planner.example.com
+X-Session-ID: abcde-12345
+
+</pre><a href="#section-8.1.1-3" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="orchestration-patterns">
+<section id="section-8.2">
+        <h3 id="name-orchestration-patterns">
+<a href="#section-8.2" class="section-number selfRef">8.2. </a><a href="#name-orchestration-patterns" class="section-name selfRef">Orchestration Patterns</a>
+        </h3>
+<p id="section-8.2-1">Agents MAY invoke other agents as part of delegated or composite tasks. Agents SHOULD explicitly provide orchestration workflows, delegation chains, or composite interactions either in their <code>agent.json</code> or in their response metadata.<a href="#section-8.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="typical-interaction-flows">
+<section id="section-8.3">
+        <h3 id="name-typical-interaction-flows">
+<a href="#section-8.3" class="section-number selfRef">8.3. </a><a href="#name-typical-interaction-flows" class="section-name selfRef">Typical Interaction Flows</a>
+        </h3>
+<div id="client-agent-interaction">
+<section id="section-8.3.1">
+          <h4 id="name-client-to-agent-interaction">
+<a href="#section-8.3.1" class="section-number selfRef">8.3.1. </a><a href="#name-client-to-agent-interaction" class="section-name selfRef">Client-to-Agent Interaction</a>
+          </h4>
+<p id="section-8.3.1-1">A typical user-driven invocation of an agent using the <code>agent://</code> protocol follows these steps:<a href="#section-8.3.1-1" class="pilcrow">¶</a></p>
+<span id="name-client-to-agent-interaction-"></span><div id="fig-client-interaction">
+<figure id="figure-5">
+            <div class="lang-art sourcecode" id="section-8.3.1-2.1">
+<pre>
++--------+       +-----------+       +-------------+
+|  User  |  --&gt;  |  Client   |  --&gt;  |  Agent Host |
++--------+       +-----------+       +-------------+
+     |                |                    |
+     | Initiates      |                    |
+     | intent (e.g.,  |                    |
+     | "Plan my trip")|                    |
+     |                |                    |
+     |                | Resolves agent URI |
+     |                | --&gt; agents.json / agent.json
+     |                | Retrieves capabilities
+     |                |                    |
+     |                | Constructs request |
+     |                | --&gt; agent://plan.example.com/gen-iti?city=Rio
+     |                |                    |
+     |                |                    | Validate input
+     |                |                    | Process logic/call tools
+     |                |                    | May call sub-agents
+     |                |                    |
+     |                | Receives response  |
+     |                | &lt;== itinerary JSON |
+     | Presents result to user             |
+
+</pre>
+</div>
+<figcaption><a href="#figure-5" class="selfRef">Figure 5</a>:
+<a href="#name-client-to-agent-interaction-" class="selfRef">Client-to-Agent Interaction Flow</a>
+            </figcaption></figure>
+</div>
+<p id="section-8.3.1-3"><strong>Notes</strong>:<a href="#section-8.3.1-3" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-8.3.1-4.1">
+              <p id="section-8.3.1-4.1.1">The client MAY handle fallback logic if the agent cannot be resolved initially.<a href="#section-8.3.1-4.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-8.3.1-4.2">
+              <p id="section-8.3.1-4.2.1">Authentication MAY be required before invocation.<a href="#section-8.3.1-4.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-8.3.1-4.3">
+              <p id="section-8.3.1-4.3.1">The invocation can be a simple GET or POST depending on input size and structure.<a href="#section-8.3.1-4.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+</section>
+</div>
+<div id="agent-to-agent-interaction">
+<section id="section-8.3.2">
+          <h4 id="name-agent-to-agent-interaction">
+<a href="#section-8.3.2" class="section-number selfRef">8.3.2. </a><a href="#name-agent-to-agent-interaction" class="section-name selfRef">Agent-to-Agent Interaction</a>
+          </h4>
+<p id="section-8.3.2-1">Agents MAY interact with each other using <code>agent://</code> URIs to delegate tasks or compose workflows.<a href="#section-8.3.2-1" class="pilcrow">¶</a></p>
+<p id="section-8.3.2-2"><strong>Example: A planning agent invoking a translation agent</strong>:<a href="#section-8.3.2-2" class="pilcrow">¶</a></p>
+<span id="name-agent-to-agent-interaction-"></span><div id="fig-agent-interaction">
+<figure id="figure-6">
+            <div class="lang-art sourcecode" id="section-8.3.2-3.1">
+<pre>
++----------+       +----------+       +------------+
+|Planning  |------&gt;|Resolver/ |------&gt;|Translation |
+|Agent     |       |URI       |       |Agent       |
++----------+       +----------+       +------------+
+     |                  |                   |
+     | Input:           |                   |
+     | {"city":"Paris"} |                   |
+     |                  |                   |
+     | Needs translation|                   |
+     |                  |                   |
+     |                  | Resolves URI:     |
+     |--agent://translator.example/translate?text=Bonjour--&gt;|
+     |                  |                   |
+     |                  | --&gt; Get           |
+     |                  |     agent.json    |
+     |                  | --&gt; Determine     |
+     |                  |     transport     |
+     |                  |                   |
+     |                  |                   | Process translation
+     |                  |                   | Return translated JSON
+     |&lt;-----------------|&lt;------------------|
+     | Merge &amp; return   |                   |
+     | to user/client   |                   |
+     | or continues     |                   |
+</pre>
+</div>
+<figcaption><a href="#figure-6" class="selfRef">Figure 6</a>:
+<a href="#name-agent-to-agent-interaction-" class="selfRef">Agent-to-Agent Interaction Flow</a>
+            </figcaption></figure>
+</div>
+<p id="section-8.3.2-4"><strong>Chaining Behavior</strong>:<a href="#section-8.3.2-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-8.3.2-5.1">
+              <p id="section-8.3.2-5.1.1">The invoking agent MAY include <code>X-Task-ID</code>, <code>X-Delegation-Chain</code>, or equivalent headers.<a href="#section-8.3.2-5.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-8.3.2-5.2">
+              <p id="section-8.3.2-5.2.1">The response MAY include intermediate metadata such as <code>confidence</code>, <code>sourceAgent</code>, <code>taskTrace</code>, or <code>timeTaken</code>.<a href="#section-8.3.2-5.2.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+</section>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="error-handling-error-handling">
+<section id="section-9">
+      <h2 id="name-error-handling-error-handli">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-error-handling-error-handli" class="section-name selfRef">Error Handling        {# error-handling}</a>
+      </h2>
+<p id="section-9-1">The <code>agent://</code> protocol MAY leverage HTTP standard status codes for signaling errors. Implementations MAY return errors using standard HTTP status codes along with structured JSON error responses conforming to <span>[<a href="#RFC9457" class="cite xref">RFC9457</a>]</span> ("Problem Details for HTTP APIs").<a href="#section-9-1" class="pilcrow">¶</a></p>
+<p id="section-9-2">**Recommended HTTP status codes include (but are not limited to)<a href="#section-9-2" class="pilcrow">¶</a></p>
+<span id="name-recommended-http-status-cod"></span><div id="tab-http-status-codes">
+<table class="center" id="table-4">
+        <caption>
+<a href="#table-4" class="selfRef">Table 4</a>:
+<a href="#name-recommended-http-status-cod" class="selfRef">Recommended HTTP status codes</a>
+        </caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">Status Code</th>
+            <th class="text-left" rowspan="1" colspan="1">Meaning</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">400</td>
+            <td class="text-left" rowspan="1" colspan="1">Bad Request (e.g., invalid parameters)</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">401</td>
+            <td class="text-left" rowspan="1" colspan="1">Unauthorized</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">403</td>
+            <td class="text-left" rowspan="1" colspan="1">Forbidden</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">404</td>
+            <td class="text-left" rowspan="1" colspan="1">Capability or resource not found</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">409</td>
+            <td class="text-left" rowspan="1" colspan="1">Conflict (e.g., state mismatch)</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">429</td>
+            <td class="text-left" rowspan="1" colspan="1">Too Many Requests (rate limiting)</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">500</td>
+            <td class="text-left" rowspan="1" colspan="1">Internal Server Error</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">503</td>
+            <td class="text-left" rowspan="1" colspan="1">Service Unavailable</td>
+          </tr>
+        </tbody>
+      </table>
+</div>
+<p id="section-9-4">Example:<a href="#section-9-4" class="pilcrow">¶</a></p>
+<div class="lang-http sourcecode" id="section-9-5">
+<pre>
+HTTP/1.1 404 Not Found
+Content-Type: application/problem+json
+
+{
+  "type": "https://example.com/errors/capability-not-found",
+  "title": "Capability Not Found",
+  "status": 404,
+  "detail": "The requested capability 'gen-iti' was not found.",
+  "instance": "/planner/gen-iti"
+}
+{: #fig-error-response title="Example HTTP Error Response"}
+
+</pre><a href="#section-9-5" class="pilcrow">¶</a>
+</div>
+<p id="section-9-6">This format is not prescriptive but aims to encourage consistency. Implementations MAY adapt the error schema based on their transport layer (e.g., JSON-RPC, HTTP status + body, WebSocket messages).<a href="#section-9-6" class="pilcrow">¶</a></p>
+<p id="section-9-7">For non-HTTP transports (e.g., WebSockets, Matrix), agents SHOULD still return structured errors using similar JSON structures (<code>type</code>, <code>title</code>, <code>detail</code>, <code>status</code>), encapsulated within the transport's native message envelope (e.g., JSON-RPC <code>error</code> objects, Matrix event content fields). Implementers SHOULD document chosen structures clearly in their capability descriptors.<a href="#section-9-7" class="pilcrow">¶</a></p>
+<p id="section-9-8">Where applicable, implementations SHOULD align with existing conventions such as:<a href="#section-9-8" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-9-9.1">
+          <p id="section-9-9.1.1">JSON-RPC <code>error</code> objects (<code>code</code>, <code>message</code>, <code>data</code>)<a href="#section-9-9.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-9-9.2">
+          <p id="section-9-9.2.1"><span>[<a href="#OpenAPI" class="cite xref">OpenAPI</a>]</span> or REST error payloads<a href="#section-9-9.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-9-9.3">
+          <p id="section-9-9.3.1"><span>[<a href="#GraphQL" class="cite xref">GraphQL</a>]</span> <code>errors</code> array format<a href="#section-9-9.3.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-9-10">Recommended error categories:<a href="#section-9-10" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-9-11.1">
+          <p id="section-9-11.1.1"><code>CapabilityNotFound</code><a href="#section-9-11.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-9-11.2">
+          <p id="section-9-11.2.1"><code>InvalidInput</code><a href="#section-9-11.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-9-11.3">
+          <p id="section-9-11.3.1"><code>AmbiguousResponse</code><a href="#section-9-11.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-9-11.4">
+          <p id="section-9-11.4.1"><code>Timeout</code><a href="#section-9-11.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-9-11.5">
+          <p id="section-9-11.5.1"><code>PermissionDenied</code><a href="#section-9-11.5.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-9-12">Clients SHOULD parse and utilize these structured responses to handle errors gracefully.<a href="#section-9-12" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="security-and-privacy">
+<section id="section-10">
+      <h2 id="name-security-and-privacy-consid">
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-security-and-privacy-consid" class="section-name selfRef">Security and Privacy Considerations</a>
+      </h2>
+<p id="section-10-1">The <code>agent://</code> protocol explicitly relies on widely-adopted HTTP authentication and authorization standards. Agents SHOULD support standard authentication and authorization schemes such as OAuth2 (Bearer tokens), API keys, or signed payloads. When using HTTPS, mutual TLS MAY be employed. JSON Web Tokens (JWT) are RECOMMENDED for conveying signed claims between agents. For <code>agent+local://</code>, browsers and runtimes MUST enforce same-origin policy, token handshake, and user mediation before invoking a local agent.<a href="#section-10-1" class="pilcrow">¶</a></p>
+<p id="section-10-2">Security extensions MAY include:<a href="#section-10-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-10-3.1">
+          <p id="section-10-3.1.1"><span><a href="#RFC6750" class="internal xref">OAuth2</a> [<a href="#RFC6750" class="cite xref">RFC6750</a>]</span> Bearer Tokens<a href="#section-10-3.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-10-3.2">
+          <p id="section-10-3.2.1">JSON Web Tokens (<span><a href="#RFC7519" class="internal xref">JWT</a> [<a href="#RFC7519" class="cite xref">RFC7519</a>]</span>)<a href="#section-10-3.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-10-3.3">
+          <p id="section-10-3.3.1">Mutual TLS (<span><a href="#RFC8705" class="internal xref">mTLS</a> [<a href="#RFC8705" class="cite xref">RFC8705</a>]</span>) authentication<a href="#section-10-3.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-10-3.4">
+          <p id="section-10-3.4.1">API Keys via HTTP headers (e.g., <code>X-API-Key</code>)<a href="#section-10-3.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-10-3.5">
+          <p id="section-10-3.5.1">Capability-based access control<a href="#section-10-3.5.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-10-3.6">
+          <p id="section-10-3.6.1">Delegation chains<a href="#section-10-3.6.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-10-4">For non-HTTP transports (e.g., WebSocket, Matrix), agents SHOULD leverage native authentication mechanisms, such as WebSocket protocol-level authentication tokens or Matrix homeserver authentication flows. Agents MUST clearly document supported security mechanisms per transport binding.<a href="#section-10-4" class="pilcrow">¶</a></p>
+<p id="section-10-5">If OAuth 2.0 is used, authorization flows MUST conform to <span>[<a href="#RFC6749" class="cite xref">RFC6749</a>]</span>; bearer usage per <span>[<a href="#RFC6750" class="cite xref">RFC6750</a>]</span>.<a href="#section-10-5" class="pilcrow">¶</a></p>
+<p id="section-10-6">When using <span><a href="#DID-CORE" class="internal xref">Decentralized Identifiers</a> [<a href="#DID-CORE" class="cite xref">DID-CORE</a>]</span> as authority, agent descriptors MAY be cryptographically signed. Clients SHOULD verify such signatures against the corresponding DID Document.<a href="#section-10-6" class="pilcrow">¶</a></p>
+<p id="section-10-7">For agent-to-agent delegation, agents SHOULD include delegation metadata (e.g., <code>X-Delegation-Chain</code>) that identifies prior actors. These chains SHOULD be signed or verifiable via claims (e.g., using JWT, Verifiable Credentials, or DID-linked proofs).<a href="#section-10-7" class="pilcrow">¶</a></p>
+<p id="section-10-8">Resolvers SHOULD use HTTPS with certificate validation and SHOULD validate integrity using ETag/Last-Modified for caching; if signature metadata is present, SHOULD verify signature per the descriptor's signature scheme.<a href="#section-10-8" class="pilcrow">¶</a></p>
+<p id="section-10-9">Agents MUST minimize data retention and expose revoke/delete interfaces for user data.<a href="#section-10-9" class="pilcrow">¶</a></p>
+<p id="section-10-10">Privacy recommendations:<a href="#section-10-10" class="pilcrow">¶</a></p>
+<p id="section-10-11">Agents SHOULD adhere to privacy best practices, including:<a href="#section-10-11" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-10-12.1">
+          <p id="section-10-12.1.1">Data minimization (collect only necessary data)<a href="#section-10-12.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-10-12.2">
+          <p id="section-10-12.2.1">Explicit consent and revocation mechanisms<a href="#section-10-12.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-10-12.3">
+          <p id="section-10-12.3.1">Clear logging/audit trails<a href="#section-10-12.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-10-12.4">
+          <p id="section-10-12.4.1">Ethical AI guidelines, including bias detection and fairness assessments as they evolve<a href="#section-10-12.4.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<div id="compliance-and-regulatory-considerations">
+<section id="section-10.1">
+        <h3 id="name-compliance-and-regulatory-c">
+<a href="#section-10.1" class="section-number selfRef">10.1. </a><a href="#name-compliance-and-regulatory-c" class="section-name selfRef">Compliance and Regulatory Considerations</a>
+        </h3>
+<p id="section-10.1-1">Implementers SHOULD ensure compliance with relevant legal frameworks (e.g., GDPR, CCPA) of the jurisdictions where the agent is hosted. Agents processing sensitive data SHOULD provide audit trails and explicit consent mechanisms clearly documented in capability descriptors.<a href="#section-10.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="extensibility">
+<section id="section-11">
+      <h2 id="name-extensibility">
+<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-extensibility" class="section-name selfRef">Extensibility</a>
+      </h2>
+<p id="section-11-1">The protocol supports extension via:<a href="#section-11-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-11-2.1">
+          <p id="section-11-2.1.1">Namespaced capability vocabularies<a href="#section-11-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-11-2.2">
+          <p id="section-11-2.2.1">Alternate transport bindings<a href="#section-11-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-11-2.3">
+          <p id="section-11-2.3.1">Extended agent descriptors<a href="#section-11-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-11-2.4">
+          <p id="section-11-2.4.1">Optional orchestration layers (task graphs, workflows)<a href="#section-11-2.4.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-11-3">Extension proposals SHOULD be documented clearly, and ideally reviewed through established processes such as community forums, dedicated working groups, or public registries to ensure transparency and interoperability.<a href="#section-11-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="iana-considerations">
+<section id="section-12">
+      <h2 id="name-iana-considerations">
+<a href="#section-12" class="section-number selfRef">12. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<p id="section-12-1">This document requests the registration of the <code>agent</code> URI scheme in the IANA "Uniform Resource Identifier (URI) Schemes" registry.<a href="#section-12-1" class="pilcrow">¶</a></p>
+<div id="uri-schem-registration-template">
+<section id="section-12.1">
+        <h3 id="name-uri-scheme-registration-tem">
+<a href="#section-12.1" class="section-number selfRef">12.1. </a><a href="#name-uri-scheme-registration-tem" class="section-name selfRef">URI Scheme Registration Template</a>
+        </h3>
+<ul class="normal">
+<li class="normal" id="section-12.1-1.1">
+            <p id="section-12.1-1.1.1"><strong>Scheme Name</strong>: <code>agent</code><a href="#section-12.1-1.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-12.1-1.2">
+            <p id="section-12.1-1.2.1"><strong>Status</strong>: Provisional<a href="#section-12.1-1.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-12.1-1.3">
+            <p id="section-12.1-1.3.1"><strong>Applications/Protocols That Use This Scheme</strong>:
+The <code>agent</code> URI scheme identifies and invokes autonomous or semi-autonomous software agents across systems. It provides transport-agnostic addressing layer supporting discovery, invocation and orchestration. The scheme is compatible with existing schemes such as <code>https</code>, <code>did</code> and <code>web+</code> schemes where appropriate.<a href="#section-12.1-1.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-12.1-1.4">
+            <p id="section-12.1-1.4.1"><strong>Contact</strong>:
+Yaswanth Narvaneni
+&lt;yaswanth+ietf@gmail.com&gt;<a href="#section-12.1-1.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-12.1-1.5">
+            <p id="section-12.1-1.5.1"><strong>Change Controller</strong>:
+The author or a relevant standards body such as the IETF if adopted.<a href="#section-12.1-1.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-12.1-1.6">
+            <p id="section-12.1-1.6.1"><strong>References</strong>:
+This document (Internet-Draft): <em>agent:// Protocol -- A URI-Based Framework for Interoperable Agents</em>
+              <span>[<a href="#RFC3986" class="cite xref">RFC3986</a>]</span> - Uniform Resource Identifier (URI): Generic Syntax
+<span>[<a href="#RFC7595" class="cite xref">RFC7595</a>]</span> - Guidelines and Registration Procedures for URI Schemes<a href="#section-12.1-1.6.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-12.1-1.7">
+            <p id="section-12.1-1.7.1"><strong>URI Syntax</strong>:
+The general form of an <code>agent</code> URI is:<a href="#section-12.1-1.7.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-12.1-1.8">
+            <p id="section-12.1-1.8.1"><strong>Related Registrations:</strong><a href="#section-12.1-1.8.1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-12.1-1.8.2.1">
+                <p id="section-12.1-1.8.2.1.1">Well-Known URIs (Section 12.2): <code>/.well-known/agent.json</code>, <code>/.well-known/agents.json</code><a href="#section-12.1-1.8.2.1.1" class="pilcrow">¶</a></p>
+</li>
+              <li class="normal" id="section-12.1-1.8.2.2">
+                <p id="section-12.1-1.8.2.2.1">Media Type (Section 12.3): <code>application/agent+json</code><a href="#section-12.1-1.8.2.2.1" class="pilcrow">¶</a></p>
+</li>
+            </ul>
+</li>
+        </ul>
+<div class="lang-txt sourcecode" id="section-12.1-2">
+<pre>
+agent:[+&lt;protocol&gt;]://&lt;authority&gt;/&lt;path&gt;[?&lt;query&gt;][#&lt;fragment&gt;]
+
+</pre><a href="#section-12.1-2" class="pilcrow">¶</a>
+</div>
+<p id="section-12.1-3">Where:
+- <code>authority</code> is typically a domain name or Decentralized Identifier (DID)
+- <code>path</code> is an opaque agent-specific capability or namespace
+- <code>query</code> includes serialized key-value parameters
+- <code>fragment</code> MAY reference a sub-capability or context
+- The optional <code>+&lt;protocol&gt;</code> segment indicates an explicit transport binding (e.g., <code>agent+https://</code>)<a href="#section-12.1-3" class="pilcrow">¶</a></p>
+<p id="section-12.1-4">Detailed ABNF is specified in <a href="#uri-abnf" class="auto internal xref">Section 4.2</a> of this document.<a href="#section-12.1-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-12.1-5.1">
+            <p id="section-12.1-5.1.1"><strong>Security Considerations</strong>:
+The <code>agent</code> scheme does not introduce new transport-layer vulnerabilities but inherits risks from underlying protocols such as HTTP, WebSocket, or local execution environments. Implementers should apply standard authentication and authorization measures, such as OAuth2, JWTs, or mutual TLS. See Section 10 for security and privacy guidance.<a href="#section-12.1-5.1.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="iana-well-known">
+<section id="section-12.2">
+        <h3 id="name-well-known-uri-registration">
+<a href="#section-12.2" class="section-number selfRef">12.2. </a><a href="#name-well-known-uri-registration" class="section-name selfRef">Well-Known URI Registrations</a>
+        </h3>
+<p id="section-12.2-1">This document registers the following Well-Known URIs under the "Well-Known URIs" registry established by RFC 8615:<a href="#section-12.2-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-12.2-2">
+<li id="section-12.2-2.1">
+            <p id="section-12.2-2.1.1"><strong>Name:</strong> agent.json<br>
+              <strong>Purpose:</strong> Provides the self-describing metadata document (<code>agent.json</code>) for a single network-addressable agent.<br>
+              <strong>Expected Content:</strong> JSON object conforming to <code>application/agent+json</code>.<br>
+              <strong>Reference:</strong> This document.<br>
+              <strong>Security Considerations:</strong> Accessible only via HTTPS. Agents SHOULD sign or ETag-pin the descriptor.<a href="#section-12.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-12.2-2.2">
+            <p id="section-12.2-2.2.1"><strong>Name:</strong> agents.json<br>
+              <strong>Purpose:</strong> Provides a registry mapping of agent names to descriptor URLs for multi-agent domains.<br>
+              <strong>Expected Content:</strong> JSON object mapping agent identifiers to <code>agent.json</code> URLs.<br>
+              <strong>Reference:</strong> This document.<br>
+              <strong>Security Considerations:</strong> Same as above.<a href="#section-12.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+</section>
+</div>
+<div id="iana-mediatype">
+<section id="section-12.3">
+        <h3 id="name-media-type-registration-for">
+<a href="#section-12.3" class="section-number selfRef">12.3. </a><a href="#name-media-type-registration-for" class="section-name selfRef">Media Type Registration for application/agent+json</a>
+        </h3>
+<p id="section-12.3-1">Type name: application<br>
+Subtype name: agent+json<br>
+Required parameters: none<br>
+Optional parameters: profile (for JSON-LD contexts)<br>
+Encoding considerations: 8bit; uses UTF-8 encoded JSON<br>
+Security considerations: Carries metadata that can affect network routing and authorization; publishers SHOULD serve only over HTTPS and validate signatures or ETags.<br>
+Interoperability considerations: Compatible with JSON-LD 1.1 and plain JSON processors.<br>
+Published specification: This document<br>
+Applications that use this media type: Agent resolvers and runtimes using the <code>agent://</code> protocol.<br>
+Additional information: None<br>
+Person &amp; email address to contact for further information: Yaswanth Narvaneni &lt;yaswanth+ietf@gmail.com&gt;<br>
+Intended usage: COMMON<br>
+Author/Change controller: IETF if standardized; author for independent submissions.<a href="#section-12.3-1" class="pilcrow">¶</a></p>
+<p id="section-12.3-2">The <code>profile</code> parameter usage follows the concept in <span><a href="#RFC6906" class="internal xref">RFC 6906</a> [<a href="#RFC6906" class="cite xref">RFC6906</a>]</span> (Profiles), and media type registration procedures follow <span><a href="#RFC6838" class="internal xref">RFC 6838</a> [<a href="#RFC6838" class="cite xref">RFC6838</a>]</span>.<a href="#section-12.3-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="example-agent-descriptor">
+<section id="section-13">
+      <h2 id="name-appendix-a-example-agent-de">
+<a href="#section-13" class="section-number selfRef">13. </a><a href="#name-appendix-a-example-agent-de" class="section-name selfRef">Appendix A. Example Agent Descriptor</a>
+      </h2>
+<p id="section-13-1">Following is an example of <code>agent.json</code>.<a href="#section-13-1" class="pilcrow">¶</a></p>
+<span id="name-example-agent-descriptor-in"></span><div id="fig-agent-descriptor">
+<figure id="figure-7">
+        <div class="lang-json-ld sourcecode" id="section-13-2.1">
+<pre>
+{
+  "@context": "https://example.org/agent-context.jsonld",
+  "name": "planner.example.com",
+  "description": "Agent helps in researching &amp; planning itineraries",
+  "url": "agent://planner.example.com/",
+  "provider": {
+    "organization": "Example AI Org"
+  },
+  "documentationUrl": "https://planner.example.com/docs",
+  "interactionModel": "agent2agent",
+  "orchestration": "delegation",
+  "envelopeSchemas": ["fipa-acl"],
+  "version": "3.1.4",
+  "supportedVersions": {
+    "3.0.0": "/v3/",
+    "2.1.2": "/olderversion/v2.1.2/",
+    "1.0": "/version-1/"
+  },
+  "capabilities": [
+    {
+      "name": "gen-iti",
+      "version": "2.1.5",
+      "description": "Creates a travel itinerary for a given city.",
+      "input": { "city": "string" },
+      "output": { "itinerary": "array" },
+      "isDeterministic": false,
+      "expectedOutputVariability": "medium",
+      "contentTypes": {
+        "inputFormat": ["application/json", "application/ld+json"],
+        "outputFormat": ["application/json"]
+      }
+    }
+  ],
+  "authentication": {
+    "schemes": ["OAuth2"]
+  },
+  "skills": [
+    {
+        "id": "agent-skill-1",
+        "name": "research-location"
+    }
+  ]
+}
+
+</pre>
+</div>
+<figcaption><a href="#figure-7" class="selfRef">Figure 7</a>:
+<a href="#name-example-agent-descriptor-in" class="selfRef">Example Agent Descriptor in JSON-LD</a>
+        </figcaption></figure>
+</div>
+<p id="section-13-3">A JSON-LD context is added to support semantic querying and graph-based processing.<a href="#section-13-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="use-cases">
+<section id="section-14">
+      <h2 id="name-appendix-b-use-cases">
+<a href="#section-14" class="section-number selfRef">14. </a><a href="#name-appendix-b-use-cases" class="section-name selfRef">Appendix B. Use Cases</a>
+      </h2>
+<ul class="normal">
+<li class="normal" id="section-14-1.1">
+          <p id="section-14-1.1.1">Composing workflows with agents from different vendors<a href="#section-14-1.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-1.2">
+          <p id="section-14-1.2.1">Enabling discovery and invocation in agent marketplaces<a href="#section-14-1.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-1.3">
+          <p id="section-14-1.3.1">Facilitating human-in-the-loop workflows with agent transparency<a href="#section-14-1.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-1.4">
+          <p id="section-14-1.4.1">Building knowledge-based agents that invoke retrieval agents<a href="#section-14-1.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-1.5">
+          <p id="section-14-1.5.1">Real-time collaboration among specialized agents<a href="#section-14-1.5.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-1.6">
+          <p id="section-14-1.6.1">Browser-to-local-agent delegation for privileged operations and desktop automation<a href="#section-14-1.6.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-1.7">
+          <p id="section-14-1.7.1">Consistent addressing for agents across network boundaries and security contexts<a href="#section-14-1.7.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+</section>
+</div>
+<div id="reference-implementation">
+<section id="section-15">
+      <h2 id="name-appendix-c-reference-implem">
+<a href="#section-15" class="section-number selfRef">15. </a><a href="#name-appendix-c-reference-implem" class="section-name selfRef">Appendix C. Reference Implementation</a>
+      </h2>
+<p id="section-15-1">A reference implementation of the <code>agent://</code> protocol is available to guide implementers, demonstrating the following functionalities:<a href="#section-15-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-15-2.1">
+          <p id="section-15-2.1.1">URI parsing and resolution (<code>agent.json</code>, <code>.well-known</code> endpoints)<a href="#section-15-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-15-2.2">
+          <p id="section-15-2.2.1">Transport bindings including HTTPS, WebSocket, Matrix, and Local IPC<a href="#section-15-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-15-2.3">
+          <p id="section-15-2.3.1">Capability descriptor discovery, caching, and semantic processing<a href="#section-15-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-15-2.4">
+          <p id="section-15-2.4.1">Orchestration and delegation chaining examples<a href="#section-15-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-15-2.5">
+          <p id="section-15-2.5.1">Error handling, payload negotiation, and versioning patterns<a href="#section-15-2.5.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-15-2.6">
+          <p id="section-15-2.6.1">Security examples covering OAuth2, JWT, and mutual TLS (mTLS)<a href="#section-15-2.6.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-15-3">The implementation is open-source and maintained at:<a href="#section-15-3" class="pilcrow">¶</a></p>
+<p id="section-15-4"><span>[<a href="#AGENT-URI-REPO" class="cite xref">AGENT-URI-REPO</a>]</span><a href="#section-15-4" class="pilcrow">¶</a></p>
+<p id="section-15-5">Implementers are encouraged to use this as a starting point or reference during their implementation efforts.<a href="#section-15-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="acknowledgements">
+<section id="section-16">
+      <h2 id="name-acknowledgements">
+<a href="#name-acknowledgements" class="section-name selfRef">Acknowledgements</a>
+      </h2>
+<p id="section-16-1">This draft reflects observations and aspirations drawn from emerging agent ecosystems. It builds on publicly available research, community discussions, and early experimentation with agent-oriented protocols. It is intended as a foundation for future refinement and collaboration.<a href="#section-16-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-combined-references">
+<section id="section-17">
+      <h2 id="name-references">
+<a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<div id="sec-normative-references">
+<section id="section-17.1">
+        <h3 id="name-normative-references">
+<a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="DID-CORE">[DID-CORE]</dt>
+        <dd>
+<span class="refAuthor">Sporny, M.</span>, <span class="refAuthor">Longley, D.</span>, <span class="refAuthor">Sabadello, M.</span>, <span class="refAuthor">Reed, D.</span>, <span class="refAuthor">Steele, O.</span>, and <span class="refAuthor">C. Allen</span>, <span class="refTitle">"Decentralized Identifiers (DIDs) v1.0"</span>, <span class="seriesInfo">W3C Recommendation</span>, <time datetime="2022-07" class="refDate">July 2022</time>, <span>&lt;<a href="https://www.w3.org/TR/did-core/">https://www.w3.org/TR/did-core/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="JSON-LD11">[JSON-LD11]</dt>
+        <dd>
+<span class="refAuthor">Sporny, M.</span>, <span class="refAuthor">Longley, D.</span>, <span class="refAuthor">Kellogg, G.</span>, <span class="refAuthor">Lanthaler, M.</span>, <span class="refAuthor">Champin, P.</span>, and <span class="refAuthor">N. Lindstrom</span>, <span class="refTitle">"JSON-LD 1.1: A JSON-based Serialization for Linked Data"</span>, <span class="seriesInfo">W3C Recommendation</span>, <time datetime="2020-07" class="refDate">July 2020</time>, <span>&lt;<a href="https://www.w3.org/TR/json-ld11/">https://www.w3.org/TR/json-ld11/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC2119">[RFC2119]</dt>
+        <dd>
+<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc2119">https://www.rfc-editor.org/rfc/rfc2119</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC3986">[RFC3986]</dt>
+        <dd>
+<span class="refAuthor">Berners-Lee, T.</span>, <span class="refAuthor">Fielding, R.</span>, and <span class="refAuthor">L. Masinter</span>, <span class="refTitle">"Uniform Resource Identifier (URI): Generic Syntax"</span>, <span class="seriesInfo">STD 66</span>, <span class="seriesInfo">RFC 3986</span>, <span class="seriesInfo">DOI 10.17487/RFC3986</span>, <time datetime="2005-01" class="refDate">January 2005</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc3986">https://www.rfc-editor.org/rfc/rfc3986</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6570">[RFC6570]</dt>
+        <dd>
+<span class="refAuthor">Gregorio, J.</span>, <span class="refAuthor">Fielding, R.</span>, <span class="refAuthor">Hadley, M.</span>, <span class="refAuthor">Nottingham, M.</span>, and <span class="refAuthor">D. Orchard</span>, <span class="refTitle">"URI Template"</span>, <span class="seriesInfo">RFC 6570</span>, <span class="seriesInfo">DOI 10.17487/RFC6570</span>, <time datetime="2012-03" class="refDate">March 2012</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6570">https://www.rfc-editor.org/rfc/rfc6570</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6749">[RFC6749]</dt>
+        <dd>
+<span class="refAuthor">Hardt, D., Ed.</span>, <span class="refTitle">"The OAuth 2.0 Authorization Framework"</span>, <span class="seriesInfo">RFC 6749</span>, <span class="seriesInfo">DOI 10.17487/RFC6749</span>, <time datetime="2012-10" class="refDate">October 2012</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6749">https://www.rfc-editor.org/rfc/rfc6749</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6750">[RFC6750]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span> and <span class="refAuthor">D. Hardt</span>, <span class="refTitle">"The OAuth 2.0 Authorization Framework: Bearer Token Usage"</span>, <span class="seriesInfo">RFC 6750</span>, <span class="seriesInfo">DOI 10.17487/RFC6750</span>, <time datetime="2012-10" class="refDate">October 2012</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6750">https://www.rfc-editor.org/rfc/rfc6750</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7519">[RFC7519]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">N. Sakimura</span>, <span class="refTitle">"JSON Web Token (JWT)"</span>, <span class="seriesInfo">RFC 7519</span>, <span class="seriesInfo">DOI 10.17487/RFC7519</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7519">https://www.rfc-editor.org/rfc/rfc7519</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7595">[RFC7595]</dt>
+        <dd>
+<span class="refAuthor">Thaler, D., Ed.</span>, <span class="refAuthor">Hansen, T.</span>, and <span class="refAuthor">T. Hardie</span>, <span class="refTitle">"Guidelines and Registration Procedures for URI Schemes"</span>, <span class="seriesInfo">BCP 35</span>, <span class="seriesInfo">RFC 7595</span>, <span class="seriesInfo">DOI 10.17487/RFC7595</span>, <time datetime="2015-06" class="refDate">June 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7595">https://www.rfc-editor.org/rfc/rfc7595</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8174">[RFC8174]</dt>
+        <dd>
+<span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8174">https://www.rfc-editor.org/rfc/rfc8174</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8705">[RFC8705]</dt>
+        <dd>
+<span class="refAuthor">Campbell, B.</span>, <span class="refAuthor">Bradley, J.</span>, <span class="refAuthor">Sakimura, N.</span>, and <span class="refAuthor">T. Lodderstedt</span>, <span class="refTitle">"OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens"</span>, <span class="seriesInfo">RFC 8705</span>, <span class="seriesInfo">DOI 10.17487/RFC8705</span>, <time datetime="2020-02" class="refDate">February 2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8705">https://www.rfc-editor.org/rfc/rfc8705</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9110">[RFC9110]</dt>
+        <dd>
+<span class="refAuthor">Fielding, R., Ed.</span>, <span class="refAuthor">Nottingham, M., Ed.</span>, and <span class="refAuthor">J. Reschke, Ed.</span>, <span class="refTitle">"HTTP Semantics"</span>, <span class="seriesInfo">STD 97</span>, <span class="seriesInfo">RFC 9110</span>, <span class="seriesInfo">DOI 10.17487/RFC9110</span>, <time datetime="2022-06" class="refDate">June 2022</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9110">https://www.rfc-editor.org/rfc/rfc9110</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9457">[RFC9457]</dt>
+      <dd>
+<span class="refAuthor">Nottingham, M.</span>, <span class="refAuthor">Wilde, E.</span>, and <span class="refAuthor">S. Dalal</span>, <span class="refTitle">"Problem Details for HTTP APIs"</span>, <span class="seriesInfo">RFC 9457</span>, <span class="seriesInfo">DOI 10.17487/RFC9457</span>, <time datetime="2023-07" class="refDate">July 2023</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9457">https://www.rfc-editor.org/rfc/rfc9457</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="sec-informative-references">
+<section id="section-17.2">
+        <h3 id="name-informative-references">
+<a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="AGENT-URI-REPO">[AGENT-URI-REPO]</dt>
+        <dd>
+<span class="refAuthor">Narvaneni, Y.</span>, <span class="refTitle">"Agent URI Protocol Reference Implementation"</span>, <time datetime="2025" class="refDate">2025</time>, <span>&lt;<a href="https://github.com/agent-uri/agent-uri">https://github.com/agent-uri/agent-uri</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="Agent2Agent">[Agent2Agent]</dt>
+        <dd>
+<span class="refAuthor">Google LLC</span>, <span class="refTitle">"Agent2Agent Protocol"</span>, <time datetime="2025-04" class="refDate">April 2025</time>, <span>&lt;<a href="https://github.com/google/A2A">https://github.com/google/A2A</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="AgentCard">[AgentCard]</dt>
+        <dd>
+<span class="refAuthor">Google LLC</span>, <span class="refTitle">"Agent Card Schema from Agent2Agent Protocol"</span>, <time datetime="2025-04" class="refDate">April 2025</time>, <span>&lt;<a href="https://github.com/google/A2A/blob/main/specification/json/a2a.json">https://github.com/google/A2A/blob/main/specification/json/a2a.json</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="AutoGen">[AutoGen]</dt>
+        <dd>
+<span class="refAuthor">Microsoft Research</span>, <span class="refTitle">"AutoGen: Enabling LLM Applications with Multi-Agent Conversations"</span>, <time datetime="2024" class="refDate">2024</time>, <span>&lt;<a href="https://microsoft.github.io/autogen/">https://microsoft.github.io/autogen/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="FIPA-ACL">[FIPA-ACL]</dt>
+        <dd>
+<span class="refAuthor">Foundation for Intelligent Physical Agents</span>, <span class="refTitle">"FIPA ACL Message Structure Specification"</span>, <time datetime="2002" class="refDate">2002</time>, <span>&lt;<a href="http://www.fipa.org/specs/fipa00061/SC00061G.html">http://www.fipa.org/specs/fipa00061/SC00061G.html</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="FIPA-CNP">[FIPA-CNP]</dt>
+        <dd>
+<span class="refAuthor">Foundation for Intelligent Physical Agents</span>, <span class="refTitle">"FIPA Contract Net Interaction Protocol Specification"</span>, <time datetime="2002" class="refDate">2002</time>, <span>&lt;<a href="http://www.fipa.org/specs/fipa00029/SC00029H.html">http://www.fipa.org/specs/fipa00029/SC00029H.html</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="GraphQL">[GraphQL]</dt>
+        <dd>
+<span class="refAuthor">GraphQL Foundation</span>, <span class="refTitle">"GraphQL: A Query Language for APIs"</span>, <time datetime="2021-10" class="refDate">October 2021</time>, <span>&lt;<a href="https://spec.graphql.org/October2021/">https://spec.graphql.org/October2021/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="JSON-RPC">[JSON-RPC]</dt>
+        <dd>
+<span class="refAuthor">JSON-RPC Working Group</span>, <span class="refTitle">"JSON-RPC 2.0 Specification"</span>, <time datetime="2013-01-04" class="refDate">4 January 2013</time>, <span>&lt;<a href="https://www.jsonrpc.org/specification">https://www.jsonrpc.org/specification</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="LangChain">[LangChain]</dt>
+        <dd>
+<span class="refAuthor">LangChain Team</span>, <span class="refTitle">"LangChain Documentation"</span>, <time datetime="2024" class="refDate">2024</time>, <span>&lt;<a href="https://python.langchain.com/v0.3/docs/">https://python.langchain.com/v0.3/docs/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="Matrix">[Matrix]</dt>
+        <dd>
+<span class="refAuthor">The Matrix org Foundation</span>, <span class="refTitle">"Matrix Specification v1.14"</span>, <time datetime="2014" class="refDate">2014</time>, <span>&lt;<a href="https://spec.matrix.org/">https://spec.matrix.org/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="MCP">[MCP]</dt>
+        <dd>
+<span class="refAuthor">Anthropic PBC</span>, <span class="refTitle">"Model Context Protocol (MCP)"</span>, <time datetime="2025-03" class="refDate">March 2025</time>, <span>&lt;<a href="https://modelcontextprotocol.io/specification/">https://modelcontextprotocol.io/specification/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="OpenAPI">[OpenAPI]</dt>
+        <dd>
+<span class="refAuthor">OpenAPI Initiative</span>, <span class="refTitle">"OpenAPI Specification v3.1.0"</span>, <time datetime="2024-10" class="refDate">October 2024</time>, <span>&lt;<a href="https://spec.openapis.org/oas/latest.html">https://spec.openapis.org/oas/latest.html</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6838">[RFC6838]</dt>
+        <dd>
+<span class="refAuthor">Freed, N.</span>, <span class="refAuthor">Klensin, J.</span>, and <span class="refAuthor">T. Hansen</span>, <span class="refTitle">"Media Type Specifications and Registration Procedures"</span>, <span class="seriesInfo">BCP 13</span>, <span class="seriesInfo">RFC 6838</span>, <span class="seriesInfo">DOI 10.17487/RFC6838</span>, <time datetime="2013-01" class="refDate">January 2013</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6838">https://www.rfc-editor.org/rfc/rfc6838</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6906">[RFC6906]</dt>
+        <dd>
+<span class="refAuthor">Wilde, E.</span>, <span class="refTitle">"The 'profile' Link Relation Type"</span>, <span class="seriesInfo">RFC 6906</span>, <span class="seriesInfo">DOI 10.17487/RFC6906</span>, <time datetime="2013-03" class="refDate">March 2013</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6906">https://www.rfc-editor.org/rfc/rfc6906</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="SemanticKernel">[SemanticKernel]</dt>
+        <dd>
+<span class="refAuthor">Microsoft</span>, <span class="refTitle">"Semantic Kernel SDK"</span>, <time datetime="2024" class="refDate">2024</time>, <span>&lt;<a href="https://github.com/microsoft/semantic-kernel">https://github.com/microsoft/semantic-kernel</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="SemVer">[SemVer]</dt>
+      <dd>
+<span class="refAuthor">Preston-Werner, T.</span>, <span class="refTitle">"Semantic Versioning 2.0.0"</span>, <time datetime="2013" class="refDate">2013</time>, <span>&lt;<a href="https://semver.org/">https://semver.org/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-A">
+      <h2 id="name-authors-address">
+<a href="#name-authors-address" class="section-name selfRef">Author's Address</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Yaswanth Narvaneni</span></div>
+<div dir="auto" class="left"><span class="org">Independent Researcher</span></div>
+<div dir="auto" class="left"><span class="locality">London</span></div>
+<div dir="auto" class="left"><span class="country-name">United Kingdom</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:yaswanth+ietf@gmail.com" class="email">yaswanth+ietf@gmail.com</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>
