@@ -677,7 +677,12 @@ class MessageSignatureVerifier:
         try:
             from cryptography.exceptions import InvalidSignature
             from cryptography.hazmat.primitives import hashes, serialization
-            from cryptography.hazmat.primitives.asymmetric import ec, ed25519, padding
+            from cryptography.hazmat.primitives.asymmetric import (
+                ec,
+                ed25519,
+                padding,
+                rsa,
+            )
         except ImportError as e:
             raise SignatureVerificationError(
                 f"cryptography package required for signature verification: {e}"
@@ -695,8 +700,8 @@ class MessageSignatureVerifier:
                 key, ec.EllipticCurvePublicKey
             ):
                 key.verify(signature, signing_input, ec.ECDSA(hashes.SHA256()))
-            elif alg == "rsa-pss-sha512":
-                key.verify(  # type: ignore[union-attr]
+            elif alg == "rsa-pss-sha512" and isinstance(key, rsa.RSAPublicKey):
+                key.verify(
                     signature,
                     signing_input,
                     padding.PSS(

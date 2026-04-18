@@ -94,13 +94,17 @@ jobs:
     - name: Run security checks
       run: |
         poetry run bandit -r agent_uri/ -x "*/tests/*,*/test_*.py"
-        # Ignored vulns:
+        # Ignored vulns (safety 2.x takes one --ignore flag per ID):
         # 67599 — safety CLI false positive on our dep set
         # 85681, 79883 — pip PATH / script-name issues in the runner's pip
         # 84961 — wheel zip-bomb advisory in the runner's wheel
         # The last three are in the GitHub runner's build toolchain, not
         # in our runtime dependencies; we upgrade pip/wheel via poetry.
-        poetry run safety check --ignore=67599,85681,79883,84961
+        poetry run safety check \
+          --ignore 67599 \
+          --ignore 85681 \
+          --ignore 79883 \
+          --ignore 84961
 
     - name: Run pip audit
       run: |
