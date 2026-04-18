@@ -1,231 +1,238 @@
 """
 Tests for exception classes and error codes.
+
+Aligned with draft-narvaneni-agent-uri-03 error-code extensions.
 """
 
 from agent_uri.exceptions import (
     AgentClientError,
     AgentError,
+    AgentGoneError,
     AgentServerError,
     AuthenticationError,
-    CapabilityError,
-    CapabilityNotFoundError,
     ConfigurationError,
+    ContentNegotiationError,
+    DelegationError,
     DescriptorError,
+    DIDResolutionError,
     ErrorCode,
     HandlerError,
     InvalidInputError,
     InvocationError,
+    KeyDiscoveryError,
+    RedirectViolationError,
     ResolutionError,
     ResolverError,
+    ScopeNarrowingViolationError,
     SessionError,
+    SignatureVerificationError,
+    SkillError,
+    SkillNotFoundError,
+    SSRFViolationError,
     StreamingError,
     TransportError,
+    TransportNotSupportedError,
     TransportTimeoutError,
 )
 
 
 class TestErrorCode:
-    """Test error code constants."""
-
     def test_error_codes_are_strings(self):
-        """Test that all error codes are string values."""
         assert isinstance(ErrorCode.INVALID_URI_FORMAT, str)
-        assert isinstance(ErrorCode.CAPABILITY_NOT_FOUND, str)
+        assert isinstance(ErrorCode.SKILL_NOT_FOUND, str)
         assert isinstance(ErrorCode.TRANSPORT_ERROR, str)
 
-    def test_client_error_codes(self):
-        """Test client error codes start with 4."""
+    def test_client_error_codes_start_with_4(self):
         assert ErrorCode.INVALID_URI_FORMAT.startswith("4")
         assert ErrorCode.AUTHENTICATION_ERROR.startswith("4")
-        assert ErrorCode.CAPABILITY_NOT_FOUND.startswith("4")
+        assert ErrorCode.SKILL_NOT_FOUND.startswith("4")
         assert ErrorCode.TRANSPORT_TIMEOUT.startswith("4")
+        assert ErrorCode.CONTENT_NOT_ACCEPTABLE.startswith("4")
+        assert ErrorCode.AGENT_GONE.startswith("4")
 
-    def test_server_error_codes(self):
-        """Test server error codes start with 5."""
-        assert ErrorCode.CAPABILITY_ERROR.startswith("5")
+    def test_server_error_codes_start_with_5(self):
+        assert ErrorCode.SKILL_ERROR.startswith("5")
         assert ErrorCode.HANDLER_ERROR.startswith("5")
         assert ErrorCode.TRANSPORT_ERROR.startswith("5")
+        assert ErrorCode.SSRF_VIOLATION.startswith("5")
+        assert ErrorCode.SIGNATURE_VERIFICATION_ERROR.startswith("5")
+        assert ErrorCode.DELEGATION_ERROR.startswith("5")
         assert ErrorCode.UNKNOWN_ERROR.startswith("5")
 
 
 class TestAgentError:
-    """Test base AgentError class."""
-
     def test_basic_error(self):
-        """Test basic error creation."""
-        error = AgentError("Test message")
-        assert str(error) == "[5999] Test message"
-        assert error.error_code == ErrorCode.UNKNOWN_ERROR
-        assert error.details == {}
+        e = AgentError("Test message")
+        assert str(e) == "[5999] Test message"
+        assert e.error_code == ErrorCode.UNKNOWN_ERROR
+        assert e.details == {}
 
     def test_error_with_code(self):
-        """Test error with specific code."""
-        error = AgentError("Test message", ErrorCode.INVALID_URI_FORMAT)
-        assert str(error) == "[4001] Test message"
-        assert error.error_code == ErrorCode.INVALID_URI_FORMAT
+        e = AgentError("Msg", ErrorCode.INVALID_URI_FORMAT)
+        assert str(e) == "[4001] Msg"
+        assert e.error_code == ErrorCode.INVALID_URI_FORMAT
 
     def test_error_with_details(self):
-        """Test error with details."""
-        details = {"key": "value", "number": 42}
-        error = AgentError("Test message", ErrorCode.INVALID_INPUT, details)
-        assert error.details == details
-        assert error.error_code == ErrorCode.INVALID_INPUT
+        details = {"k": "v", "n": 42}
+        e = AgentError("Msg", ErrorCode.INVALID_INPUT, details)
+        assert e.details == details
 
 
 class TestServerExceptions:
-    """Test server-side exceptions."""
+    def test_skill_not_found_error(self):
+        e = SkillNotFoundError("echo")
+        assert "echo" in str(e)
+        assert e.error_code == ErrorCode.SKILL_NOT_FOUND
+        assert e.details["skill_id"] == "echo"
 
-    def test_capability_not_found_error(self):
-        """Test CapabilityNotFoundError."""
-        error = CapabilityNotFoundError("test_capability")
-        assert "test_capability" in str(error)
-        assert error.error_code == ErrorCode.CAPABILITY_NOT_FOUND
-        assert error.details["capability_name"] == "test_capability"
+    def test_skill_not_found_with_available(self):
+        available = ["s1", "s2", "s3"]
+        e = SkillNotFoundError("missing", available)
+        assert "missing" in str(e)
+        assert "s1, s2, s3" in str(e)
+        assert e.details["available_skills"] == available
 
-    def test_capability_not_found_with_available(self):
-        """Test CapabilityNotFoundError with available capabilities."""
-        available = ["cap1", "cap2", "cap3"]
-        error = CapabilityNotFoundError("missing", available)
-        assert "missing" in str(error)
-        assert "cap1, cap2, cap3" in str(error)
-        assert error.details["available_capabilities"] == available
-
-    def test_capability_error(self):
-        """Test CapabilityError."""
-        error = CapabilityError("Execution failed", "test_capability")
-        assert error.error_code == ErrorCode.CAPABILITY_ERROR
-        assert error.details["capability_name"] == "test_capability"
+    def test_skill_error(self):
+        e = SkillError("Execution failed", "echo")
+        assert e.error_code == ErrorCode.SKILL_ERROR
+        assert e.details["skill_id"] == "echo"
 
     def test_handler_error(self):
-        """Test HandlerError."""
-        error = HandlerError("Handler failed", "http")
-        assert error.error_code == ErrorCode.HANDLER_ERROR
-        assert error.details["handler_type"] == "http"
+        e = HandlerError("Handler failed", "http")
+        assert e.error_code == ErrorCode.HANDLER_ERROR
+        assert e.details["handler_type"] == "http"
 
     def test_descriptor_error(self):
-        """Test DescriptorError."""
-        error = DescriptorError("Invalid descriptor", "/path/to/agent.json")
-        assert error.error_code == ErrorCode.DESCRIPTOR_ERROR
-        assert error.details["descriptor_path"] == "/path/to/agent.json"
+        e = DescriptorError("bad", "/path/to/agent.json")
+        assert e.error_code == ErrorCode.DESCRIPTOR_ERROR
+        assert e.details["descriptor_path"] == "/path/to/agent.json"
 
     def test_configuration_error(self):
-        """Test ConfigurationError."""
-        error = ConfigurationError("Missing config", "database_url")
-        assert error.error_code == ErrorCode.CONFIGURATION_ERROR
-        assert error.details["config_key"] == "database_url"
+        e = ConfigurationError("Missing", "database_url")
+        assert e.error_code == ErrorCode.CONFIGURATION_ERROR
+        assert e.details["config_key"] == "database_url"
 
     def test_authentication_error(self):
-        """Test AuthenticationError."""
-        error = AuthenticationError("Auth failed", "bearer")
-        assert error.error_code == ErrorCode.AUTHENTICATION_ERROR
-        assert error.details["auth_scheme"] == "bearer"
+        e = AuthenticationError("Auth failed", "bearer")
+        assert e.error_code == ErrorCode.AUTHENTICATION_ERROR
+        assert e.details["auth_scheme"] == "bearer"
 
     def test_invalid_input_error(self):
-        """Test InvalidInputError."""
-        validation_errors = ["Field is required", "Invalid format"]
-        error = InvalidInputError("Validation failed", "email", validation_errors)
-        assert error.error_code == ErrorCode.INVALID_INPUT
-        assert error.details["field_name"] == "email"
-        assert error.details["validation_errors"] == validation_errors
+        validation = ["Field is required", "Invalid format"]
+        e = InvalidInputError("Validation failed", "email", validation)
+        assert e.error_code == ErrorCode.INVALID_INPUT
+        assert e.details["field_name"] == "email"
+        assert e.details["validation_errors"] == validation
+
+    def test_content_negotiation_error(self):
+        e = ContentNegotiationError(
+            "Can't produce", requested="text/plain", supported=["application/json"]
+        )
+        assert e.error_code == ErrorCode.CONTENT_NOT_ACCEPTABLE
+        assert e.details["requested"] == "text/plain"
+        assert e.details["supported"] == ["application/json"]
+
+    def test_agent_gone_error(self):
+        e = AgentGoneError("Gone", agent_uri="agent://x.test/")
+        assert e.error_code == ErrorCode.AGENT_GONE
+        assert e.details["agent_uri"] == "agent://x.test/"
+
+
+class TestResolverExceptions:
+    def test_ssrf_violation(self):
+        e = SSRFViolationError("blocked", target="127.0.0.1")
+        assert e.error_code == ErrorCode.SSRF_VIOLATION
+        assert e.details["target"] == "127.0.0.1"
+
+    def test_redirect_violation(self):
+        e = RedirectViolationError("no", target="http://169.254.169.254/")
+        assert e.error_code == ErrorCode.REDIRECT_VIOLATION
+
+    def test_did_resolution_error(self):
+        e = DIDResolutionError("did fail", did="did:web:x.test")
+        assert e.error_code == ErrorCode.DID_RESOLUTION_ERROR
+        assert e.details["did"] == "did:web:x.test"
 
 
 class TestClientExceptions:
-    """Test client-side exceptions."""
-
     def test_invocation_error(self):
-        """Test InvocationError."""
-        error = InvocationError("Invocation failed", "agent://test.com", "echo")
-        assert error.error_code == ErrorCode.INVOCATION_ERROR
-        assert error.details["agent_uri"] == "agent://test.com"
-        assert error.details["capability_name"] == "echo"
+        e = InvocationError("fail", "agent://test.com", "echo")
+        assert e.error_code == ErrorCode.INVOCATION_ERROR
+        assert e.details["agent_uri"] == "agent://test.com"
+        assert e.details["skill_id"] == "echo"
 
     def test_resolution_error(self):
-        """Test ResolutionError."""
-        error = ResolutionError("Resolution failed", "agent://unknown.com")
-        assert error.error_code == ErrorCode.RESOLUTION_ERROR
-        assert error.details["agent_uri"] == "agent://unknown.com"
+        e = ResolutionError("fail", "agent://unknown.com")
+        assert e.error_code == ErrorCode.RESOLUTION_ERROR
+        assert e.details["agent_uri"] == "agent://unknown.com"
 
     def test_session_error(self):
-        """Test SessionError."""
-        error = SessionError("Session expired", "session-123")
-        assert error.error_code == ErrorCode.SESSION_ERROR
-        assert error.details["session_id"] == "session-123"
+        e = SessionError("expired", "session-123")
+        assert e.error_code == ErrorCode.SESSION_ERROR
+        assert e.details["session_id"] == "session-123"
 
     def test_transport_error(self):
-        """Test TransportError."""
-        error = TransportError("Transport failed", "https", "https://example.com")
-        assert error.error_code == ErrorCode.TRANSPORT_ERROR
-        assert error.details["transport_type"] == "https"
-        assert error.details["endpoint"] == "https://example.com"
+        e = TransportError("fail", "https", "https://example.com")
+        assert e.error_code == ErrorCode.TRANSPORT_ERROR
+        assert e.details["transport_type"] == "https"
+        assert e.details["endpoint"] == "https://example.com"
 
     def test_transport_timeout_error(self):
-        """Test TransportTimeoutError."""
-        error = TransportTimeoutError("Timeout", "wss", "wss://example.com", 30.0)
-        assert error.error_code == ErrorCode.TRANSPORT_TIMEOUT
-        assert error.details["transport_type"] == "wss"
-        assert error.details["endpoint"] == "wss://example.com"
-        assert error.details["timeout_seconds"] == 30.0
+        e = TransportTimeoutError("Timeout", "wss", "wss://example.com", 30.0)
+        assert e.error_code == ErrorCode.TRANSPORT_TIMEOUT
+        assert e.details["timeout_seconds"] == 30.0
+
+    def test_transport_not_supported_error(self):
+        e = TransportNotSupportedError("no grpc yet", transport_type="grpc")
+        assert e.error_code == ErrorCode.TRANSPORT_UNAVAILABLE
+        assert e.details["transport_type"] == "grpc"
 
     def test_resolver_error(self):
-        """Test ResolverError."""
-        error = ResolverError("Resolver failed", "agent://test.com")
-        assert error.error_code == ErrorCode.RESOLVER_ERROR
-        assert error.details["agent_uri"] == "agent://test.com"
+        e = ResolverError("fail", "agent://test.com")
+        assert e.error_code == ErrorCode.RESOLVER_ERROR
 
     def test_streaming_error(self):
-        """Test StreamingError."""
-        error = StreamingError("Stream failed", "stream-456")
-        assert error.error_code == ErrorCode.STREAMING_ERROR
-        assert error.details["stream_id"] == "stream-456"
+        e = StreamingError("fail", "stream-456")
+        assert e.error_code == ErrorCode.STREAMING_ERROR
+
+
+class TestSignatureAndDelegationExceptions:
+    def test_signature_verification_error(self):
+        e = SignatureVerificationError("bad sig", component="signature")
+        assert e.error_code == ErrorCode.SIGNATURE_VERIFICATION_ERROR
+        assert e.details["component"] == "signature"
+
+    def test_key_discovery_error(self):
+        e = KeyDiscoveryError("no key", source="jwks_uri")
+        assert e.error_code == ErrorCode.KEY_DISCOVERY_ERROR
+        assert e.details["source"] == "jwks_uri"
+
+    def test_delegation_error(self):
+        e = DelegationError("chain broken", reason="step_2")
+        assert e.error_code == ErrorCode.DELEGATION_ERROR
+        assert e.details["reason"] == "step_2"
+
+    def test_scope_narrowing_violation(self):
+        e = ScopeNarrowingViolationError(
+            "widened", outer_scope="read", inner_scope="read write"
+        )
+        assert e.error_code == ErrorCode.SCOPE_NARROWING_VIOLATION
+        assert isinstance(e, DelegationError)
 
 
 class TestExceptionHierarchy:
-    """Test exception inheritance hierarchy."""
-
     def test_server_error_inheritance(self):
-        """Test server errors inherit from AgentError."""
-        error = CapabilityNotFoundError("test")
-        assert isinstance(error, AgentServerError)
-        assert isinstance(error, AgentError)
-        assert isinstance(error, Exception)
+        e = SkillNotFoundError("test")
+        assert isinstance(e, AgentServerError)
+        assert isinstance(e, AgentError)
+        assert isinstance(e, Exception)
 
     def test_client_error_inheritance(self):
-        """Test client errors inherit from AgentError."""
-        error = InvocationError("test")
-        assert isinstance(error, AgentClientError)
-        assert isinstance(error, AgentError)
-        assert isinstance(error, Exception)
+        e = InvocationError("test")
+        assert isinstance(e, AgentClientError)
+        assert isinstance(e, AgentError)
 
     def test_transport_timeout_inheritance(self):
-        """Test TransportTimeoutError inherits correctly."""
-        error = TransportTimeoutError("test")
-        assert isinstance(error, TransportTimeoutError)
-        assert isinstance(error, AgentClientError)
-        assert isinstance(error, AgentError)
-        assert isinstance(error, Exception)
-
-
-class TestExceptionWithoutOptionalParams:
-    """Test exceptions work without optional parameters."""
-
-    def test_capability_error_no_params(self):
-        """Test CapabilityError without optional params."""
-        error = CapabilityError("Basic error")
-        assert error.error_code == ErrorCode.CAPABILITY_ERROR
-        assert error.details == {}
-
-    def test_handler_error_no_params(self):
-        """Test HandlerError without optional params."""
-        error = HandlerError("Basic error")
-        assert error.details == {}
-
-    def test_resolution_error_no_params(self):
-        """Test ResolutionError without optional params."""
-        error = ResolutionError("Basic error")
-        assert error.details == {}
-
-    def test_invalid_input_error_minimal(self):
-        """Test InvalidInputError with minimal params."""
-        error = InvalidInputError("Validation failed")
-        assert error.details["field_name"] is None
-        assert error.details["validation_errors"] == []
+        e = TransportTimeoutError("test")
+        assert isinstance(e, TransportError)
+        assert isinstance(e, AgentClientError)

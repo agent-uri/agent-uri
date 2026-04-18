@@ -16,7 +16,7 @@ from ..resolver import AgentResolver, ResolverNotFoundError
 SAMPLE_DESCRIPTOR = {
     "name": "test-agent",
     "version": "1.0.0",
-    "capabilities": [{"name": "test-capability", "description": "A test capability"}],
+    "skills": [{"id": "echo", "name": "echo", "description": "Echo skill"}],
 }
 
 SAMPLE_AGENTS_REGISTRY = {
