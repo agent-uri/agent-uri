@@ -10,11 +10,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from ..exceptions import (
-    ConfigurationError,
-    HandlerError,
-    SkillNotFoundError,
-)
+from ..exceptions import ConfigurationError, SkillNotFoundError
 from ..server import FASTAPI_AVAILABLE, AgentServer
 from ..skill import Skill, SkillMetadata
 

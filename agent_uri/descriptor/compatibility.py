@@ -12,12 +12,7 @@ namespace under an ``x-a2a-`` prefix.
 from enum import Enum, auto
 from typing import Any, Dict, List, Protocol, Type
 
-from .models import (
-    AgentDescriptor,
-    Authentication,
-    Provider,
-    Skill,
-)
+from .models import AgentDescriptor, Authentication, Provider, Skill
 
 
 class DescriptorFormat(Enum):

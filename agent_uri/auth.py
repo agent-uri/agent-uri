@@ -755,7 +755,8 @@ class JWSDescriptorVerifier:
         try:
             # Detached-payload JWS: header..signature
             head, _, sig = jws_header_value.partition("..")
-            assembled = f"{head}.{base64.urlsafe_b64encode(payload).rstrip(b'=').decode()}.{sig}"
+            encoded_payload = base64.urlsafe_b64encode(payload).rstrip(b"=").decode()
+            assembled = f"{head}.{encoded_payload}.{sig}"
             unverified = jwt.get_unverified_header(assembled)
             keyid = unverified.get("kid")
             if not keyid:

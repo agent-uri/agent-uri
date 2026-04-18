@@ -3,7 +3,6 @@ Tests for the authentication module.
 """
 
 import base64
-import json
 import time
 from unittest.mock import MagicMock, Mock, patch
 

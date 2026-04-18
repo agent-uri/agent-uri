@@ -10,13 +10,7 @@ import pytest
 
 from ..auth import AuthProvider
 from ..client import AgentClient, AgentSession
-from ..exceptions import (
-    AgentClientError,
-    InvocationError,
-    ResolutionError,
-    ResolverError,
-    SessionError,
-)
+from ..exceptions import InvocationError, ResolutionError, ResolverError, SessionError
 from ..transport.base import TransportError
 
 

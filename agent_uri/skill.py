@@ -307,7 +307,8 @@ def skill(
         skill_description = description or (func.__doc__ or "").strip()
         if not skill_description:
             raise ValueError(
-                "Skill must have a description (via @skill(description=...) or docstring)"
+                "Skill must have a description "
+                "(via @skill(description=...) or docstring)"
             )
         metadata = SkillMetadata(
             id=skill_id,

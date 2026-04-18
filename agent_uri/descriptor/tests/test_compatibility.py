@@ -18,12 +18,7 @@ from ..compatibility import (
     to_agent_card,
     to_format,
 )
-from ..models import (
-    AgentDescriptor,
-    Authentication,
-    Provider,
-    Skill,
-)
+from ..models import AgentDescriptor, Authentication, Provider, Skill
 
 
 @pytest.fixture
