@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-uri.org/schemas/agents-registry.schema.json",
+  "title": "Agent Registry",
+  "description": "Schema for /.well-known/agents.json registry files. Both single-agent and multi-agent domains use this format.",
+  "type": "object",
+  "required": ["agents"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "description": "Version of the registry format for forward compatibility. Defaults to '1' if absent.",
+      "pattern": "^[0-9]+(\\.[0-9]+)*$"
+    },
+    "updated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of the last registry update"
+    },
+    "agents": {
+      "type": "object",
+      "description": "Map of agent names to their descriptor URLs or descriptor entry objects. Simple form: 'name': 'https://example.com/agent.json'. Rich form: 'name': { 'url': '...', 'status': '...', 'version': '...' }.",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uri",
+            "description": "Direct HTTPS URL to the agent's descriptor"
+          },
+          {
+            "type": "object",
+            "required": ["url"],
+            "properties": {
+              "url": { "type": "string", "format": "uri" },
+              "status": {
+                "type": "string",
+                "enum": ["active", "deprecated", "experimental"]
+              },
+              "version": { "type": "string" },
+              "environment": {
+                "type": "string",
+                "enum": ["production", "staging", "sandbox"]
+              }
+            }
+          }
+        ]
+      },
+      "propertyNames": {
+        "description": "Agent names SHOULD use URL-safe ASCII characters (letters, digits, hyphen, underscore)",
+        "pattern": "^[A-Za-z0-9_\\-./]+$"
+      }
+    }
+  },
+  "additionalProperties": true
+}

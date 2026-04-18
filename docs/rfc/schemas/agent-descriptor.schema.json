@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-uri.org/schemas/agent-descriptor.schema.json",
+  "title": "Agent Descriptor",
+  "description": "Schema for agent:// protocol agent descriptors. Aligned with AgentCard skill semantics. Scope: addressing/discovery only; application-layer metadata belongs in extension fields.",
+  "type": "object",
+  "required": ["name", "version", "skills"],
+  "properties": {
+    "@context": {
+      "description": "Optional JSON-LD context for semantic interoperability. String form MUST be a dereferenceable URL. Array elements MUST be strings (URLs) or objects (inline context definitions) per JSON-LD 1.1.",
+      "oneOf": [
+        { "type": "string", "format": "uri" },
+        { "type": "object" },
+        {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "type": "string", "format": "uri" },
+              { "type": "object" }
+            ]
+          }
+        }
+      ]
+    },
+    "name": {
+      "type": "string",
+      "description": "The agent's identifier",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "description": "The agent's version, following SemVer 2.0.0",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of the agent"
+    },
+    "url": {
+      "type": "string",
+      "format": "uri",
+      "description": "The agent's canonical agent:// URI"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "deprecated", "experimental"],
+      "default": "active",
+      "description": "Lifecycle status of the agent"
+    },
+    "conformanceLevel": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3,
+      "description": "The conformance level (0-3) implemented by this agent"
+    },
+    "environment": {
+      "type": "string",
+      "description": "Deployment environment hint aligned with OpenTelemetry deployment.environment (e.g., production, staging, development, preview, sandbox)"
+    },
+    "provider": {
+      "type": "object",
+      "properties": {
+        "organization": { "type": "string" },
+        "url": { "type": "string", "format": "uri" }
+      }
+    },
+    "documentationUrl": {
+      "type": "string",
+      "format": "uri"
+    },
+    "transport": {
+      "type": "object",
+      "description": "Transport metadata. At least one of endpoint, https, wss, grpc, mqtt, local, unix MUST be present.",
+      "properties": {
+        "endpoint": { "type": "string", "format": "uri" },
+        "https": { "type": "string", "format": "uri" },
+        "wss": { "type": "string", "format": "uri" },
+        "grpc": { "type": "string", "format": "uri" },
+        "mqtt": { "type": "string" },
+        "local": { "type": "string" },
+        "unix": { "type": "string" }
+      },
+      "anyOf": [
+        { "required": ["endpoint"] },
+        { "required": ["https"] },
+        { "required": ["wss"] },
+        { "required": ["grpc"] },
+        { "required": ["mqtt"] },
+        { "required": ["local"] },
+        { "required": ["unix"] }
+      ]
+    },
+    "skills": {
+      "type": "array",
+      "description": "Array of skills the agent exposes. Aligned with AgentCard skills.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "description"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Skill identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable skill name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of the skill"
+          },
+          "version": {
+            "type": "string",
+            "description": "Skill-specific version following SemVer"
+          },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "input": {
+            "type": "object",
+            "description": "JSON Schema describing the input format"
+          },
+          "output": {
+            "type": "object",
+            "description": "JSON Schema describing the output format"
+          },
+          "contentTypes": {
+            "type": "object",
+            "properties": {
+              "accepts": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "produces": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          },
+          "streaming": {
+            "type": "boolean",
+            "description": "Whether the skill supports streaming responses"
+          },
+          "streamingFormat": {
+            "type": "string",
+            "enum": ["sse", "ndjson", "grpc-stream"]
+          },
+          "idempotent": {
+            "type": "boolean",
+            "description": "Whether the skill is safe to retry without side effects"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "deprecated", "experimental"],
+            "default": "active"
+          },
+          "authentication": {
+            "$ref": "#/properties/authentication"
+          },
+          "depends": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["uri"],
+              "properties": {
+                "uri": { "type": "string", "format": "uri" },
+                "relation": { "type": "string" },
+                "versionConstraint": { "type": "string" }
+              }
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "authentication": {
+      "type": "object",
+      "description": "Authentication metadata referencing OAuth Authorization Server Metadata (RFC 8414) or OAuth Protected Resource Metadata (RFC 9728)",
+      "properties": {
+        "schemes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "IANA-registered HTTP Authentication Scheme names (Bearer, Mutual, Digest, ...)"
+        },
+        "authorizationServer": {
+          "type": "string",
+          "format": "uri",
+          "description": "Issuer URL for OAuth 2.0 Authorization Server Metadata discovery (RFC 8414)"
+        },
+        "protectedResourceMetadata": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of the OAuth 2.0 Protected Resource Metadata document (RFC 9728)"
+        }
+      }
+    },
+    "supportedVersions": {
+      "type": "object",
+      "description": "Map of older version strings to their endpoint paths",
+      "additionalProperties": { "type": "string" }
+    },
+    "interactionModel": {
+      "type": "array",
+      "description": "One or more registered communication-protocol identifiers (agent2agent, mcp, fipa-acl, openapi, ...)",
+      "items": { "type": "string" },
+      "minItems": 1
+    }
+  },
+  "additionalProperties": true,
+  "$comment": "Unknown top-level fields are permitted for extensibility. Extensions SHOULD use an x-<vendor>- prefix or be defined in a JSON-LD @context. Implementations that wish to enforce the convention can apply this propertyNames pattern in validation: ^([a-z][a-zA-Z0-9]*|x-[a-z0-9]+(-[a-z0-9]+)*|@[a-z]+)$"
+}
