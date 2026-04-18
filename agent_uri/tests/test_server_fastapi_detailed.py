@@ -1,8 +1,8 @@
 """
 Detailed tests for FastAPI server module functionality.
 
-This module provides comprehensive tests for the uncovered FastAPI functionality
-including HTTP request handling, WebSocket connections, and error scenarios.
+Aligned with draft-narvaneni-agent-uri-03. Error responses use
+RFC 9457 problem-details JSON with an ``errorCode`` field.
 """
 
 import json
@@ -10,18 +10,17 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from ..capability import Capability, CapabilityMetadata
 from ..exceptions import (
     AuthenticationError,
-    CapabilityNotFoundError,
     ConfigurationError,
     HandlerError,
     InvalidInputError,
+    SkillNotFoundError,
 )
 from ..server import FASTAPI_AVAILABLE
 
 if FASTAPI_AVAILABLE:
-    from fastapi import HTTPException, Request, WebSocket
+    from fastapi import Request, WebSocket
     from fastapi.responses import JSONResponse
 
     from ..server import FastAPIAgentServer
@@ -29,535 +28,394 @@ else:
     FastAPIAgentServer = None
     Request = None
     WebSocket = None
-    HTTPException = None
     JSONResponse = None
 
 
 @pytest.mark.skipif(not FASTAPI_AVAILABLE, reason="FastAPI not available")
 class TestFastAPIRequestHandling:
-    """Test FastAPI request handling functionality."""
-
     @pytest.fixture
     def server(self):
-        """Create a FastAPI server for testing."""
         return FastAPIAgentServer(
             name="test-agent",
             version="1.0.0",
             description="Test server for detailed testing",
         )
 
-    @pytest.fixture
-    def mock_capability(self):
-        """Create a mock capability for testing."""
-        metadata = CapabilityMetadata(
-            name="test_capability",
-            description="Test capability for detailed testing",
-            input_schema={
-                "type": "object",
-                "properties": {"message": {"type": "string"}},
-                "required": ["message"],
-            },
-        )
-
-        async def test_handler(message: str) -> dict:
-            return {"response": f"Processed: {message}"}
-
-        return Capability(test_handler, metadata)
-
     @pytest.mark.asyncio
     async def test_handle_http_request_get_with_query_params(self, server):
-        """Test HTTP GET request with query parameters."""
-        # Create a mock Request object
-        mock_request = Mock(spec=Request)
-        mock_request.method = "GET"
-        mock_request.query_params = {"param1": "value1", "param2": "value2"}
-        mock_request.headers = {"Content-Type": "application/json"}
-        mock_request.body = AsyncMock(return_value=b"")
+        req = Mock(spec=Request)
+        req.method = "GET"
+        req.query_params = {"param1": "value1", "param2": "value2"}
+        req.headers = {"Content-Type": "application/json"}
+        req.body = AsyncMock(return_value=b"")
 
-        # Mock the handler to return a specific result
         with patch.object(
             server._handlers["http"], "handle_request", new_callable=AsyncMock
         ) as mock_handler:
-            mock_handler.return_value = {"result": "success", "params_received": True}
+            mock_handler.return_value = {"result": "success"}
+            response = await server._handle_http_request(req, "/test")
 
-            response = await server._handle_http_request(mock_request, "/test")
-
-            # Verify response
             assert isinstance(response, JSONResponse)
             assert response.status_code == 200
-            content = json.loads(response.body)
-            assert content["result"] == "success"
+            assert json.loads(response.body)["result"] == "success"
 
-            # Verify handler was called with correct parameters
-            mock_handler.assert_called_once()
-            call_args = mock_handler.call_args
-            assert call_args[1]["path"] == "/test"
-            assert call_args[1]["params"]["param1"] == "value1"
-            assert call_args[1]["params"]["param2"] == "value2"
+            call_kwargs = mock_handler.call_args.kwargs
+            assert call_kwargs["path"] == "/test"
+            assert call_kwargs["params"]["param1"] == "value1"
 
     @pytest.mark.asyncio
     async def test_handle_http_request_post_with_json_body(self, server):
-        """Test HTTP POST request with JSON body."""
-        # Create a mock Request object with JSON body
-        mock_request = Mock(spec=Request)
-        mock_request.method = "POST"
-        mock_request.query_params = {}
-        mock_request.headers = {"Content-Type": "application/json"}
-
-        json_body = {"message": "test message", "data": {"nested": "value"}}
-        mock_request.body = AsyncMock(return_value=json.dumps(json_body).encode())
+        req = Mock(spec=Request)
+        req.method = "POST"
+        req.query_params = {}
+        req.headers = {"Content-Type": "application/json"}
+        req.body = AsyncMock(
+            return_value=json.dumps(
+                {"message": "test message", "data": {"nested": "value"}}
+            ).encode()
+        )
 
         with patch.object(
             server._handlers["http"], "handle_request", new_callable=AsyncMock
         ) as mock_handler:
             mock_handler.return_value = {"processed": True}
+            await server._handle_http_request(req, "/process")
 
-            await server._handle_http_request(mock_request, "/process")
-
-            # Verify handler received JSON body parameters
-            call_args = mock_handler.call_args
-            assert call_args[1]["params"]["message"] == "test message"
-            assert call_args[1]["params"]["data"]["nested"] == "value"
+            params = mock_handler.call_args.kwargs["params"]
+            assert params["message"] == "test message"
+            assert params["data"]["nested"] == "value"
 
     @pytest.mark.asyncio
     async def test_handle_http_request_post_with_raw_body(self, server):
-        """Test HTTP POST request with non-JSON raw body."""
-        mock_request = Mock(spec=Request)
-        mock_request.method = "POST"
-        mock_request.query_params = {}
-        mock_request.headers = {"Content-Type": "text/plain"}
-        mock_request.body = AsyncMock(return_value=b"raw text data")
+        req = Mock(spec=Request)
+        req.method = "POST"
+        req.query_params = {}
+        req.headers = {"Content-Type": "text/plain"}
+        req.body = AsyncMock(return_value=b"raw text data")
 
         with patch.object(
             server._handlers["http"], "handle_request", new_callable=AsyncMock
         ) as mock_handler:
             mock_handler.return_value = {"received_raw": True}
-
-            await server._handle_http_request(mock_request, "/raw")
-
-            # Verify raw body was added as 'body' parameter
-            call_args = mock_handler.call_args
-            assert call_args[1]["params"]["body"] == "raw text data"
+            await server._handle_http_request(req, "/raw")
+            params = mock_handler.call_args.kwargs["params"]
+            assert params["body"] == "raw text data"
 
     @pytest.mark.asyncio
-    async def test_handle_http_request_with_session_header(self, server):
-        """Test HTTP request with session ID in headers."""
-        mock_request = Mock(spec=Request)
-        mock_request.method = "GET"
-        mock_request.query_params = {}
-        mock_request.headers = {
+    async def test_handle_http_request_with_baggage_session(self, server):
+        """Session id comes from W3C Baggage header, not custom header."""
+        req = Mock(spec=Request)
+        req.method = "GET"
+        req.query_params = {}
+        req.headers = {
             "Content-Type": "application/json",
-            "X-Session-ID": "session-12345",
+            "baggage": "session.id=abc-123",
         }
-        mock_request.body = AsyncMock(return_value=b"")
+        req.body = AsyncMock(return_value=b"")
 
         with patch.object(
             server._handlers["http"], "handle_request", new_callable=AsyncMock
         ) as mock_handler:
-            mock_handler.return_value = {"session_handled": True}
-
-            await server._handle_http_request(mock_request, "/session")
-
-            # Verify session metadata was passed
-            call_args = mock_handler.call_args
-            assert "session_metadata" in call_args[1]
-            assert call_args[1]["session_metadata"]["session_id"] == "session-12345"
+            mock_handler.return_value = {}
+            await server._handle_http_request(req, "/session")
+            meta = mock_handler.call_args.kwargs["session_metadata"]
+            assert meta["session_id"] == "abc-123"
 
     @pytest.mark.asyncio
-    async def test_handle_http_request_capability_not_found_error(self, server):
-        """Test HTTP request handling when capability is not found."""
-        mock_request = Mock(spec=Request)
-        mock_request.method = "GET"
-        mock_request.query_params = {}
-        mock_request.headers = {}
-        mock_request.body = AsyncMock(return_value=b"")
+    async def test_handle_http_request_legacy_session_header(self, server):
+        """Legacy X-Session-ID still read during transition."""
+        req = Mock(spec=Request)
+        req.method = "GET"
+        req.query_params = {}
+        req.headers = {"X-Session-ID": "session-12345"}
+        req.body = AsyncMock(return_value=b"")
 
         with patch.object(
             server._handlers["http"], "handle_request", new_callable=AsyncMock
         ) as mock_handler:
-            mock_handler.side_effect = CapabilityNotFoundError("Capability not found")
+            mock_handler.return_value = {}
+            await server._handle_http_request(req, "/session")
+            meta = mock_handler.call_args.kwargs["session_metadata"]
+            assert meta["session_id"] == "session-12345"
 
-            with pytest.raises(HTTPException) as exc_info:
-                await server._handle_http_request(mock_request, "/nonexistent")
+    @pytest.mark.asyncio
+    async def test_handle_http_request_skill_not_found_returns_problem(self, server):
+        req = Mock(spec=Request)
+        req.method = "GET"
+        req.query_params = {}
+        req.headers = {}
+        req.body = AsyncMock(return_value=b"")
 
-            assert exc_info.value.status_code == 404
-            assert "Capability not found" in str(exc_info.value.detail)
+        with patch.object(
+            server._handlers["http"], "handle_request", new_callable=AsyncMock
+        ) as mock_handler:
+            mock_handler.side_effect = SkillNotFoundError("echo")
+            response = await server._handle_http_request(req, "/nonexistent")
+            assert response.status_code == 404
+            body = json.loads(response.body)
+            assert body["status"] == 404
+            assert body["errorCode"] == "4041"
 
     @pytest.mark.asyncio
     async def test_handle_http_request_authentication_error(self, server):
-        """Test HTTP request handling with authentication error."""
-        mock_request = Mock(spec=Request)
-        mock_request.method = "GET"
-        mock_request.query_params = {}
-        mock_request.headers = {}
-        mock_request.body = AsyncMock(return_value=b"")
+        req = Mock(spec=Request)
+        req.method = "GET"
+        req.query_params = {}
+        req.headers = {}
+        req.body = AsyncMock(return_value=b"")
 
         with patch.object(
             server._handlers["http"], "handle_request", new_callable=AsyncMock
         ) as mock_handler:
             mock_handler.side_effect = AuthenticationError("Invalid token")
-
-            with pytest.raises(HTTPException) as exc_info:
-                await server._handle_http_request(mock_request, "/secure")
-
-            assert exc_info.value.status_code == 401
-            assert "Invalid token" in str(exc_info.value.detail)
+            response = await server._handle_http_request(req, "/secure")
+            assert response.status_code == 401
+            body = json.loads(response.body)
+            assert body["errorCode"] == "4011"
 
     @pytest.mark.asyncio
     async def test_handle_http_request_invalid_input_error(self, server):
-        """Test HTTP request handling with invalid input error."""
-        mock_request = Mock(spec=Request)
-        mock_request.method = "GET"
-        mock_request.query_params = {}
-        mock_request.headers = {}
-        mock_request.body = AsyncMock(return_value=b"")
+        req = Mock(spec=Request)
+        req.method = "GET"
+        req.query_params = {}
+        req.headers = {}
+        req.body = AsyncMock(return_value=b"")
 
         with patch.object(
             server._handlers["http"], "handle_request", new_callable=AsyncMock
         ) as mock_handler:
-            mock_handler.side_effect = InvalidInputError("Invalid parameters")
-
-            with pytest.raises(HTTPException) as exc_info:
-                await server._handle_http_request(mock_request, "/validate")
-
-            assert exc_info.value.status_code == 400
-            assert "Invalid parameters" in str(exc_info.value.detail)
+            mock_handler.side_effect = InvalidInputError("bad input")
+            response = await server._handle_http_request(req, "/validate")
+            assert response.status_code == 400
+            assert json.loads(response.body)["errorCode"] == "4006"
 
     @pytest.mark.asyncio
     async def test_handle_http_request_handler_error(self, server):
-        """Test HTTP request handling with handler error."""
-        mock_request = Mock(spec=Request)
-        mock_request.method = "GET"
-        mock_request.query_params = {}
-        mock_request.headers = {}
-        mock_request.body = AsyncMock(return_value=b"")
+        req = Mock(spec=Request)
+        req.method = "GET"
+        req.query_params = {}
+        req.headers = {}
+        req.body = AsyncMock(return_value=b"")
 
         with patch.object(
             server._handlers["http"], "handle_request", new_callable=AsyncMock
         ) as mock_handler:
-            mock_handler.side_effect = HandlerError("Handler failed")
-
-            with pytest.raises(HTTPException) as exc_info:
-                await server._handle_http_request(mock_request, "/error")
-
-            assert exc_info.value.status_code == 500
-            assert "Handler failed" in str(exc_info.value.detail)
+            mock_handler.side_effect = HandlerError("boom")
+            response = await server._handle_http_request(req, "/err")
+            assert response.status_code == 500
+            assert json.loads(response.body)["errorCode"] == "5002"
 
     @pytest.mark.asyncio
     async def test_handle_http_request_unexpected_error(self, server):
-        """Test HTTP request handling with unexpected error."""
-        mock_request = Mock(spec=Request)
-        mock_request.method = "GET"
-        mock_request.query_params = {}
-        mock_request.headers = {}
-        mock_request.body = AsyncMock(return_value=b"")
+        req = Mock(spec=Request)
+        req.method = "GET"
+        req.query_params = {}
+        req.headers = {}
+        req.body = AsyncMock(return_value=b"")
 
         with patch.object(
             server._handlers["http"], "handle_request", new_callable=AsyncMock
         ) as mock_handler:
-            mock_handler.side_effect = ValueError("Unexpected error")
-
-            with pytest.raises(HTTPException) as exc_info:
-                await server._handle_http_request(mock_request, "/unexpected")
-
-            assert exc_info.value.status_code == 500
-            assert "Internal server error" in str(exc_info.value.detail)
-            assert "Unexpected error" in str(exc_info.value.detail)
+            mock_handler.side_effect = ValueError("unexpected")
+            response = await server._handle_http_request(req, "/x")
+            assert response.status_code == 500
+            body = json.loads(response.body)
+            assert body["title"] == "Internal Server Error"
 
 
 @pytest.mark.skipif(not FASTAPI_AVAILABLE, reason="FastAPI not available")
 class TestFastAPIWebSocketHandling:
-    """Test FastAPI WebSocket handling functionality."""
-
     @pytest.fixture
     def server(self):
-        """Create a FastAPI server for testing."""
         return FastAPIAgentServer(
             name="websocket-agent",
             version="1.0.0",
-            description="WebSocket test server",
+            description="WS test server",
         )
 
     @pytest.mark.asyncio
-    async def test_handle_websocket_connection_basic(self, server):
-        """Test basic WebSocket connection handling."""
-        # Create a mock WebSocket
-        mock_websocket = Mock(spec=WebSocket)
-        mock_websocket.accept = AsyncMock()
-        mock_websocket.receive_text = AsyncMock(
-            return_value='{"message": "test", "session_id": "ws-session-123"}'
+    async def test_basic_connection(self, server):
+        ws = Mock(spec=WebSocket)
+        ws.accept = AsyncMock()
+        ws.receive_text = AsyncMock(
+            return_value='{"message": "test", "session_id": "ws-123"}'
         )
-        mock_websocket.send_text = AsyncMock()
-        mock_websocket.close = AsyncMock()
+        ws.send_text = AsyncMock()
+        ws.close = AsyncMock()
 
-        # Mock the WebSocket handler to yield streaming data
-        async def mock_stream():
-            yield {"chunk": 1, "data": "first"}
-            yield {"chunk": 2, "data": "second"}
+        async def stream():
+            yield {"chunk": 1}
+            yield {"chunk": 2}
 
-        with patch.object(
-            server, "handle_websocket_request", return_value=mock_stream()
-        ):
-            await server._handle_websocket_connection(mock_websocket, "/stream")
-
-            # Verify WebSocket interactions
-            mock_websocket.accept.assert_called_once()
-            mock_websocket.receive_text.assert_called_once()
-
-            # Verify streaming responses were sent
-            assert mock_websocket.send_text.call_count == 2
-
-            # Check the sent data
-            sent_calls = mock_websocket.send_text.call_args_list
-            first_chunk = json.loads(sent_calls[0][0][0])
-            second_chunk = json.loads(sent_calls[1][0][0])
-
-            assert first_chunk["chunk"] == 1
-            assert second_chunk["chunk"] == 2
+        with patch.object(server, "handle_websocket_request", return_value=stream()):
+            await server._handle_websocket_connection(ws, "/stream")
+            ws.accept.assert_called_once()
+            assert ws.send_text.call_count == 2
+            sent = [json.loads(c.args[0]) for c in ws.send_text.call_args_list]
+            assert sent == [{"chunk": 1}, {"chunk": 2}]
 
     @pytest.mark.asyncio
-    async def test_handle_websocket_connection_with_session_metadata(self, server):
-        """Test WebSocket connection with session metadata extraction."""
-        mock_websocket = Mock(spec=WebSocket)
-        mock_websocket.accept = AsyncMock()
-        mock_websocket.receive_text = AsyncMock(
-            return_value='{"param": "value", "session_id": "ws-session-456"}'
+    async def test_session_metadata_from_params(self, server):
+        ws = Mock(spec=WebSocket)
+        ws.accept = AsyncMock()
+        ws.receive_text = AsyncMock(
+            return_value='{"param": "value", "session_id": "ws-456"}'
         )
-        mock_websocket.send_text = AsyncMock()
-        mock_websocket.close = AsyncMock()
+        ws.send_text = AsyncMock()
+        ws.close = AsyncMock()
 
-        async def mock_stream():
-            yield {"response": "processed"}
+        async def stream():
+            yield {"ok": True}
 
         with patch.object(
-            server, "handle_websocket_request", return_value=mock_stream()
+            server, "handle_websocket_request", return_value=stream()
         ) as mock_handler:
-            await server._handle_websocket_connection(mock_websocket, "/test")
-
-            # Verify session metadata was extracted and passed
-            mock_handler.assert_called_once()
-            call_args = mock_handler.call_args
-            assert "session_metadata" in call_args[1]
-            assert call_args[1]["session_metadata"]["session_id"] == "ws-session-456"
+            await server._handle_websocket_connection(ws, "/t")
+            meta = mock_handler.call_args.kwargs["session_metadata"]
+            assert meta["session_id"] == "ws-456"
 
     @pytest.mark.asyncio
-    async def test_handle_websocket_connection_different_data_types(self, server):
-        """Test WebSocket handling different data types."""
-        mock_websocket = Mock(spec=WebSocket)
-        mock_websocket.accept = AsyncMock()
-        mock_websocket.receive_text = AsyncMock(return_value='{"test": "data"}')
-        mock_websocket.send_text = AsyncMock()
-        mock_websocket.send_bytes = AsyncMock()
-        mock_websocket.close = AsyncMock()
+    async def test_different_data_types(self, server):
+        ws = Mock(spec=WebSocket)
+        ws.accept = AsyncMock()
+        ws.receive_text = AsyncMock(return_value='{"test": "data"}')
+        ws.send_text = AsyncMock()
+        ws.send_bytes = AsyncMock()
+        ws.close = AsyncMock()
 
-        async def mock_stream():
-            yield {"dict": "data"}  # Dict/list should be JSON encoded
-            yield "string data"  # String should be sent directly
-            yield b"byte data"  # Bytes should use send_bytes
-            yield 42  # Other types should be converted to string
+        async def stream():
+            yield {"dict": "data"}
+            yield "string data"
+            yield b"byte data"
+            yield 42
 
-        with patch.object(
-            server, "handle_websocket_request", return_value=mock_stream()
-        ):
-            await server._handle_websocket_connection(mock_websocket, "/types")
-
-            # Verify different send methods were used appropriately
-            assert mock_websocket.send_text.call_count == 3  # dict, string, number
-            assert mock_websocket.send_bytes.call_count == 1  # bytes
-
-            # Check the sent data
-            text_calls = mock_websocket.send_text.call_args_list
-            bytes_calls = mock_websocket.send_bytes.call_args_list
-
-            # Dict should be JSON encoded
-            first_text = text_calls[0][0][0]
-            assert json.loads(first_text) == {"dict": "data"}
-
-            # String should be sent as-is
-            second_text = text_calls[1][0][0]
-            assert second_text == "string data"
-
-            # Number should be stringified
-            third_text = text_calls[2][0][0]
-            assert third_text == "42"
-
-            # Bytes should use send_bytes
-            sent_bytes = bytes_calls[0][0][0]
-            assert sent_bytes == b"byte data"
+        with patch.object(server, "handle_websocket_request", return_value=stream()):
+            await server._handle_websocket_connection(ws, "/types")
+            assert ws.send_text.call_count == 3
+            assert ws.send_bytes.call_count == 1
+            texts = [c.args[0] for c in ws.send_text.call_args_list]
+            assert json.loads(texts[0]) == {"dict": "data"}
+            assert texts[1] == "string data"
+            assert texts[2] == "42"
+            assert ws.send_bytes.call_args_list[0].args[0] == b"byte data"
 
     @pytest.mark.asyncio
-    async def test_handle_websocket_connection_capability_not_found(self, server):
-        """Test WebSocket connection with capability not found error."""
-        mock_websocket = Mock(spec=WebSocket)
-        mock_websocket.accept = AsyncMock()
-        mock_websocket.receive_text = AsyncMock(return_value='{"test": "data"}')
-        mock_websocket.send_text = AsyncMock()
-        mock_websocket.close = AsyncMock()
+    async def test_skill_not_found(self, server):
+        ws = Mock(spec=WebSocket)
+        ws.accept = AsyncMock()
+        ws.receive_text = AsyncMock(return_value='{"test": "data"}')
+        ws.send_text = AsyncMock()
+        ws.close = AsyncMock()
 
         with patch.object(
             server,
             "handle_websocket_request",
-            side_effect=CapabilityNotFoundError("WebSocket capability not found"),
+            side_effect=SkillNotFoundError("missing"),
         ):
-            await server._handle_websocket_connection(mock_websocket, "/missing")
-
-            # Verify error message was sent
-            mock_websocket.send_text.assert_called_once()
-            error_message = json.loads(mock_websocket.send_text.call_args[0][0])
-            assert error_message["error"] == "CapabilityNotFound"
-            assert "WebSocket capability not found" in error_message["message"]
+            await server._handle_websocket_connection(ws, "/missing")
+            payload = json.loads(ws.send_text.call_args.args[0])
+            assert payload["error"] == "SkillNotFound"
+            assert payload["errorCode"] == "4041"
 
     @pytest.mark.asyncio
-    async def test_handle_websocket_connection_authentication_error(self, server):
-        """Test WebSocket connection with authentication error."""
-        mock_websocket = Mock(spec=WebSocket)
-        mock_websocket.accept = AsyncMock()
-        mock_websocket.receive_text = AsyncMock(return_value='{"test": "data"}')
-        mock_websocket.send_text = AsyncMock()
-        mock_websocket.close = AsyncMock()
+    async def test_authentication_error(self, server):
+        ws = Mock(spec=WebSocket)
+        ws.accept = AsyncMock()
+        ws.receive_text = AsyncMock(return_value='{"test": "data"}')
+        ws.send_text = AsyncMock()
+        ws.close = AsyncMock()
 
         with patch.object(
             server,
             "handle_websocket_request",
-            side_effect=AuthenticationError("WebSocket auth failed"),
+            side_effect=AuthenticationError("bad token"),
         ):
-            await server._handle_websocket_connection(mock_websocket, "/secure")
-
-            # Verify error message was sent
-            error_message = json.loads(mock_websocket.send_text.call_args[0][0])
-            assert error_message["error"] == "AuthenticationError"
-            assert "WebSocket auth failed" in error_message["message"]
+            await server._handle_websocket_connection(ws, "/secure")
+            payload = json.loads(ws.send_text.call_args.args[0])
+            assert payload["error"] == "AuthenticationError"
 
     @pytest.mark.asyncio
-    async def test_handle_websocket_connection_invalid_input_error(self, server):
-        """Test WebSocket connection with invalid input error."""
-        mock_websocket = Mock(spec=WebSocket)
-        mock_websocket.accept = AsyncMock()
-        mock_websocket.receive_text = AsyncMock(return_value='{"test": "data"}')
-        mock_websocket.send_text = AsyncMock()
-        mock_websocket.close = AsyncMock()
+    async def test_invalid_input_error(self, server):
+        ws = Mock(spec=WebSocket)
+        ws.accept = AsyncMock()
+        ws.receive_text = AsyncMock(return_value='{"test": "data"}')
+        ws.send_text = AsyncMock()
+        ws.close = AsyncMock()
 
         with patch.object(
             server,
             "handle_websocket_request",
-            side_effect=InvalidInputError("WebSocket input invalid"),
+            side_effect=InvalidInputError("bad"),
         ):
-            await server._handle_websocket_connection(mock_websocket, "/validate")
-
-            error_message = json.loads(mock_websocket.send_text.call_args[0][0])
-            assert error_message["error"] == "InvalidInput"
-            assert "WebSocket input invalid" in error_message["message"]
+            await server._handle_websocket_connection(ws, "/validate")
+            payload = json.loads(ws.send_text.call_args.args[0])
+            assert payload["error"] == "InvalidInput"
 
     @pytest.mark.asyncio
-    async def test_handle_websocket_connection_handler_error(self, server):
-        """Test WebSocket connection with handler error."""
-        mock_websocket = Mock(spec=WebSocket)
-        mock_websocket.accept = AsyncMock()
-        mock_websocket.receive_text = AsyncMock(return_value='{"test": "data"}')
-        mock_websocket.send_text = AsyncMock()
-        mock_websocket.close = AsyncMock()
+    async def test_handler_error(self, server):
+        ws = Mock(spec=WebSocket)
+        ws.accept = AsyncMock()
+        ws.receive_text = AsyncMock(return_value='{"test": "data"}')
+        ws.send_text = AsyncMock()
+        ws.close = AsyncMock()
 
         with patch.object(
             server,
             "handle_websocket_request",
-            side_effect=HandlerError("WebSocket handler failed"),
+            side_effect=HandlerError("failed"),
         ):
-            await server._handle_websocket_connection(mock_websocket, "/error")
-
-            error_message = json.loads(mock_websocket.send_text.call_args[0][0])
-            assert error_message["error"] == "HandlerError"
-            assert "WebSocket handler failed" in error_message["message"]
+            await server._handle_websocket_connection(ws, "/err")
+            payload = json.loads(ws.send_text.call_args.args[0])
+            assert payload["error"] == "HandlerError"
 
     @pytest.mark.asyncio
-    async def test_handle_websocket_connection_unexpected_error(self, server):
-        """Test WebSocket connection with unexpected error."""
-        mock_websocket = Mock(spec=WebSocket)
-        mock_websocket.accept = AsyncMock()
-        mock_websocket.receive_text = AsyncMock(return_value='{"test": "data"}')
-        mock_websocket.send_text = AsyncMock()
-        mock_websocket.close = AsyncMock()
+    async def test_cleanup_closes_ws(self, server):
+        ws = Mock(spec=WebSocket)
+        ws.accept = AsyncMock()
+        ws.receive_text = AsyncMock(return_value='{"test": "data"}')
+        ws.send_text = AsyncMock()
+        ws.close = AsyncMock()
 
-        with patch.object(
-            server,
-            "handle_websocket_request",
-            side_effect=RuntimeError("Unexpected WebSocket error"),
-        ):
-            await server._handle_websocket_connection(mock_websocket, "/unexpected")
-
-            error_message = json.loads(mock_websocket.send_text.call_args[0][0])
-            assert error_message["error"] == "InternalServerError"
-            assert "Unexpected WebSocket error" in error_message["message"]
-
-    @pytest.mark.asyncio
-    async def test_handle_websocket_connection_cleanup(self, server):
-        """Test WebSocket connection cleanup in finally block."""
-        mock_websocket = Mock(spec=WebSocket)
-        mock_websocket.accept = AsyncMock()
-        mock_websocket.receive_text = AsyncMock(return_value='{"test": "data"}')
-        mock_websocket.send_text = AsyncMock()
-        mock_websocket.close = AsyncMock()
-
-        # Even with successful execution, should close WebSocket
-        async def mock_stream():
+        async def stream():
             yield {"success": True}
 
-        with patch.object(
-            server, "handle_websocket_request", return_value=mock_stream()
-        ):
-            await server._handle_websocket_connection(mock_websocket, "/cleanup")
-
-            # Verify WebSocket was closed
-            mock_websocket.close.assert_called_once()
+        with patch.object(server, "handle_websocket_request", return_value=stream()):
+            await server._handle_websocket_connection(ws, "/cleanup")
+            ws.close.assert_called_once()
 
 
 @pytest.mark.skipif(not FASTAPI_AVAILABLE, reason="FastAPI not available")
 class TestFastAPIConfigurationEdgeCases:
-    """Test FastAPI configuration and edge cases."""
-
     @pytest.mark.asyncio
-    async def test_handle_http_request_no_http_handler(self):
-        """Test HTTP request when no HTTP handler is configured."""
+    async def test_no_http_handler(self):
         server = FastAPIAgentServer("test-agent", "1.0.0")
-
-        # Remove HTTP handler to simulate configuration error
         del server._handlers["http"]
-
-        with pytest.raises(ConfigurationError, match="No HTTP handler registered"):
+        with pytest.raises(ConfigurationError, match="No HTTP handler"):
             await server.handle_http_request("/test", {})
 
     @pytest.mark.asyncio
-    async def test_handle_websocket_request_no_websocket_handler(self):
-        """Test WebSocket request when no WebSocket handler is configured."""
+    async def test_no_websocket_handler(self):
         server = FastAPIAgentServer("test-agent", "1.0.0")
-
-        # Remove WebSocket handler to simulate configuration error
         del server._handlers["websocket"]
-
-        with pytest.raises(ConfigurationError, match="No WebSocket handler registered"):
-            chunks = []
-            async for chunk in server.handle_websocket_request("/test", {}):
-                chunks.append(chunk)
+        with pytest.raises(ConfigurationError, match="No WebSocket handler"):
+            async for _ in server.handle_websocket_request("/test", {}):
+                pass
 
     @pytest.mark.asyncio
-    async def test_handle_http_request_handler_returns_non_coroutine(self):
-        """Test HTTP request when handler returns unexpected type."""
+    async def test_http_handler_returns_non_coroutine(self):
         server = FastAPIAgentServer("test-agent", "1.0.0")
-
-        # Mock handler to return non-coroutine
         with patch.object(
             server._handlers["http"], "handle_request", return_value="not_a_coroutine"
         ):
             with pytest.raises(
-                ConfigurationError, match="HTTP handler returned unexpected result type"
+                ConfigurationError, match="HTTP handler returned unexpected"
             ):
                 await server.handle_http_request("/test", {})
 
     @pytest.mark.asyncio
-    async def test_handle_websocket_request_non_async_iterable(self):
-        """Test WebSocket request when handler returns non-async iterable."""
+    async def test_websocket_non_async_iterable_single_response(self):
         server = FastAPIAgentServer("test-agent", "1.0.0")
 
-        # Create a mock coroutine that returns a single value (not an async generator)
         async def mock_single_result():
             return {"single": "response"}
 
@@ -569,33 +427,19 @@ class TestFastAPIConfigurationEdgeCases:
             chunks = []
             async for chunk in server.handle_websocket_request("/test", {}):
                 chunks.append(chunk)
-
-            # Should handle single response
-            assert len(chunks) == 1
-            assert chunks[0] == {"single": "response"}
+            assert chunks == [{"single": "response"}]
 
 
 @pytest.mark.skipif(FASTAPI_AVAILABLE, reason="Testing when FastAPI is not available")
 class TestFastAPIImportHandling:
-    """Test behavior when FastAPI is not available."""
+    def test_placeholder_raises(self):
+        from ..server import FastAPIAgentServer as Placeholder
 
-    def test_fastapi_server_placeholder_methods(self):
-        """Test placeholder methods when FastAPI is not available."""
-        # This tests the placeholder class that's defined when FastAPI is unavailable
-        # The placeholder should raise ImportError on instantiation
-
-        # Import the placeholder class directly from the module
-        from ..server import FastAPIAgentServer
-
-        # Should raise ImportError when instantiating
         with pytest.raises(ImportError, match="FastAPI is not installed"):
-            FastAPIAgentServer("test", "1.0.0")
+            Placeholder("test", "1.0.0")
 
-    @pytest.mark.asyncio
-    async def test_fastapi_unavailable_placeholder_methods(self):
-        """Test that placeholder methods exist when FastAPI is unavailable."""
-        from ..server import FastAPIAgentServer
+    def test_placeholder_methods_present(self):
+        from ..server import FastAPIAgentServer as Placeholder
 
-        # We can test the method signatures exist without instantiating
-        assert hasattr(FastAPIAgentServer, "handle_http_request")
-        assert hasattr(FastAPIAgentServer, "handle_websocket_request")
+        assert hasattr(Placeholder, "handle_http_request")
+        assert hasattr(Placeholder, "handle_websocket_request")

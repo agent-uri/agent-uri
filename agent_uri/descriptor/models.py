@@ -1,8 +1,10 @@
 """
 Data models for the agent descriptor (agent.json).
 
-This module defines the data classes that represent an agent descriptor
-as specified in the agent:// protocol RFC Section 7.
+Aligned with draft-narvaneni-agent-uri-03. The descriptor exposes skills
+(not "capabilities"), consistent with AgentCard field naming. Application
+and behavioral metadata is out of scope; use JSON-LD @context or vendor
+namespaces to carry extensions.
 """
 
 from dataclasses import dataclass, field
@@ -19,15 +21,15 @@ class Provider:
 
 @dataclass
 class ContentTypes:
-    """Content type information for a capability."""
+    """Content type information for a skill, aligned with HTTP Accept/Content-Type."""
 
-    input_format: List[str] = field(default_factory=list)
-    output_format: List[str] = field(default_factory=list)
+    accepts: List[str] = field(default_factory=list)
+    produces: List[str] = field(default_factory=list)
 
 
 @dataclass
 class Example:
-    """Example invocation of a capability."""
+    """Example invocation of a skill."""
 
     input: Dict[str, Any]
     output: Dict[str, Any]
@@ -35,55 +37,91 @@ class Example:
 
 
 @dataclass
-class Capability:
-    """A capability offered by an agent."""
+class Dependency:
+    """A declarative reference from one skill to another agent's skill.
 
-    name: str
-    description: Optional[str] = None
-    version: Optional[Union[str, float]] = None
-    input: Optional[Dict[str, Any]] = None
-    output: Optional[Dict[str, Any]] = None
-    is_deterministic: Optional[bool] = None
-    expected_output_variability: Optional[str] = None
-    content_types: Optional[ContentTypes] = None
-    requires_context: Optional[bool] = None
-    memory_enabled: Optional[bool] = None
-    response_latency: Optional[str] = None
-    streaming: Optional[bool] = None
-    tags: List[str] = field(default_factory=list)
-    deprecated: Optional[bool] = None
-    deprecated_reason: Optional[str] = None
-    examples: List[Example] = field(default_factory=list)
+    Informs orchestrators and topology tooling; clients MUST NOT
+    pre-invoke based on this alone. Per spec ``depends`` field.
+    """
+
+    uri: str
+    relation: Optional[str] = None
+    version_constraint: Optional[str] = None
 
 
 @dataclass
 class Authentication:
-    """Authentication methods supported by the agent."""
+    """Authentication metadata.
 
-    schemes: List[str]
-    details: Optional[Dict[str, Any]] = None
+    Rather than embedding OAuth specifics, we reference the standard
+    metadata documents (RFC 8414 Authorization Server Metadata or
+    RFC 9728 Protected Resource Metadata) or a JWKS endpoint.
+    """
+
+    schemes: List[str] = field(default_factory=list)
+    authorization_server: Optional[str] = None
+    protected_resource_metadata: Optional[str] = None
+    jwks_uri: Optional[str] = None
+    jwks: Optional[Dict[str, Any]] = None
 
 
 @dataclass
 class Skill:
-    """A skill the agent possesses, which may map to multiple capabilities."""
+    """A skill the agent exposes, aligned with AgentCard ``skills``.
+
+    The spec-required fields are ``id``, ``name``, ``description``.
+    """
 
     id: str
     name: str
-    description: Optional[str] = None
-    tags: Optional[List[str]] = None
-    examples: Optional[List[str]] = None
-    input_modes: Optional[List[str]] = None
-    output_modes: Optional[List[str]] = None
+    description: str
+    version: Optional[Union[str, float]] = None
+    tags: List[str] = field(default_factory=list)
+    input: Optional[Dict[str, Any]] = None
+    output: Optional[Dict[str, Any]] = None
+    content_types: Optional[ContentTypes] = None
+    streaming: Optional[bool] = None
+    streaming_format: Optional[str] = None  # "sse", "ndjson", "grpc-stream"
+    idempotent: Optional[bool] = None
+    status: Optional[str] = None  # "active", "deprecated", "experimental"
+    authentication: Optional[Authentication] = None
+    depends: List[Dependency] = field(default_factory=list)
+    examples: List[Example] = field(default_factory=list)
 
 
 @dataclass
-class Endpoints:
-    """Transport-specific endpoints for the agent."""
+class Transport:
+    """Transport metadata for an agent.
 
+    The object MUST contain at least one of the per-transport keys. The
+    ``endpoint`` key is the default when the URI carries no explicit
+    ``+protocol`` binding.
+    """
+
+    endpoint: Optional[str] = None
     https: Optional[str] = None
     wss: Optional[str] = None
+    grpc: Optional[str] = None
+    mqtt: Optional[str] = None
     local: Optional[str] = None
+    unix: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        if not any(
+            (
+                self.endpoint,
+                self.https,
+                self.wss,
+                self.grpc,
+                self.mqtt,
+                self.local,
+                self.unix,
+            )
+        ):
+            raise ValueError(
+                "Transport must specify at least one of endpoint, https, wss, "
+                "grpc, mqtt, local, unix"
+            )
 
 
 @dataclass
@@ -96,44 +134,30 @@ class Contact:
 
 
 @dataclass
-class AgentCapabilities:
-    """Capabilities configuration for A2A compatibility."""
-
-    streaming: bool = False
-    push_notifications: bool = False
-    state_transition_history: bool = False
-
-
-@dataclass
 class AgentDescriptor:
-    """
-    Main class representing an agent descriptor (agent.json).
+    """An agent descriptor (agent.json) per draft-narvaneni-agent-uri-03.
 
-    This class maps directly to the structure of agent.json files
-    as specified in the agent:// protocol RFC Section 7.
+    Required: ``name``, ``version``, ``skills`` (non-empty list of Skill
+    objects, each with ``id``, ``name``, ``description``).
     """
 
     name: str
     version: Union[str, float]
-    capabilities: List[Capability]
+    skills: List[Skill]
     description: Optional[str] = None
     url: Optional[str] = None
+    status: Optional[str] = None  # "active", "deprecated", "experimental"
+    conformance_level: Optional[int] = None  # 0, 1, 2, or 3
+    environment: Optional[str] = None  # production, staging, sandbox, ...
     provider: Optional[Provider] = None
     documentation_url: Optional[str] = None
-    interaction_model: Optional[str] = None
-    orchestration: Optional[str] = None
-    envelope_schemas: List[str] = field(default_factory=list)
-    supported_versions: Dict[str, str] = field(default_factory=dict)
+    transport: Optional[Transport] = None
     authentication: Optional[Authentication] = None
-    skills: List[Skill] = field(default_factory=list)
-    endpoints: Optional[Endpoints] = None
-    status: Optional[str] = None
+    interaction_model: List[str] = field(default_factory=list)
+    supported_versions: Dict[str, str] = field(default_factory=dict)
     terms_of_service: Optional[str] = None
     privacy: Optional[str] = None
     contact: Optional[Contact] = None
-    context: Optional[str] = None  # JSON-LD context
-
-    # A2A compatibility fields
-    default_input_modes: List[str] = field(default_factory=lambda: ["text"])
-    default_output_modes: List[str] = field(default_factory=lambda: ["text"])
-    agent_capabilities: Optional[AgentCapabilities] = None
+    context: Optional[Any] = None  # JSON-LD @context (string, object, or array)
+    # Vendor / extension fields are permitted at the JSON level but are not
+    # declared here; use a dict-based extension mechanism in your own code.

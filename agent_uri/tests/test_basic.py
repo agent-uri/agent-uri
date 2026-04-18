@@ -1,47 +1,51 @@
 """
-Basic tests to verify that the server package is working correctly.
+Smoke tests: verify the package imports and core types round-trip.
 
-This file contains simple tests to verify that the server package
-is installed correctly and can be imported and used.
+Aligned with draft-narvaneni-agent-uri-03. Use ``Skill`` (not the
+legacy ``Capability``).
 """
 
 import pytest
 
-from ..capability import Capability
+from ..skill import Skill
 
 
-def test_import():
-    """Test that the package can be imported correctly."""
+def test_import() -> None:
     import agent_uri
 
-    assert agent_uri is not None
+    assert agent_uri.__version__ == "0.5.0"
 
 
-def test_capability_creation():
-    """Test that a capability can be created."""
-
+def test_skill_creation() -> None:
     async def echo(text: str):
         return {"text": text}
 
-    cap = Capability(
-        func=echo, name="echo", description="Echo the input text", version="1.0.0"
+    s = Skill(
+        func=echo,
+        id="echo",
+        name="echo",
+        description="Echo the input text",
+        version="1.0.0",
     )
 
-    assert cap.metadata.name == "echo"
-    assert cap.metadata.description == "Echo the input text"
-    assert cap.metadata.version == "1.0.0"
+    assert s.metadata.id == "echo"
+    assert s.metadata.name == "echo"
+    assert s.metadata.description == "Echo the input text"
+    assert s.metadata.version == "1.0.0"
 
 
 @pytest.mark.asyncio
-async def test_capability_invocation():
-    """Test that a capability can be invoked."""
-
+async def test_skill_invocation() -> None:
     async def echo(text: str):
         return {"text": text}
 
-    cap = Capability(
-        func=echo, name="echo", description="Echo the input text", version="1.0.0"
+    s = Skill(
+        func=echo,
+        id="echo",
+        name="echo",
+        description="Echo the input text",
+        version="1.0.0",
     )
 
-    result = await cap.invoke({"text": "Hello, world!"})
+    result = await s.invoke({"text": "Hello, world!"})
     assert result == {"text": "Hello, world!"}

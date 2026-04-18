@@ -10,7 +10,8 @@ import pytest
 
 from ..auth import AuthProvider
 from ..client import AgentClient, AgentSession
-from ..exceptions import InvocationError, ResolutionError, SessionError
+from ..exceptions import InvocationError, ResolutionError, ResolverError, SessionError
+from ..transport.base import TransportError
 
 
 # Mock classes for testing
@@ -47,8 +48,9 @@ class MockDescriptor:
     def __init__(self, name="test-agent", version="1.0.0", interaction_model=None):
         self.name = name
         self.version = version
-        self.interaction_model = interaction_model
-        self.capabilities = []
+        # interaction_model is a list per spec-03
+        self.interaction_model = interaction_model or []
+        self.skills = []
 
 
 class MockTransport:
@@ -262,20 +264,19 @@ class TestAgentClient:
         mock_parse_uri.side_effect = None
         mock_parse_uri.return_value = MockAgentUri()
 
-        # Configure resolver to raise exception
-        self.mock_resolver.resolve.side_effect = Exception("Resolution failed")
+        # Resolver raises ResolverError; client maps it to ResolutionError.
+        self.mock_resolver.resolve.side_effect = ResolverError("Resolution failed")
 
-        # Verify ResolutionError is raised
         with pytest.raises(ResolutionError):
             self.client.invoke(uri="agent://test.com/capability")
 
         # Reset resolver
         self.mock_resolver.resolve.side_effect = None
 
-        # Configure transport to raise exception
-        self.mock_transport.invoke = Mock(side_effect=Exception("Invocation failed"))
-
-        # Verify InvocationError is raised
+        # Transport raises TransportError; client wraps it as InvocationError.
+        self.mock_transport.invoke = Mock(
+            side_effect=TransportError("Invocation failed")
+        )
         with pytest.raises(InvocationError):
             self.client.invoke(uri="agent://test.com/capability")
 
@@ -307,25 +308,18 @@ class TestAgentSession:
 
     def test_invoke(self):
         """Test invoking a capability via session."""
-        # Invoke capability
         response = self.session.invoke(
             capability="capability",
             params={"param": "value"},
             headers={"Custom-Header": "Value"},
         )
 
-        # Verify client invoke was called
         self.mock_client.invoke.assert_called_once()
-
-        # Get call arguments
         args, kwargs = self.mock_client.invoke.call_args
 
-        # Verify URI construction
+        # Session id propagates via W3C Baggage per spec.
         assert kwargs["uri"] == "agent://test.com/base/capability"
-
-        # Verify session headers
-        assert "X-Session-ID" in kwargs["headers"]
-        assert kwargs["headers"]["X-Session-ID"] == "test-session"
+        assert kwargs["headers"]["baggage"] == "session.id=test-session"
         assert "Custom-Header" in kwargs["headers"]
 
         # Verify session parameters
@@ -364,9 +358,8 @@ class TestAgentSession:
         # Verify URI construction
         assert kwargs["uri"] == "agent://test.com/base/capability"
 
-        # Verify session headers
-        assert "X-Session-ID" in kwargs["headers"]
-        assert kwargs["headers"]["X-Session-ID"] == "test-session"
+        # Verify session headers (Baggage, not X-Session-ID)
+        assert kwargs["headers"]["baggage"] == "session.id=test-session"
 
         # Verify session parameters
         assert "session_id" in kwargs["params"]

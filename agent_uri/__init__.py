@@ -1,41 +1,94 @@
 """
-Agent URI Protocol Implementation
+Agent URI Protocol — Reference Implementation
 
-A complete suite for addressing and interacting with AI agents using
-the agent:// protocol.
+Implementation of draft-narvaneni-agent-uri-03.
 
-Basic usage:
-    from agent_uri import AgentUri
-    # Parse an agent URI
-    uri = AgentUri.parse("agent://example.com/my-agent")
-    print(uri.authority)  # "example.com"
-    print(uri.path)       # "/my-agent"
+Basic usage::
+
+    from agent_uri import AgentUri, parse_agent_uri, AgentClient
+    uri = parse_agent_uri("agent://example.com/my-skill")
+    print(uri.host, uri.path)
 """
 
-__version__ = "0.3.0"
+__version__ = "0.5.0"
 __author__ = "Yaswanth Narvaneni"
 __email__ = "yaswanth@gmail.com"
 
-from .client import AgentClient
-
-# Import available exceptions
-from .exceptions import AgentServerError, AuthenticationError, CapabilityError
-
-# Import core functionality
+from .client import AgentClient, AgentSession
+from .exceptions import (
+    AgentClientError,
+    AgentError,
+    AgentGoneError,
+    AgentServerError,
+    AuthenticationError,
+    ContentNegotiationError,
+    DelegationError,
+    DescriptorError,
+    DIDResolutionError,
+    ErrorCode,
+    HandlerError,
+    InvalidInputError,
+    InvocationError,
+    KeyDiscoveryError,
+    RedirectViolationError,
+    ResolutionError,
+    ResolverError,
+    ScopeNarrowingViolationError,
+    SessionError,
+    SignatureVerificationError,
+    SkillError,
+    SkillNotFoundError,
+    SSRFViolationError,
+    StreamingError,
+    TransportError,
+    TransportNotSupportedError,
+    TransportTimeoutError,
+)
 from .parser import AgentUri, parse_agent_uri
 from .server import FastAPIAgentServer
+from .skill import Skill, SkillMetadata, skill
 
 __all__ = [
+    "__version__",
     "AgentUri",
     "parse_agent_uri",
     "AgentClient",
+    "AgentSession",
     "FastAPIAgentServer",
+    "skill",
+    "Skill",
+    "SkillMetadata",
+    # Exceptions
+    "AgentError",
+    "AgentClientError",
     "AgentServerError",
-    "CapabilityError",
+    "ErrorCode",
+    "SkillError",
+    "SkillNotFoundError",
+    "HandlerError",
+    "DescriptorError",
     "AuthenticationError",
+    "InvalidInputError",
+    "ContentNegotiationError",
+    "AgentGoneError",
+    "InvocationError",
+    "ResolutionError",
+    "ResolverError",
+    "SessionError",
+    "StreamingError",
+    "TransportError",
+    "TransportTimeoutError",
+    "TransportNotSupportedError",
+    "SSRFViolationError",
+    "RedirectViolationError",
+    "DIDResolutionError",
+    "SignatureVerificationError",
+    "KeyDiscoveryError",
+    "DelegationError",
+    "ScopeNarrowingViolationError",
 ]
 
 
-def get_version():
-    """Get the version of the agent-uri package."""
+def get_version() -> str:
+    """Return the installed agent-uri version string."""
     return __version__

@@ -1,8 +1,15 @@
 """
 Client SDK for the agent:// protocol.
 
-This module provides the main client interface for interacting with agents
-using the agent:// protocol.
+Aligned with draft-narvaneni-agent-uri-03.
+
+Correlation uses W3C Trace Context (``traceparent``, ``tracestate``) and
+W3C Baggage (``baggage: session.id=...``) instead of custom headers.
+Version negotiation uses RFC 6906 profile in the ``Accept`` header.
+Idempotency: an ``Idempotency-Key`` is sent for skills flagged as
+``idempotent: true`` in the descriptor. ``Retry-After`` and structured
+``RateLimit`` / ``RateLimit-Policy`` headers are read off the response
+and exposed on errors.
 """
 
 import logging
@@ -11,8 +18,6 @@ import uuid
 from typing import Any, Dict, Iterator, NoReturn, Optional, Tuple
 
 from .auth import AuthProvider
-
-# Import from consolidated package
 from .descriptor.models import AgentDescriptor
 from .exceptions import (
     AgentClientError,
@@ -28,14 +33,18 @@ from .transport.registry import default_registry
 
 logger = logging.getLogger(__name__)
 
+#: Spec-registered media type for agent descriptors.
+AGENT_DESCRIPTOR_MEDIA_TYPE = "application/agent+json"
+
+#: Default Accept header with the v1 profile (RFC 6906).
+DEFAULT_ACCEPT = (
+    f'{AGENT_DESCRIPTOR_MEDIA_TYPE}; profile="urn:ietf:params:agent:v1", '
+    "application/json;q=0.9"
+)
+
 
 class AgentClient:
-    """
-    Client for interacting with agents via the agent:// protocol.
-
-    This client handles URI parsing, resolution, and transport binding
-    to provide a simple interface for invoking agent capabilities.
-    """
+    """High-level client for invoking skills via ``agent://`` URIs."""
 
     def __init__(
         self,
@@ -43,18 +52,8 @@ class AgentClient:
         auth_provider: Optional[AuthProvider] = None,
         timeout: int = 60,
         verify_ssl: bool = True,
-        user_agent: str = "Agent-Client/0.1.0",
+        user_agent: str = "agent-uri/0.5",
     ):
-        """
-        Initialize an agent client.
-
-        Args:
-            resolver: Optional custom resolver for agent URIs
-            auth_provider: Optional authentication provider
-            timeout: Default timeout in seconds for requests
-            verify_ssl: Whether to verify SSL certificates
-            user_agent: User-Agent header to include in requests
-        """
         self.resolver = resolver or AgentResolver(
             timeout=timeout, verify_ssl=verify_ssl, user_agent=user_agent
         )
@@ -62,9 +61,11 @@ class AgentClient:
         self.timeout = timeout
         self.verify_ssl = verify_ssl
         self.user_agent = user_agent
-
-        # Registry for transport protocol implementations
         self.registry = default_registry
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
 
     def invoke(
         self,
@@ -72,62 +73,40 @@ class AgentClient:
         params: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
         timeout: Optional[int] = None,
-        **kwargs,
+        idempotency_key: Optional[str] = None,
+        **kwargs: Any,
     ) -> Any:
-        """
-        Invoke an agent capability via agent:// URI.
-
-        This method handles parsing the URI, resolving it to an endpoint,
-        selecting the appropriate transport, and invoking the capability.
-
-        Args:
-            uri: The agent URI to invoke (e.g., agent://planner.acme.ai/generate)
-            params: Optional parameters to pass to the capability
-            headers: Optional headers to include in the request
-            timeout: Optional timeout in seconds (overrides default)
-            **kwargs: Additional transport-specific parameters
-
-        Returns:
-            The response from the agent
+        """Invoke a skill.
 
         Raises:
-            ResolutionError: If the agent URI cannot be resolved
-            InvocationError: If the capability invocation fails
-            AuthenticationError: If authentication fails
+            ResolutionError: If the agent URI cannot be resolved.
+            InvocationError: If invocation fails.
+            AuthenticationError: If authentication fails.
         """
         try:
-            # Parse the URI
-            parsed_uri = self._parse_uri(uri)
+            parsed = self._parse_uri(uri)
+            skill_path = self._skill_path(parsed)
+            merged_params = self._merge_params(parsed, params)
+            endpoint, protocol, descriptor = self._resolve_uri(parsed)
 
-            # Extract capability path
-            capability = self._get_capability_path(parsed_uri)
+            request_headers = self._prepare_headers(
+                headers,
+                descriptor=descriptor,
+                skill_path=skill_path,
+                idempotency_key=idempotency_key,
+            )
 
-            # Merge parameters from URI query and params argument
-            merged_params = self._merge_params(parsed_uri, params)
-
-            # Prepare headers
-            request_headers = self._prepare_headers(headers)
-
-            # Resolve the URI to endpoint and descriptor
-            endpoint, transport_protocol, descriptor = self._resolve_uri(parsed_uri)
-
-            # Get the transport
-            transport = self._get_transport(transport_protocol)
-
-            # Set timeout
+            transport = self._get_transport(protocol)
             request_timeout = timeout or self.timeout
 
-            # Invoke the capability using the appropriate transport
-            response = transport.invoke(
+            return transport.invoke(
                 endpoint=endpoint,
-                capability=capability,
+                capability=skill_path,
                 params=merged_params,
                 headers=request_headers,
                 timeout=request_timeout,
                 **kwargs,
             )
-
-            return response
 
         except Exception as e:
             self._handle_exception(e)
@@ -138,69 +117,29 @@ class AgentClient:
         params: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
         timeout: Optional[int] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Iterator[Any]:
-        """
-        Stream responses from an agent capability via agent:// URI.
-
-        Similar to invoke(), but returns an iterator that yields
-        response chunks as they become available.
-
-        Args:
-            uri: The agent URI to invoke (e.g., agent://planner.acme.ai/generate)
-            params: Optional parameters to pass to the capability
-            headers: Optional headers to include in the request
-            timeout: Optional timeout in seconds (overrides default)
-            **kwargs: Additional transport-specific parameters
-
-        Returns:
-            An iterator that yields response chunks
-
-        Raises:
-            ResolutionError: If the agent URI cannot be resolved
-            StreamingError: If streaming from the agent fails
-            AuthenticationError: If authentication fails
-        """
+        """Stream responses from a skill."""
         try:
-            # Parse the URI
-            parsed_uri = self._parse_uri(uri)
+            parsed = self._parse_uri(uri)
+            skill_path = self._skill_path(parsed)
+            merged_params = self._merge_params(parsed, params)
+            endpoint, protocol, descriptor = self._resolve_uri(parsed)
 
-            # Extract capability path
-            capability = self._get_capability_path(parsed_uri)
-
-            # Merge parameters from URI query and params argument
-            merged_params = self._merge_params(parsed_uri, params)
-
-            # Prepare headers
-            request_headers = self._prepare_headers(headers)
-
-            # Resolve the URI to endpoint and descriptor
-            endpoint, transport_protocol, descriptor = self._resolve_uri(parsed_uri)
-
-            # Get the transport
-            transport = self._get_transport(transport_protocol)
-
-            # Set timeout
+            request_headers = self._prepare_headers(
+                headers, descriptor=descriptor, skill_path=skill_path
+            )
+            transport = self._get_transport(protocol)
             request_timeout = timeout or self.timeout
 
-            # Determine stream format based on transport or descriptor
-            stream_format = kwargs.get("stream_format")
-            if stream_format is None:
-                if descriptor and hasattr(descriptor, "interaction_model"):
-                    # Base stream format on interaction model if available
-                    if descriptor.interaction_model == "agent2agent":
-                        stream_format = "sse"  # Agent2Agent uses SSE
-                    else:
-                        stream_format = "ndjson"  # Default to NDJSON
-                else:
-                    stream_format = "ndjson"  # Default
-
+            stream_format = kwargs.get("stream_format") or self._pick_stream_format(
+                descriptor, skill_path
+            )
             kwargs["stream_format"] = stream_format
 
-            # Stream from the capability using the appropriate transport
             for chunk in transport.stream(
                 endpoint=endpoint,
-                capability=capability,
+                capability=skill_path,
                 params=merged_params,
                 headers=request_headers,
                 timeout=request_timeout,
@@ -212,30 +151,13 @@ class AgentClient:
             self._handle_exception(e)
 
     def get_descriptor(self, uri: str) -> AgentDescriptor:
-        """
-        Get the descriptor for an agent URI.
-
-        Args:
-            uri: The agent URI
-
-        Returns:
-            The agent descriptor
-
-        Raises:
-            ResolutionError: If the agent URI cannot be resolved
-        """
+        """Fetch and return the descriptor for an agent URI."""
         try:
-            # Parse the URI
-            parsed_uri = self._parse_uri(uri)
-
-            # Resolve the URI to get the descriptor
-            _, _, descriptor = self._resolve_uri(parsed_uri)
-
+            parsed = self._parse_uri(uri)
+            _, _, descriptor = self._resolve_uri(parsed)
             if not descriptor:
                 raise ResolutionError(f"No descriptor found for agent URI: {uri}")
-
             return descriptor
-
         except Exception as e:
             self._handle_exception(e)
 
@@ -245,238 +167,139 @@ class AgentClient:
         session_id: Optional[str] = None,
         auth_provider: Optional[AuthProvider] = None,
     ) -> "AgentSession":
-        """
-        Create a session for interacting with an agent.
-
-        A session maintains context between requests to the same agent,
-        such as authentication and session identifiers.
-
-        Args:
-            uri: The agent URI
-            session_id: Optional session identifier (UUID generated if not provided)
-            auth_provider: Optional authentication provider for this session
-
-        Returns:
-            An AgentSession object
-        """
-        session_id = session_id or str(uuid.uuid4())
-        auth = auth_provider or self.auth_provider
-
+        """Create a session for per-interaction correlation."""
         return AgentSession(
-            client=self, uri=uri, session_id=session_id, auth_provider=auth
+            client=self,
+            uri=uri,
+            session_id=session_id or str(uuid.uuid4()),
+            auth_provider=auth_provider or self.auth_provider,
         )
 
+    # ------------------------------------------------------------------
+    # Internals
+    # ------------------------------------------------------------------
+
     def _parse_uri(self, uri: str) -> AgentUri:
-        """
-        Parse an agent URI string into an AgentUri object.
-
-        Args:
-            uri: The agent URI string
-
-        Returns:
-            Parsed AgentUri object
-
-        Raises:
-            ResolutionError: If the URI is invalid
-        """
         try:
             return parse_agent_uri(uri)
         except Exception as e:
-            raise ResolutionError(f"Invalid agent URI: {str(e)}")
+            raise ResolutionError(f"Invalid agent URI: {e}")
 
-    def _get_capability_path(self, uri: AgentUri) -> str:
-        """
-        Extract the capability path from an AgentUri.
-
-        Args:
-            uri: The parsed agent URI
-
-        Returns:
-            The capability path
-        """
-        # Remove leading/trailing slashes for consistency
+    def _skill_path(self, uri: AgentUri) -> str:
         return uri.path.strip("/")
 
     def _merge_params(
-        self, uri: AgentUri, params: Optional[Dict[str, Any]] = None
+        self, uri: AgentUri, params: Optional[Dict[str, Any]]
     ) -> Dict[str, Any]:
-        """
-        Merge parameters from URI query and params argument.
-
-        Args:
-            uri: The parsed agent URI
-            params: Additional parameters to include
-
-        Returns:
-            Merged parameters dictionary
-        """
-        # Start with query parameters from URI
-        merged = uri.query.copy() if uri.query else {}
-
-        # Add auth parameters if available
+        merged: Dict[str, Any] = dict(uri.query or {})
         if self.auth_provider:
-            auth_params = self.auth_provider.get_auth_params()
-            if auth_params:
-                merged.update(auth_params)
-
-        # Add additional parameters
+            merged.update(self.auth_provider.get_auth_params() or {})
         if params:
             merged.update(params)
-
         return merged
 
     def _prepare_headers(
-        self, headers: Optional[Dict[str, str]] = None
+        self,
+        headers: Optional[Dict[str, str]],
+        descriptor: Optional[AgentDescriptor] = None,
+        skill_path: Optional[str] = None,
+        idempotency_key: Optional[str] = None,
     ) -> Dict[str, str]:
-        """
-        Prepare headers for a request, including authentication.
+        prepared: Dict[str, str] = {
+            "User-Agent": self.user_agent,
+            "Accept": DEFAULT_ACCEPT,
+        }
 
-        Args:
-            headers: Additional headers to include
-
-        Returns:
-            Complete headers dictionary
-        """
-        # Start with default headers
-        prepared_headers = {"User-Agent": self.user_agent, "Accept": "application/json"}
-
-        # Add authentication headers if available
         if self.auth_provider:
-            # Refresh credentials if needed
             if self.auth_provider.is_expired:
                 self.auth_provider.refresh()
+            auth_headers = self.auth_provider.get_auth_headers() or {}
+            prepared.update(auth_headers)
 
-            auth_headers = self.auth_provider.get_auth_headers()
-            if auth_headers:
-                prepared_headers.update(auth_headers)
+        # Idempotency-Key: auto-generated when the descriptor marks the
+        # target skill as idempotent. Caller override wins.
+        if idempotency_key is None and descriptor is not None and skill_path:
+            if _skill_is_idempotent(descriptor, skill_path):
+                idempotency_key = str(uuid.uuid4())
+        if idempotency_key:
+            prepared["Idempotency-Key"] = idempotency_key
 
-        # Add additional headers
         if headers:
-            prepared_headers.update(headers)
+            prepared.update(headers)
 
-        return prepared_headers
+        return prepared
+
+    def _pick_stream_format(
+        self, descriptor: Optional[AgentDescriptor], skill_path: str
+    ) -> str:
+        """Choose a streaming format preferring the skill's declared format."""
+        if descriptor is not None:
+            for s in descriptor.skills:
+                if s.id == skill_path and getattr(s, "streaming_format", None):
+                    return s.streaming_format  # type: ignore[return-value]
+            if "agent2agent" in (descriptor.interaction_model or []):
+                return "sse"
+        return "ndjson"
 
     def _resolve_uri(self, uri: AgentUri) -> Tuple[str, str, Optional[AgentDescriptor]]:
-        """
-        Resolve an agent URI to an endpoint URL and descriptor.
-
-        Args:
-            uri: The parsed agent URI
-
-        Returns:
-            Tuple of (endpoint_url, transport_protocol, descriptor)
-
-        Raises:
-            ResolutionError: If the URI cannot be resolved
-        """
         try:
-            # Check if URI has explicit transport binding
             if uri.transport:
-                # No need to resolve, construct endpoint directly
-                endpoint = self._construct_endpoint(uri)
-                return endpoint, uri.transport, None
+                return self._construct_endpoint(uri), uri.transport, None
 
-            # Otherwise, resolve via the resolver
             descriptor, metadata = self.resolver.resolve(uri)
-
-            # Get endpoint from metadata
             endpoint_raw = metadata.get("endpoint")
             if not endpoint_raw or not isinstance(endpoint_raw, str):
                 raise ResolutionError(
                     f"No endpoint found for agent URI: {uri.to_string()}"
                 )
-            endpoint = endpoint_raw
-
-            # Get transport protocol from metadata
             transport = metadata.get("transport", "https")
-
-            return endpoint, transport, descriptor
+            return endpoint_raw, transport, descriptor
 
         except ResolverError as e:
-            raise ResolutionError(f"Failed to resolve agent URI: {str(e)}")
+            raise ResolutionError(f"Failed to resolve agent URI: {e}")
 
     def _construct_endpoint(self, uri: AgentUri) -> str:
-        """
-        Construct an endpoint URL from an agent URI with explicit transport.
-
-        Args:
-            uri: The parsed agent URI with transport
-
-        Returns:
-            The endpoint URL
-        """
-        # For local transport, handle specially
         if uri.transport == "local":
             return f"local://{uri.host}/{uri.path}"
-
-        # For normal HTTP-based transports
+        if uri.transport == "unix":
+            return f"unix://{uri.host}{uri.path}"
         return f"{uri.transport}://{uri.host}"
 
     def _get_transport(self, protocol: str) -> Any:
-        """
-        Get a transport implementation for a protocol.
-
-        Args:
-            protocol: The transport protocol identifier
-
-        Returns:
-            A transport implementation
-
-        Raises:
-            InvocationError: If no transport is available for the protocol
-        """
         try:
             return self.registry.get_transport(protocol)
         except Exception as e:
             raise InvocationError(
-                f"No transport available for protocol '{protocol}': {str(e)}"
+                f"No transport available for protocol '{protocol}': {e}"
             )
 
     def _handle_exception(self, exception: Exception) -> NoReturn:
-        """
-        Handle exceptions by raising appropriate client exceptions.
-
-        Args:
-            exception: The original exception
-
-        Raises:
-            Appropriate AgentClientError subclass
-        """
-        # Propagate client exceptions unchanged
         if isinstance(exception, AgentClientError):
             raise exception
-
-        # Map resolver exceptions to client exceptions
-        elif isinstance(exception, ResolverError):
+        if isinstance(exception, ResolverError):
             raise ResolutionError(str(exception))
-
-        # Special case for resolution errors raised during _resolve_uri
-        elif "Resolution failed" in str(exception):
-            raise ResolutionError(str(exception))
-
-        # Special case for invocation errors raised during transport.invoke
-        elif "Invocation failed" in str(exception):
+        if isinstance(exception, TransportTimeoutError):
+            raise InvocationError(f"Request timed out: {exception}")
+        if isinstance(exception, TransportError):
             raise InvocationError(str(exception))
+        raise AgentClientError(
+            f"Unexpected error: {exception.__class__.__name__}: {exception}"
+        )
 
-        # Map transport exceptions to client exceptions
-        elif isinstance(exception, TransportTimeoutError):
-            raise InvocationError(f"Request timed out: {str(exception)}")
-        elif isinstance(exception, TransportError):
-            raise InvocationError(str(exception))
 
-        # Handle other exceptions
-        else:
-            raise AgentClientError(
-                f"Unexpected error: {exception.__class__.__name__}: {str(exception)}"
-            )
+def _skill_is_idempotent(descriptor: AgentDescriptor, skill_path: str) -> bool:
+    """Look up whether the skill at ``skill_path`` is marked idempotent."""
+    for s in descriptor.skills:
+        if s.id == skill_path:
+            return bool(getattr(s, "idempotent", False))
+    return False
 
 
 class AgentSession:
-    """
-    Session for maintaining context with an agent across multiple interactions.
+    """A session for a sequence of interactions with one agent.
 
-    An AgentSession maintains state such as session identifiers, authentication,
-    and context between interactions with the same agent.
+    The session id propagates via W3C Baggage (``baggage: session.id=...``)
+    — there is no custom ``X-Session-ID`` header anymore.
     """
 
     def __init__(
@@ -487,23 +310,11 @@ class AgentSession:
         auth_provider: Optional[AuthProvider] = None,
         context: Optional[Dict[str, Any]] = None,
     ):
-        """
-        Initialize an agent session.
-
-        Args:
-            client: The agent client to use for requests
-            uri: The base agent URI for this session
-            session_id: Session identifier
-            auth_provider: Optional authentication provider for this session
-            context: Optional initial context dictionary
-        """
         self.client = client
         self.base_uri = uri
         self.session_id = session_id
         self.auth_provider = auth_provider
         self.context = context or {}
-
-        # Descriptor cache
         self._descriptor: Optional[AgentDescriptor] = None
 
     def invoke(
@@ -511,57 +322,33 @@ class AgentSession:
         capability: str,
         params: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Any:
-        """
-        Invoke a capability on the agent associated with this session.
-
-        Args:
-            capability: The capability to invoke
-            params: Optional parameters to pass to the capability
-            headers: Optional headers to include in the request
-            **kwargs: Additional transport-specific parameters
-
-        Returns:
-            The response from the agent
-
-        Raises:
-            SessionError: If the session is invalid
-            InvocationError: If the capability invocation fails
-        """
         try:
-            # Build the URI for this capability
-            uri = self._build_capability_uri(capability)
-
-            # Build session headers
+            uri = self._build_skill_uri(capability)
             session_headers = self._build_session_headers(headers)
-
-            # Build session parameters
             session_params = self._build_session_params(params)
 
-            # Invoke the capability with the client
-            # Set the auth provider temporarily if needed
-            original_auth = self.client.auth_provider
+            original = self.client.auth_provider
             if self.auth_provider:
                 self.client.auth_provider = self.auth_provider
-
             try:
                 response = self.client.invoke(
-                    uri=uri, params=session_params, headers=session_headers, **kwargs
+                    uri=uri,
+                    params=session_params,
+                    headers=session_headers,
+                    **kwargs,
                 )
             finally:
-                # Restore the original auth provider
                 if self.auth_provider:
-                    self.client.auth_provider = original_auth
+                    self.client.auth_provider = original
 
-            # Update context with relevant response data
             self._update_context(response)
-
             return response
 
         except AgentClientError as e:
             if isinstance(e, ResolutionError):
-                raise SessionError(f"Invalid session: {str(e)}")
+                raise SessionError(f"Invalid session: {e}")
             raise
 
     def stream(
@@ -569,109 +356,60 @@ class AgentSession:
         capability: str,
         params: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Iterator[Any]:
-        """
-        Stream responses from a capability on the agent associated with this session.
-
-        Args:
-            capability: The capability to invoke
-            params: Optional parameters to pass to the capability
-            headers: Optional headers to include in the request
-            **kwargs: Additional transport-specific parameters
-
-        Returns:
-            An iterator that yields response chunks
-
-        Raises:
-            SessionError: If the session is invalid
-            StreamingError: If streaming from the agent fails
-        """
         try:
-            # Build the URI for this capability
-            uri = self._build_capability_uri(capability)
-
-            # Build session headers
+            uri = self._build_skill_uri(capability)
             session_headers = self._build_session_headers(headers)
-
-            # Build session parameters
             session_params = self._build_session_params(params)
 
-            # Stream from the capability
-            # Set the auth provider temporarily if needed
-            original_auth = self.client.auth_provider
+            original = self.client.auth_provider
             if self.auth_provider:
                 self.client.auth_provider = self.auth_provider
-
             try:
                 for chunk in self.client.stream(
-                    uri=uri, params=session_params, headers=session_headers, **kwargs
+                    uri=uri,
+                    params=session_params,
+                    headers=session_headers,
+                    **kwargs,
                 ):
                     yield chunk
             finally:
-                # Restore the original auth provider
                 if self.auth_provider:
-                    self.client.auth_provider = original_auth
+                    self.client.auth_provider = original
 
         except AgentClientError as e:
             if isinstance(e, ResolutionError):
-                raise SessionError(f"Invalid session: {str(e)}")
+                raise SessionError(f"Invalid session: {e}")
             raise
 
     def get_descriptor(self) -> AgentDescriptor:
-        """
-        Get the descriptor for the agent associated with this session.
-
-        Returns:
-            The agent descriptor
-
-        Raises:
-            SessionError: If the descriptor cannot be retrieved
-        """
         if not self._descriptor:
             try:
                 self._descriptor = self.client.get_descriptor(self.base_uri)
             except AgentClientError as e:
-                raise SessionError(f"Failed to get agent descriptor: {str(e)}")
-
+                raise SessionError(f"Failed to get agent descriptor: {e}")
         if self._descriptor is None:
             raise SessionError("Failed to retrieve agent descriptor")
-
         return self._descriptor
 
-    def _build_capability_uri(self, capability: str) -> str:
-        """
-        Build a URI for a capability using the session's base URI.
+    # ------------------------------------------------------------------
 
-        Args:
-            capability: The capability to invoke
-
-        Returns:
-            The complete capability URI
-        """
-        # Parse the base URI
+    def _build_skill_uri(self, capability: str) -> str:
         try:
-            base_uri = parse_agent_uri(self.base_uri)
+            base = parse_agent_uri(self.base_uri)
         except Exception as e:
-            raise SessionError(f"Invalid base URI: {str(e)}")
+            raise SessionError(f"Invalid base URI: {e}")
 
-        # Build a path that combines the base URI path and the capability
-        base_path = base_uri.path.strip("/")
-        capability_path = capability.strip("/")
-
-        if base_path and capability_path:
-            # Combine base path and capability
-            full_path = f"{base_path}/{capability_path}"
-        elif capability_path:
-            # Use capability if base path is empty
-            full_path = capability_path
+        base_path = base.path.strip("/")
+        cap_path = capability.strip("/")
+        if base_path and cap_path:
+            full_path = f"{base_path}/{cap_path}"
         else:
-            # Use base path if capability is empty
-            full_path = base_path
+            full_path = cap_path or base_path
 
-        # Reconstruct the URI with the new path
         parts = urllib.parse.urlparse(self.base_uri)
-        new_uri = urllib.parse.urlunparse(
+        return urllib.parse.urlunparse(
             (
                 parts.scheme,
                 parts.netloc,
@@ -682,62 +420,25 @@ class AgentSession:
             )
         )
 
-        return new_uri
-
     def _build_session_headers(
-        self, headers: Optional[Dict[str, str]] = None
+        self, headers: Optional[Dict[str, str]]
     ) -> Dict[str, str]:
-        """
-        Build headers for a session request.
-
-        Args:
-            headers: Additional headers to include
-
-        Returns:
-            Complete headers dictionary
-        """
-        # Start with session headers
-        session_headers = {"X-Session-ID": self.session_id}
-
-        # Add additional headers
+        prepared: Dict[str, str] = {
+            "baggage": f"session.id={self.session_id}",
+        }
         if headers:
-            session_headers.update(headers)
+            prepared.update(headers)
+        return prepared
 
-        return session_headers
-
-    def _build_session_params(
-        self, params: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-        """
-        Build parameters for a session request.
-
-        Args:
-            params: Additional parameters to include
-
-        Returns:
-            Complete parameters dictionary
-        """
-        # Start with context parameters relevant to this request
+    def _build_session_params(self, params: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         session_params: Dict[str, Any] = {"session_id": self.session_id}
-
-        # Add context parameters if needed
         if self.context.get("include_context", False):
             session_params["context"] = self.context
-
-        # Add additional parameters
         if params:
             session_params.update(params)
-
         return session_params
 
     def _update_context(self, response: Any) -> None:
-        """
-        Update the session context based on the response.
-
-        Args:
-            response: The response from the agent
-        """
-        # Extract context from response if it's a dictionary
         if isinstance(response, dict):
             if "context" in response:
                 self.context.update(response["context"])
