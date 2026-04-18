@@ -52,7 +52,7 @@ class AgentClient:
         auth_provider: Optional[AuthProvider] = None,
         timeout: int = 60,
         verify_ssl: bool = True,
-        user_agent: str = "agent-uri/1.0",
+        user_agent: str = "agent-uri/0.5",
     ):
         self.resolver = resolver or AgentResolver(
             timeout=timeout, verify_ssl=verify_ssl, user_agent=user_agent

@@ -5,7 +5,7 @@ All notable changes to the `agent-uri` library are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] — 2026-04-18
+## [0.5.0] — 2026-04-18
 
 First release aligned with IETF `draft-narvaneni-agent-uri-03`
 (<https://datatracker.ietf.org/doc/draft-narvaneni-agent-uri/03/>). This is a
@@ -94,9 +94,9 @@ published spec. There are no deprecation aliases from 0.3.x.
   see commit `ed14c52` and successors for the per-package details.
 - Minimum Python 3.10 (3.9 EOL).
 
-### Migration guide (0.3.x → 1.0.0)
+### Migration guide (0.3.x → 0.5.0)
 
-| 0.3.x | 1.0.0 |
+| 0.3.x | 0.5.0 |
 |---|---|
 | `from agent_uri.capability import Capability, capability` | `from agent_uri.skill import Skill, skill` |
 | `descriptor.capabilities` (list) | `descriptor.skills` |
