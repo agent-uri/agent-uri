@@ -53,8 +53,8 @@ agent-uri/
 │   │       └── local.py         # Local/direct transport
 │   ├── client.py                # Client SDK for agent communication
 │   ├── server.py                # Server SDK for agent hosting
-│   ├── capability.py            # Capability framework and decorators
-│   ├── auth.py                  # Authentication and authorization
+│   ├── skill.py                 # Skill runtime + @skill decorator
+│   ├── auth.py                  # Authentication, OAuth metadata, RFC 9421 signatures
 │   ├── cli.py                   # Command-line interface
 │   └── common/                  # Shared utilities and types
 │       └── error/               # Error handling framework
@@ -94,20 +94,21 @@ from agent_uri import parse_agent_uri
 uri = parse_agent_uri("agent://example.com/my-agent")
 print(f"Host: {uri.host}, Path: {uri.path}")
 
-# Parse with protocol and capability
+# Parse with explicit transport + skill path
 uri = parse_agent_uri("agent+https://api.example.com/agents/assistant/chat")
-print(f"Protocol: {uri.protocol}, Capability: {uri.capability}")
+print(f"Transport: {uri.transport}, Path: {uri.path}")
 ```
 
 ### Creating an Agent Server
 
 ```python
-from agent_uri import FastAPIAgentServer, capability
+from agent_uri import FastAPIAgentServer, skill
 
-@capability(
+@skill(
+    id="echo",
     name="echo",
     description="Echo back the input message",
-    version="1.0.0"
+    version="1.0.0",
 )
 async def echo_handler(message: str) -> dict:
     return {"response": f"Echo: {message}"}
@@ -116,13 +117,16 @@ async def echo_handler(message: str) -> dict:
 server = FastAPIAgentServer(
     name="my-agent",
     version="1.0.0",
-    description="A simple echo agent"
+    description="A simple echo agent",
+    server_url="http://localhost:8000",
+    conformance_level=2,
 )
-server.register_capability("echo", echo_handler)
+server.register_skill("echo", echo_handler._skill)
 
 # Run the server
 if __name__ == "__main__":
-    server.run(host="0.0.0.0", port=8000)
+    import uvicorn
+    uvicorn.run(server.app, host="0.0.0.0", port=8000)
 ```
 
 ### Using the Agent Client
@@ -130,11 +134,13 @@ if __name__ == "__main__":
 ```python
 from agent_uri import AgentClient
 
-# Connect to an agent
-client = AgentClient("agent+https://api.example.com/my-agent")
+client = AgentClient()
 
-# Invoke a capability
-result = await client.invoke("echo", {"message": "Hello, World!"})
+# Invoke a skill by agent:// URI
+result = client.invoke(
+    "agent://api.example.com/echo",
+    params={"message": "Hello, World!"},
+)
 print(result["response"])  # "Echo: Hello, World!"
 ```
 

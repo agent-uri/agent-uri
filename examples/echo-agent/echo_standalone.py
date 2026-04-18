@@ -26,21 +26,28 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Descriptor for the agent
+# Descriptor for the agent (spec-03 shape: skills[] with id/name/description).
 AGENT_DESCRIPTOR = {
     "name": "echo-agent",
     "version": "1.0.0",
     "description": "An example agent that echoes messages with timestamps",
     "url": "http://0.0.0.0:8765",
     "provider": {"organization": "Agent URI Project"},
-    "documentationUrl": "https://github.com/username/agent-uri/examples/echo-agent",
-    "interactionModel": "request-response",
-    "capabilities": [
+    "documentationUrl": (
+        "https://github.com/agent-uri/agent-uri/tree/main/examples/echo-agent"
+    ),
+    "interactionModel": ["agent2agent"],
+    "conformanceLevel": 2,
+    "environment": "development",
+    "transport": {"endpoint": "http://0.0.0.0:8765/", "https": "http://0.0.0.0:8765/"},
+    "skills": [
         {
+            "id": "echo",
             "name": "echo",
             "version": "1.0.0",
             "description": "Echoes back the input message appended with the timestamp",
             "tags": ["utility", "demo"],
+            "idempotent": False,
             "input": {
                 "type": "object",
                 "properties": {"message": {"type": "string"}},
@@ -54,15 +61,9 @@ AGENT_DESCRIPTOR = {
                     "original_message": {"type": "string"},
                 },
             },
-            "isDeterministic": False,
-            "expectedOutputVariability": "medium",
-            "requiresContext": False,
-            "memoryEnabled": False,
-            "responseLatency": "medium",
-            "confidenceEstimation": False,
             "contentTypes": {
-                "inputFormat": ["application/json"],
-                "outputFormat": ["application/json"],
+                "accepts": ["application/json"],
+                "produces": ["application/json"],
             },
         }
     ],
@@ -102,8 +103,17 @@ async def echo_capability(request: Request):
         if not message:
             raise HTTPException(status_code=400, detail="Missing 'message' parameter")
 
-        # Log incoming request
-        session_id = request.headers.get("X-Session-ID")
+        # Spec-aligned correlation: read session id from W3C Baggage.
+        session_id = None
+        baggage = request.headers.get("baggage")
+        if baggage:
+            for entry in baggage.split(","):
+                entry = entry.strip()
+                if entry.startswith("session.id="):
+                    session_id = entry.split("=", 1)[1]
+                    break
+        if session_id is None:
+            session_id = request.headers.get("X-Session-ID")
         if session_id:
             logger.info(f"Request from session: {session_id}")
 
