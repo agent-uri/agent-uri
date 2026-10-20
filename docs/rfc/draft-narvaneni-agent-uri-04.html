@@ -20,7 +20,8 @@ origin or a Decentralized Identifier, and signed statements that bind the agent
 to its protocol metadata. It also defines profiles that let an agent prove its
 identity on HTTP requests, building on HTTP Message Signatures for automated
 traffic, and that let short-lived agent instances act under the agent's
-identity using WIMSE Workload Identity Tokens. It deliberately does not define
+identity using the WIMSE Workload Identity Token format. It deliberately does
+not define
 how agents communicate, describe their capabilities, or are invoked. 
     " name="description">
 <meta content="xml2rfc 3.33.0" name="generator">
@@ -1283,7 +1284,8 @@ origin or a Decentralized Identifier, and signed statements that bind the agent
 to its protocol metadata. It also defines profiles that let an agent prove its
 identity on HTTP requests, building on HTTP Message Signatures for automated
 traffic, and that let short-lived agent instances act under the agent's
-identity using WIMSE Workload Identity Tokens. It deliberately does not define
+identity using the WIMSE Workload Identity Token format. It deliberately does
+not define
 how agents communicate, describe their capabilities, or are invoked.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
 </section>
 <div id="status-of-memo">
@@ -1599,8 +1601,8 @@ separable and are expected to track related IETF work:<a href="#section-1-5" cla
           <p id="section-1-6.1.1">a request-signing profile of <span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span> (<a href="#request-signing" class="auto internal xref">Section 8</a>);<a href="#section-1-6.1.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-1-6.2">
-          <p id="section-1-6.2.1">an agent-instance profile of the WIMSE Workload Identity Token
-<span>[<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span> (<a href="#instances" class="auto internal xref">Section 9</a>); and<a href="#section-1-6.2.1" class="pilcrow">¶</a></p>
+          <p id="section-1-6.2.1">an agent-instance profile that reuses the WIMSE Workload Identity Token
+format <span>[<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span> with AID-based trust (<a href="#instances" class="auto internal xref">Section 9</a>); and<a href="#section-1-6.2.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-1-6.3">
           <p id="section-1-6.3.1">OAuth 2.0 bindings (<a href="#authorization" class="auto internal xref">Section 10</a>).<a href="#section-1-6.3.1" class="pilcrow">¶</a></p>
@@ -1620,8 +1622,8 @@ locator for an endpoint and carries no invocation parameters.<a href="#section-1
             <p id="section-1.1-1.2.1"><strong>Reuse before invent.</strong> Every mechanism is a profile of an existing or
 in-progress standard: HTTPS and well-known URIs <span>[<a href="#RFC8615" class="cite xref">RFC8615</a>]</span>, JWK <span>[<a href="#RFC7517" class="cite xref">RFC7517</a>]</span>,
 JWS <span>[<a href="#RFC7515" class="cite xref">RFC7515</a>]</span>, HTTP Message Signatures <span>[<a href="#RFC9421" class="cite xref">RFC9421</a>]</span> as profiled by
-<span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span>, WIMSE Workload Identity Tokens <span>[<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span>, OAuth 2.0,
-and DIDs <span>[<a href="#DID-CORE" class="cite xref">DID-CORE</a>]</span>.<a href="#section-1.1-1.2.1" class="pilcrow">¶</a></p>
+<span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span>, the WIMSE Workload Identity Token format
+<span>[<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span>, OAuth 2.0, and DIDs <span>[<a href="#DID-CORE" class="cite xref">DID-CORE</a>]</span>.<a href="#section-1.1-1.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-1.1-1.3">
             <p id="section-1.1-1.3.1"><strong>Anchor trust outside the document being verified.</strong> A key is trusted
@@ -2222,12 +2224,11 @@ the same degree as the AID itself. To compare, the verifier lowercases the
 <code>href</code> host, converts it to A-labels, and uses port 443 if none is present;
 the result must equal the AID Origin exactly (<a href="#tv-origin" class="auto internal xref">Appendix A.4</a>). No other
 normalization is applied; in particular, a trailing "." is not removed from
-the host. A link to any
-other origin <span class="bcp14">MUST</span> carry a <code>statement</code>, and verifiers <span class="bcp14">MUST</span> ignore cross-origin
-links without a valid statement (<a href="#statement-verify" class="auto internal xref">Section 7.1</a>). Because
-verifier-initiated fetches never follow redirects (<a href="#sec-fetch" class="auto internal xref">Section 13.4</a>), a
-same-origin <code>href</code> cannot acquire the same-origin exemption for content served
-from another origin.<a href="#section-5.4-5" class="pilcrow">¶</a></p>
+the host. A link to any other origin <span class="bcp14">MUST</span> carry a <code>statement</code>, and verifiers
+<span class="bcp14">MUST</span> ignore cross-origin links without a valid statement
+(<a href="#statement-verify" class="auto internal xref">Section 7.1</a>). Because verifier-initiated fetches never follow
+redirects (<a href="#sec-fetch" class="auto internal xref">Section 13.4</a>), a same-origin <code>href</code> cannot acquire the same-origin
+exemption for content served from another origin.<a href="#section-5.4-5" class="pilcrow">¶</a></p>
 <p id="section-5.4-6">For DID-anchored agents the same-origin exemption does not apply: every link
 <span class="bcp14">MUST</span> carry a statement signed with a key from the DID document's
 <code>assertionMethod</code>, and verifiers <span class="bcp14">MUST</span> ignore links without one. Otherwise
@@ -2824,7 +2825,7 @@ caller as an authenticated agent unless one of the following holds:<a href="#sec
 <li class="normal" id="section-10.1-5.1">
             <p id="section-10.1-5.1.1">the association check succeeds for the exact <code>client_id</code>, <strong>and</strong> the
 client authenticates with <code>private_key_jwt</code> in the current exchange using
-keys authorized by the client metadata document; or<a href="#section-10.1-5.1.1" class="pilcrow">¶</a></p>
+qualifying client keys (below); or<a href="#section-10.1-5.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-10.1-5.2">
             <p id="section-10.1-5.2.1">a request signature for the agent URI is verified under <a href="#request-signing" class="auto internal xref">Section 8</a>
@@ -2833,19 +2834,45 @@ in the current exchange.<a href="#section-10.1-5.2.1" class="pilcrow">¶</a></p>
         </ul>
 <p id="section-10.1-6">A valid client assertion without a successful association check leaves the
 agent identity unverified.<a href="#section-10.1-6" class="pilcrow">¶</a></p>
-<p id="section-10.1-7">For DID-anchored agents, the <code>private_key_jwt</code> route additionally requires the
-client keys to be protected by a DID-authorized statement. Only keys embedded
-in the client metadata document's <code>jwks</code> qualify, and only if that document
-is covered by a valid statement (<a href="#aid-links" class="auto internal xref">Section 5.4</a>). Keys obtained through
-<code>jwks_uri</code> do not qualify, because a statement over the client metadata
-document protects the <code>jwks_uri</code> value, not the keys served there
-(<a href="#statements" class="auto internal xref">Section 7</a>). DID-anchored agents that use <code>jwks_uri</code> <span class="bcp14">MUST</span> use request
-signatures for agent attribution.<a href="#section-10.1-7" class="pilcrow">¶</a></p>
-<p id="section-10.1-8">Otherwise, the authorization server <span class="bcp14">MUST</span> handle the client as it would any
+<p id="section-10.1-7"><strong>Qualifying client keys.</strong> A statement protects only the bytes it names
+(<a href="#statements" class="auto internal xref">Section 7</a>), so a statement over the client metadata document protects a
+<code>jwks_uri</code> value but not the keys served there. For the <code>private_key_jwt</code>
+route, client keys qualify only if they are:<a href="#section-10.1-7" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-10.1-8.1">
+            <p id="section-10.1-8.1.1">embedded in the client metadata document's <code>jwks</code>, where that document is
+served from the AID Origin (origin-anchored agents only) or is covered by a
+valid statement (<a href="#aid-links" class="auto internal xref">Section 5.4</a>); or<a href="#section-10.1-8.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-10.1-8.2">
+            <p id="section-10.1-8.2.1">served from a <code>jwks_uri</code> whose origin, compared as in <a href="#aid-links" class="auto internal xref">Section 5.4</a>, equals
+the AID Origin (origin-anchored agents only).<a href="#section-10.1-8.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-10.1-9">For DID-anchored agents, only embedded <code>jwks</code> in a statement-covered client
+metadata document qualify; no <code>jwks_uri</code> qualifies, even on the AID Origin.
+Agents whose client keys do not qualify <span class="bcp14">MUST</span> use request signatures for agent
+attribution.<a href="#section-10.1-9" class="pilcrow">¶</a></p>
+<p id="section-10.1-10"><strong>Which agent is attributed.</strong> The attributed agent is the one whose identity
+was verified: for the <code>private_key_jwt</code> route, the agent URI that passed the
+association check; for the request-signature route, the agent URI derived from
+<code>Signature-Agent</code>. If the client metadata document's <code>agent_uri</code> is absent or
+names a different agent, the authorization server <span class="bcp14">MUST NOT</span> display or record
+that value as the agent's identity, and <span class="bcp14">MAY</span> reject the request.<a href="#section-10.1-10" class="pilcrow">¶</a></p>
+<p id="section-10.1-11"><strong>Consent.</strong> In flows where the user's browser reaches the authorization
+endpoint through a front-channel redirect, the agent cannot sign that request,
+and the token request happens only after consent. A consent screen can
+therefore show a verified agent identity only if attribution succeeded on a
+back-channel request made for the same authorization request before consent.
+Agents that want verified identity shown at consent <span class="bcp14">SHOULD</span> use Pushed
+Authorization Requests <span>[<a href="#RFC9126" class="cite xref">RFC9126</a>]</span>, with the pushed request either signed
+under <a href="#request-signing" class="auto internal xref">Section 8</a> or authenticated with <code>private_key_jwt</code> satisfying
+the attribution rule above. Authorization servers <span class="bcp14">SHOULD</span> support this.<a href="#section-10.1-11" class="pilcrow">¶</a></p>
+<p id="section-10.1-12">Otherwise, the authorization server <span class="bcp14">MUST</span> handle the client as it would any
 client using that <code>client_id</code>, and <span class="bcp14">MUST NOT</span> present it to users as a
-verified agent identity. Consent screens <span class="bcp14">SHOULD</span> display the agent URI or its
-DID and <span class="bcp14">MUST</span> present the operator name as claimed by the agent
-(<a href="#sec-operator" class="auto internal xref">Section 13.3</a>).<a href="#section-10.1-8" class="pilcrow">¶</a></p>
+verified agent identity. When a verified identity is shown, consent screens
+<span class="bcp14">SHOULD</span> display the attributed agent URI or its DID and <span class="bcp14">MUST</span> present the
+operator name as claimed by the agent (<a href="#sec-operator" class="auto internal xref">Section 13.3</a>).<a href="#section-10.1-12" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="delegation">
@@ -2950,9 +2977,10 @@ agent name, purpose-scoped keys, and an optional DID anchor.<a href="#section-12
         <dd class="break"></dd>
 <dt id="section-12-1.9">WIMSE:</dt>
         <dd style="margin-left: 1.5em" id="section-12-1.10">
-          <p id="section-12-1.10.1"><span>[<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span> defines workload credentials. <a href="#instances" class="auto internal xref">Section 9</a> uses the WIMSE
-Workload Identity Token, with the agent URI as the workload identifier and
-the AID as the source of the issuer's keys.<a href="#section-12-1.10.1" class="pilcrow">¶</a></p>
+          <p id="section-12-1.10.1"><span>[<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span> defines workload credentials. <a href="#instances" class="auto internal xref">Section 9</a> reuses the
+WIMSE Workload Identity Token format, with the agent URI as the workload
+identifier and the AID, rather than out-of-band trust anchors, as the source
+of the issuer's keys.<a href="#section-12-1.10.1" class="pilcrow">¶</a></p>
 </dd>
       <dd class="break"></dd>
 </dl>
@@ -3464,6 +3492,10 @@ identified by the sub claim", referencing <a href="#statements" class="auto inte
         <dd>
 <span class="refAuthor">Hunt, P., Ed.</span>, <span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Denniss, W.</span>, and <span class="refAuthor">M. Ansari</span>, <span class="refTitle">"Security Event Token (SET)"</span>, <span class="seriesInfo">RFC 8417</span>, <span class="seriesInfo">DOI 10.17487/RFC8417</span>, <time datetime="2018-07" class="refDate">July 2018</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8417">https://www.rfc-editor.org/rfc/rfc8417</a>&gt;</span>. </dd>
 <dd class="break"></dd>
+<dt id="RFC9126">[RFC9126]</dt>
+        <dd>
+<span class="refAuthor">Lodderstedt, T.</span>, <span class="refAuthor">Campbell, B.</span>, <span class="refAuthor">Sakimura, N.</span>, <span class="refAuthor">Tonge, D.</span>, and <span class="refAuthor">F. Skokan</span>, <span class="refTitle">"OAuth 2.0 Pushed Authorization Requests"</span>, <span class="seriesInfo">RFC 9126</span>, <span class="seriesInfo">DOI 10.17487/RFC9126</span>, <time datetime="2021-09" class="refDate">September 2021</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9126">https://www.rfc-editor.org/rfc/rfc9126</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="RFC9264">[RFC9264]</dt>
         <dd>
 <span class="refAuthor">Wilde, E.</span> and <span class="refAuthor">H. Van de Sompel</span>, <span class="refTitle">"Linkset: Media Types and a Link Relation Type for Link Sets"</span>, <span class="seriesInfo">RFC 9264</span>, <span class="seriesInfo">DOI 10.17487/RFC9264</span>, <time datetime="2022-07" class="refDate">July 2022</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9264">https://www.rfc-editor.org/rfc/rfc9264</a>&gt;</span>. </dd>
@@ -3727,17 +3759,20 @@ and are excluded from the agent-instance profile (<a href="#instances" class="au
         <li id="appendix-B-2.9">
           <p id="appendix-B-2.9.1"><strong>Cryptographic test vectors.</strong> <a href="#test-vectors" class="auto internal xref">Appendix A</a> covers URI processing.
 Once an implementation can produce and cross-check them, add vectors for:
-statement <code>iss</code>/<code>sub</code> binding, DID key conversion and per-purpose
-selection, <code>agent_use</code> enforcement (including duplicate key material and
-malformed values), a preserved DID with substituted same-origin client
-metadata keys, a DID-anchored client using <code>jwks_uri</code> with
-<code>private_key_jwt</code> (not attributed), an attacker-owned client metadata
-document claiming an unrelated origin-anchored agent's <code>agent_uri</code> (not
-attributed), a WIT whose <code>sub</code> has a port, a
-WIT with a future <code>iat</code>, content
-tampering with a valid signature, fetches to forbidden destinations, and
-expired credentials. Two independent verifiers should reach the same
-decision for each.<a href="#appendix-B-2.9.1" class="pilcrow">¶</a></p>
+statement <code>iss</code>/<code>sub</code> binding; DID key conversion and per-purpose
+selection; <code>agent_use</code> enforcement, including duplicate key material and
+malformed values; a preserved DID with substituted same-origin client
+metadata keys; a DID-anchored client using <code>jwks_uri</code> with
+<code>private_key_jwt</code> (not attributed); an origin-anchored client whose
+statement-covered metadata points to a <code>jwks_uri</code> off the AID Origin (not
+attributed); an attacker-owned client metadata document claiming an
+unrelated origin-anchored agent's <code>agent_uri</code>, both with only a client
+assertion (not attributed) and with a request signed by the attacker's own
+agent (attributed to the attacker's agent, never the claimed one); a WIT
+whose <code>sub</code> has a port; a WIT with a future <code>iat</code>; content tampering with
+a valid signature; fetches to forbidden destinations; and expired
+credentials. Two independent verifiers should reach the same decision for
+each.<a href="#appendix-B-2.9.1" class="pilcrow">¶</a></p>
 </li>
       </ol>
 </section>
@@ -3794,14 +3829,21 @@ anchoring with DID pinning.<a href="#appendix-C-5.2.1" class="pilcrow">¶</a></p
           <p id="appendix-C-5.3.1">Agent Statements bound to the links that carry them.<a href="#appendix-C-5.3.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="appendix-C-5.4">
-          <p id="appendix-C-5.4.1">A request-signing profile of <span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span>, an agent-instance profile
-reusing the WIMSE Workload Identity Token format with AID-based trust, and
-OAuth bindings that distinguish
-metadata association from client authentication.<a href="#appendix-C-5.4.1" class="pilcrow">¶</a></p>
+          <p id="appendix-C-5.4.1">A request-signing profile of <span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span>, and an agent-instance
+profile reusing the WIMSE Workload Identity Token format with AID-based
+trust.<a href="#appendix-C-5.4.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="appendix-C-5.5">
-          <p id="appendix-C-5.5.1">Security and privacy considerations specific to agent identity, including a
-fetch policy covering every verifier-initiated request.<a href="#appendix-C-5.5.1" class="pilcrow">¶</a></p>
+          <p id="appendix-C-5.5.1">OAuth bindings that separate metadata association from agent attribution,
+define which client keys qualify, and describe verified identity at consent
+using Pushed Authorization Requests.<a href="#appendix-C-5.5.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-C-5.6">
+          <p id="appendix-C-5.6.1">Security and privacy considerations specific to agent identity, including a
+fetch policy covering every verifier-initiated request.<a href="#appendix-C-5.6.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-C-5.7">
+          <p id="appendix-C-5.7.1">Test vectors for URI processing (<a href="#test-vectors" class="auto internal xref">Appendix A</a>).<a href="#appendix-C-5.7.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>

@@ -89,6 +89,7 @@ informative:
   RFC9449:
   RFC9727:
   RFC9728:
+  RFC9126:
   RFC9943:
   OAUTH-CIMD: I-D.ietf-oauth-client-id-metadata-document
   WIMSE-HTTPSIG: I-D.ietf-wimse-http-signature
@@ -127,7 +128,8 @@ origin or a Decentralized Identifier, and signed statements that bind the agent
 to its protocol metadata. It also defines profiles that let an agent prove its
 identity on HTTP requests, building on HTTP Message Signatures for automated
 traffic, and that let short-lived agent instances act under the agent's
-identity using WIMSE Workload Identity Tokens. It deliberately does not define
+identity using the WIMSE Workload Identity Token format. It deliberately does
+not define
 how agents communicate, describe their capabilities, or are invoked.
 
 --- middle
@@ -167,8 +169,8 @@ On top of the core, this document defines **profiles** that are deliberately
 separable and are expected to track related IETF work:
 
 - a request-signing profile of {{WEB-BOT-AUTH}} ({{request-signing}});
-- an agent-instance profile of the WIMSE Workload Identity Token
-  {{WIMSE-CREDS}} ({{instances}}); and
+- an agent-instance profile that reuses the WIMSE Workload Identity Token
+  format {{WIMSE-CREDS}} with AID-based trust ({{instances}}); and
 - OAuth 2.0 bindings ({{authorization}}).
 
 ## Design Principles {#principles}
@@ -178,8 +180,8 @@ separable and are expected to track related IETF work:
 - **Reuse before invent.** Every mechanism is a profile of an existing or
   in-progress standard: HTTPS and well-known URIs {{RFC8615}}, JWK {{RFC7517}},
   JWS {{RFC7515}}, HTTP Message Signatures {{RFC9421}} as profiled by
-  {{WEB-BOT-AUTH}}, WIMSE Workload Identity Tokens {{WIMSE-CREDS}}, OAuth 2.0,
-  and DIDs {{DID-CORE}}.
+  {{WEB-BOT-AUTH}}, the WIMSE Workload Identity Token format
+  {{WIMSE-CREDS}}, OAuth 2.0, and DIDs {{DID-CORE}}.
 - **Anchor trust outside the document being verified.** A key is trusted
   because of the origin or DID it is published under, never because a document
   names it about itself.
@@ -518,12 +520,11 @@ the same degree as the AID itself. To compare, the verifier lowercases the
 `href` host, converts it to A-labels, and uses port 443 if none is present;
 the result must equal the AID Origin exactly ({{tv-origin}}). No other
 normalization is applied; in particular, a trailing "." is not removed from
-the host. A link to any
-other origin MUST carry a `statement`, and verifiers MUST ignore cross-origin
-links without a valid statement ({{statement-verify}}). Because
-verifier-initiated fetches never follow redirects ({{sec-fetch}}), a
-same-origin `href` cannot acquire the same-origin exemption for content served
-from another origin.
+the host. A link to any other origin MUST carry a `statement`, and verifiers
+MUST ignore cross-origin links without a valid statement
+({{statement-verify}}). Because verifier-initiated fetches never follow
+redirects ({{sec-fetch}}), a same-origin `href` cannot acquire the same-origin
+exemption for content served from another origin.
 
 For DID-anchored agents the same-origin exemption does not apply: every link
 MUST carry a statement signed with a key from the DID document's
@@ -950,27 +951,51 @@ caller as an authenticated agent unless one of the following holds:
 
 - the association check succeeds for the exact `client_id`, **and** the
   client authenticates with `private_key_jwt` in the current exchange using
-  keys authorized by the client metadata document; or
+  qualifying client keys (below); or
 - a request signature for the agent URI is verified under {{request-signing}}
   in the current exchange.
 
 A valid client assertion without a successful association check leaves the
 agent identity unverified.
 
-For DID-anchored agents, the `private_key_jwt` route additionally requires the
-client keys to be protected by a DID-authorized statement. Only keys embedded
-in the client metadata document's `jwks` qualify, and only if that document
-is covered by a valid statement ({{aid-links}}). Keys obtained through
-`jwks_uri` do not qualify, because a statement over the client metadata
-document protects the `jwks_uri` value, not the keys served there
-({{statements}}). DID-anchored agents that use `jwks_uri` MUST use request
-signatures for agent attribution.
+**Qualifying client keys.** A statement protects only the bytes it names
+({{statements}}), so a statement over the client metadata document protects a
+`jwks_uri` value but not the keys served there. For the `private_key_jwt`
+route, client keys qualify only if they are:
+
+- embedded in the client metadata document's `jwks`, where that document is
+  served from the AID Origin (origin-anchored agents only) or is covered by a
+  valid statement ({{aid-links}}); or
+- served from a `jwks_uri` whose origin, compared as in {{aid-links}}, equals
+  the AID Origin (origin-anchored agents only).
+
+For DID-anchored agents, only embedded `jwks` in a statement-covered client
+metadata document qualify; no `jwks_uri` qualifies, even on the AID Origin.
+Agents whose client keys do not qualify MUST use request signatures for agent
+attribution.
+
+**Which agent is attributed.** The attributed agent is the one whose identity
+was verified: for the `private_key_jwt` route, the agent URI that passed the
+association check; for the request-signature route, the agent URI derived from
+`Signature-Agent`. If the client metadata document's `agent_uri` is absent or
+names a different agent, the authorization server MUST NOT display or record
+that value as the agent's identity, and MAY reject the request.
+
+**Consent.** In flows where the user's browser reaches the authorization
+endpoint through a front-channel redirect, the agent cannot sign that request,
+and the token request happens only after consent. A consent screen can
+therefore show a verified agent identity only if attribution succeeded on a
+back-channel request made for the same authorization request before consent.
+Agents that want verified identity shown at consent SHOULD use Pushed
+Authorization Requests {{RFC9126}}, with the pushed request either signed
+under {{request-signing}} or authenticated with `private_key_jwt` satisfying
+the attribution rule above. Authorization servers SHOULD support this.
 
 Otherwise, the authorization server MUST handle the client as it would any
 client using that `client_id`, and MUST NOT present it to users as a
-verified agent identity. Consent screens SHOULD display the agent URI or its
-DID and MUST present the operator name as claimed by the agent
-({{sec-operator}}).
+verified agent identity. When a verified identity is shown, consent screens
+SHOULD display the attributed agent URI or its DID and MUST present the
+operator name as claimed by the agent ({{sec-operator}}).
 
 ## Delegation {#delegation}
 
@@ -1043,9 +1068,10 @@ Web Bot Auth:
   agent name, purpose-scoped keys, and an optional DID anchor.
 
 WIMSE:
-: {{WIMSE-CREDS}} defines workload credentials. {{instances}} uses the WIMSE
-  Workload Identity Token, with the agent URI as the workload identifier and
-  the AID as the source of the issuer's keys.
+: {{WIMSE-CREDS}} defines workload credentials. {{instances}} reuses the
+  WIMSE Workload Identity Token format, with the agent URI as the workload
+  identifier and the AID, rather than out-of-band trust anchors, as the source
+  of the issuer's keys.
 
 # Security Considerations {#security}
 
@@ -1427,17 +1453,20 @@ This appendix will be removed before publication.
    and are excluded from the agent-instance profile ({{instances}}).
 9. **Cryptographic test vectors.** {{test-vectors}} covers URI processing.
    Once an implementation can produce and cross-check them, add vectors for:
-   statement `iss`/`sub` binding, DID key conversion and per-purpose
-   selection, `agent_use` enforcement (including duplicate key material and
-   malformed values), a preserved DID with substituted same-origin client
-   metadata keys, a DID-anchored client using `jwks_uri` with
-   `private_key_jwt` (not attributed), an attacker-owned client metadata
-   document claiming an unrelated origin-anchored agent's `agent_uri` (not
-   attributed), a WIT whose `sub` has a port, a
-   WIT with a future `iat`, content
-   tampering with a valid signature, fetches to forbidden destinations, and
-   expired credentials. Two independent verifiers should reach the same
-   decision for each.
+   statement `iss`/`sub` binding; DID key conversion and per-purpose
+   selection; `agent_use` enforcement, including duplicate key material and
+   malformed values; a preserved DID with substituted same-origin client
+   metadata keys; a DID-anchored client using `jwks_uri` with
+   `private_key_jwt` (not attributed); an origin-anchored client whose
+   statement-covered metadata points to a `jwks_uri` off the AID Origin (not
+   attributed); an attacker-owned client metadata document claiming an
+   unrelated origin-anchored agent's `agent_uri`, both with only a client
+   assertion (not attributed) and with a request signed by the attacker's own
+   agent (attributed to the attacker's agent, never the claimed one); a WIT
+   whose `sub` has a port; a WIT with a future `iat`; content tampering with
+   a valid signature; fetches to forbidden destinations; and expired
+   credentials. Two independent verifiers should reach the same decision for
+   each.
 
 # Changes from draft-narvaneni-agent-uri-03 {#changes}
 
@@ -1468,12 +1497,15 @@ Added:
   (including `agent_use` for origin-anchored keys), and origin and DID
   anchoring with DID pinning.
 - Agent Statements bound to the links that carry them.
-- A request-signing profile of {{WEB-BOT-AUTH}}, an agent-instance profile
-  reusing the WIMSE Workload Identity Token format with AID-based trust, and
-  OAuth bindings that distinguish
-  metadata association from client authentication.
+- A request-signing profile of {{WEB-BOT-AUTH}}, and an agent-instance
+  profile reusing the WIMSE Workload Identity Token format with AID-based
+  trust.
+- OAuth bindings that separate metadata association from agent attribution,
+  define which client keys qualify, and describe verified identity at consent
+  using Pushed Authorization Requests.
 - Security and privacy considerations specific to agent identity, including a
   fetch policy covering every verifier-initiated request.
+- Test vectors for URI processing ({{test-vectors}}).
 
 # Acknowledgments {#acknowledgments}
 {:numbered="false"}
