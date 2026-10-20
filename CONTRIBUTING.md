@@ -42,7 +42,7 @@ We welcome feedback, discussion, and pull requests across all areas of the proje
 4. **Submit a pull request** with a clear description of what you’re proposing
 
 For changes to the Internet-Draft:
-- Edits should be made to the `docs/rfc/draft-narvaneni-agent-uri-00.md` file
+- Edits should be made to the latest revision in `docs/rfc/` (currently `draft-narvaneni-agent-uri-04.md`); earlier revisions are kept as published and should not be changed
 - Use [`kramdown-rfc2629`](https://github.com/cabo/kramdown-rfc) to generate `.xml` file
 - Use [`xml2rfc`](https://tools.ietf.org/tools/xml2rfc/) to regenerate `.txt` and `.html` if needed.
 - Ensure that there are no warnings or errors from `kramdown-rfc2629` or `xml2rfc`
