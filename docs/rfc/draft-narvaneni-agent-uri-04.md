@@ -510,11 +510,12 @@ Link relations expected to be common include:
 | `oauth-client-metadata`  | The agent's OAuth Client ID Metadata Document ({{oauth-client}}) |
 {: #tab-links title="Common link relations"}
 
-A link whose `href` has the **same origin as the AID Origin** (scheme "https",
-the same canonical host, and the same effective port) is trusted to the same
-degree as the AID itself. A link to any other origin MUST carry a `statement`,
-and verifiers MUST ignore cross-origin links without a valid statement
-({{statement-verify}}).
+A link whose `href` has the **same origin as the AID Origin** is trusted to
+the same degree as the AID itself. To compare, the verifier lowercases the
+`href` host, converts it to A-labels, and uses port 443 if none is present;
+the result must equal the AID Origin exactly ({{tv-origin}}). A link to any
+other origin MUST carry a `statement`, and verifiers MUST ignore cross-origin
+links without a valid statement ({{statement-verify}}).
 
 For DID-anchored agents the same-origin exemption does not apply: every link
 MUST carry a statement signed with a key from the DID document's
@@ -1228,6 +1229,132 @@ identified by the sub claim", referencing {{statements}} of this document.
 
 --- back
 
+# Test Vectors: Agent URI Processing {#test-vectors}
+
+This appendix is informative. It gives expected results for the syntactic
+processing defined in {{agent-uri}} and {{aid-links}}, so that independent
+implementations can check that they agree. Vectors for statements, request
+signatures, and Workload Identity Tokens will be added once an implementation
+can produce and cross-check them ({{open-issues}}).
+
+## Parsing and Canonicalization {#tv-parsing}
+
+Each vector shows an input, then its result. "valid" inputs are canonical.
+"normalized" inputs differ from the ABNF only by deviations listed in
+{{normalization}}; parsers MAY accept them and, if they do, MUST produce the
+canonical form shown. "reject" inputs MUST be rejected. `<U+00FC>` denotes the
+single character LATIN SMALL LETTER U WITH DIAERESIS.
+
+~~~
+agent://example.com/planner
+    valid       agent://example.com/planner
+agent://planner.example.com
+    valid       agent://planner.example.com    (root agent)
+agent://example.com:8443/planner
+    valid       agent://example.com:8443/planner
+agent://example.com/acme/billing-assistant
+    valid       agent://example.com/acme/billing-assistant
+agent://123.example/planner
+    valid       agent://123.example/planner
+agent://example.com/p#kPrK_qmxVWaYVA9wwBF6Iuo3vVzz7TxHCTwXBygrS4k
+    valid       agent://example.com/p          (plus key fragment)
+
+AGENT://Example.COM/planner
+    normalized  agent://example.com/planner
+agent://example.com:443/planner
+    normalized  agent://example.com/planner
+agent://example.com:/planner
+    normalized  agent://example.com/planner
+agent://example.com/planner/
+    normalized  agent://example.com/planner
+agent://planner.example.com/
+    normalized  agent://planner.example.com
+agent://b<U+00FC>cher.example/planner
+    normalized  agent://xn--bcher-kva.example/planner
+
+agent://192.168.0.1/planner             reject  all-digit final label
+agent://localhost/planner               reject  single-label host
+agent://[::1]/planner                   reject  IP literal
+agent://user@example.com/planner        reject  userinfo
+agent://example.com./planner            reject  trailing "." on host
+agent://example.com:0443/planner        reject  leading zero in port
+agent://example.com:65536/planner       reject  port out of range
+agent://example.com/planner?task=1      reject  query
+agent://example.com/Planner             reject  uppercase name-path
+agent://example.com/plan%6Eer           reject  percent-encoding
+agent://example.com/a/../planner        reject  dot-segment
+agent://example.com//planner            reject  empty segment
+agent://example.com/-planner            reject  leading "-"
+agent://example.com/_                   reject  reserved segment
+agent://example.com/a/b/c/d/e/f/g/h/i   reject  more than 8 segments
+agent+https://example.com/planner       reject  not the agent scheme
+~~~
+{: #fig-tv-parsing title="Parsing and canonicalization vectors"}
+
+`agent://example.com/p` with and without the key fragment identify the same
+agent ({{normalization}}).
+
+## Mapping to AID URLs {#tv-mapping}
+
+~~~
+agent://example.com/planner
+    https://example.com/.well-known/agent/planner
+agent://planner.example.com
+    https://planner.example.com/.well-known/agent/_
+agent://example.com:8443/planner
+    https://example.com:8443/.well-known/agent/planner
+agent://example.com/acme/billing-assistant
+    https://example.com/.well-known/agent/acme/billing-assistant
+agent://xn--bcher-kva.example/planner
+    https://xn--bcher-kva.example/.well-known/agent/planner
+~~~
+{: #fig-tv-mapping title="Agent URI to AID URL vectors"}
+
+## Reverse Mapping of Signature-Agent Values {#tv-reverse}
+
+Values are compared exactly, without normalization ({{sig-verify}}).
+
+~~~
+https://example.com/.well-known/agent/planner
+    agent://example.com/planner
+https://planner.example.com/.well-known/agent/_
+    agent://planner.example.com
+https://example.com:8443/.well-known/agent/planner
+    agent://example.com:8443/planner
+https://Example.com/.well-known/agent/planner
+    reject  not canonical (host case)
+https://example.com:443/.well-known/agent/planner
+    reject  not canonical (default port)
+https://example.com/.well-known/agent/planner/
+    reject  not canonical (trailing "/")
+https://example.com/.well-known/agent/planner?v=1
+    reject  query
+http://example.com/.well-known/agent/planner
+    reject  not HTTPS
+https://example.com/.well-known/agent
+    reject  neither a name-path nor the reserved segment
+https://example.com/.well-known/agent/_/planner
+    reject  reserved segment inside a name-path
+https://example.com/.well-known/agent/Planner
+    reject  invalid name-path
+~~~
+{: #fig-tv-reverse title="Reverse mapping vectors"}
+
+## AID Origin Comparison {#tv-origin}
+
+For `agent://example.com/planner`, the AID Origin is ("https", "example.com",
+443). Link targets compare as follows ({{aid-links}}):
+
+~~~
+https://example.com/planner/agent-card.json         same origin
+https://example.com:443/planner/agent-card.json     same origin
+https://EXAMPLE.com/planner/agent-card.json         same origin
+https://planner.example.com/agent-card.json         different host
+https://example.com:8443/planner/agent-card.json    different port
+http://example.com/planner/agent-card.json          different scheme
+~~~
+{: #fig-tv-origin title="AID Origin comparison vectors"}
+
 # Open Issues {#open-issues}
 
 This appendix will be removed before publication.
@@ -1259,9 +1386,8 @@ This appendix will be removed before publication.
 8. **Port.** Confirm that non-default ports should be permitted in agent
    identities at all, given they complicate certificate and policy handling
    and are excluded from the agent-instance profile ({{instances}}).
-9. **Test vectors.** Publish positive and negative fixtures for: URI parsing
-   and normalization (including dotted-quad and single-label hosts, empty
-   ports), non-canonical `Signature-Agent` values, AID Origin comparison,
+9. **Cryptographic test vectors.** {{test-vectors}} covers URI processing.
+   Once an implementation can produce and cross-check them, add vectors for:
    statement `iss`/`sub` binding, DID key conversion and per-purpose
    selection, `agent_use` enforcement, a preserved DID with substituted
    same-origin client metadata keys, a WIT whose `sub` has a port, content

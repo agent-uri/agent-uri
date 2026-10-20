@@ -1520,16 +1520,33 @@ how agents communicate, describe their capabilities, or are invoked.<a href="#se
             </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.17">
-            <p id="section-toc.1-1.17.1"><a href="#appendix-A" class="auto internal xref">Appendix A</a>.  <a href="#name-open-issues" class="internal xref">Open Issues</a></p>
+            <p id="section-toc.1-1.17.1"><a href="#appendix-A" class="auto internal xref">Appendix A</a>.  <a href="#name-test-vectors-agent-uri-proc" class="internal xref">Test Vectors: Agent URI Processing</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.17.2.1">
+                <p id="section-toc.1-1.17.2.1.1"><a href="#appendix-A.1" class="auto internal xref">A.1</a>.  <a href="#name-parsing-and-canonicalizatio" class="internal xref">Parsing and Canonicalization</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.17.2.2">
+                <p id="section-toc.1-1.17.2.2.1"><a href="#appendix-A.2" class="auto internal xref">A.2</a>.  <a href="#name-mapping-to-aid-urls" class="internal xref">Mapping to AID URLs</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.17.2.3">
+                <p id="section-toc.1-1.17.2.3.1"><a href="#appendix-A.3" class="auto internal xref">A.3</a>.  <a href="#name-reverse-mapping-of-signatur" class="internal xref">Reverse Mapping of Signature-Agent Values</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.17.2.4">
+                <p id="section-toc.1-1.17.2.4.1"><a href="#appendix-A.4" class="auto internal xref">A.4</a>.  <a href="#name-aid-origin-comparison" class="internal xref">AID Origin Comparison</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.18">
-            <p id="section-toc.1-1.18.1"><a href="#appendix-B" class="auto internal xref">Appendix B</a>.  <a href="#name-changes-from-draft-narvanen" class="internal xref">Changes from draft-narvaneni-agent-uri-03</a></p>
+            <p id="section-toc.1-1.18.1"><a href="#appendix-B" class="auto internal xref">Appendix B</a>.  <a href="#name-open-issues" class="internal xref">Open Issues</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.19">
-            <p id="section-toc.1-1.19.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+            <p id="section-toc.1-1.19.1"><a href="#appendix-C" class="auto internal xref">Appendix C</a>.  <a href="#name-changes-from-draft-narvanen" class="internal xref">Changes from draft-narvaneni-agent-uri-03</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.20">
-            <p id="section-toc.1-1.20.1"><a href="#appendix-D" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
+            <p id="section-toc.1-1.20.1"><a href="#appendix-D" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.21">
+            <p id="section-toc.1-1.21.1"><a href="#appendix-E" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
 </li>
         </ul>
 </nav>
@@ -2197,11 +2214,12 @@ sign statements (<a href="#sec-key-compromise" class="auto internal xref">Sectio
           </tbody>
         </table>
 </div>
-<p id="section-5.4-5">A link whose <code>href</code> has the <strong>same origin as the AID Origin</strong> (scheme "https",
-the same canonical host, and the same effective port) is trusted to the same
-degree as the AID itself. A link to any other origin <span class="bcp14">MUST</span> carry a <code>statement</code>,
-and verifiers <span class="bcp14">MUST</span> ignore cross-origin links without a valid statement
-(<a href="#statement-verify" class="auto internal xref">Section 7.1</a>).<a href="#section-5.4-5" class="pilcrow">¶</a></p>
+<p id="section-5.4-5">A link whose <code>href</code> has the <strong>same origin as the AID Origin</strong> is trusted to
+the same degree as the AID itself. To compare, the verifier lowercases the
+<code>href</code> host, converts it to A-labels, and uses port 443 if none is present;
+the result must equal the AID Origin exactly (<a href="#tv-origin" class="auto internal xref">Appendix A.4</a>). A link to any
+other origin <span class="bcp14">MUST</span> carry a <code>statement</code>, and verifiers <span class="bcp14">MUST</span> ignore cross-origin
+links without a valid statement (<a href="#statement-verify" class="auto internal xref">Section 7.1</a>).<a href="#section-5.4-5" class="pilcrow">¶</a></p>
 <p id="section-5.4-6">For DID-anchored agents the same-origin exemption does not apply: every link
 <span class="bcp14">MUST</span> carry a statement signed with a key from the DID document's
 <code>assertionMethod</code>, and verifiers <span class="bcp14">MUST</span> ignore links without one. Otherwise
@@ -2526,7 +2544,7 @@ intends to use.<a href="#section-7.1-3" class="pilcrow">¶</a></p>
 <p id="section-7.1-4">Protocol metadata documents that support extension fields <span class="bcp14">SHOULD</span> include a
 reference back to the agent URI, so that a client starting from the metadata
 can find the identity. How that reference is expressed is defined by each
-protocol (see <a href="#open-issues" class="auto internal xref">Appendix A</a>).<a href="#section-7.1-4" class="pilcrow">¶</a></p>
+protocol (see <a href="#open-issues" class="auto internal xref">Appendix B</a>).<a href="#section-7.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -2753,7 +2771,7 @@ algorithm in <code>cnf.jwk.alg</code>.<a href="#section-9-9.4.1" class="pilcrow"
 </li>
       </ol>
 <p id="section-9-10">This profile does not use the WIMSE HTTP signature profile <span>[<a href="#WIMSE-HTTPSIG" class="cite xref">WIMSE-HTTPSIG</a>]</span>,
-whose <code>tag</code> and covered components differ; see <a href="#open-issues" class="auto internal xref">Appendix A</a>.<a href="#section-9-10" class="pilcrow">¶</a></p>
+whose <code>tag</code> and covered components differ; see <a href="#open-issues" class="auto internal xref">Appendix B</a>.<a href="#section-9-10" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="authorization">
@@ -3197,7 +3215,7 @@ The <code>+jwt</code> structured syntax suffix is registered by <span>[<a href="
 <code>type=agent-id</code>. <span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span> does not currently establish a registry of
 type values. This document asks that such a registry be created and that
 <code>agent-id</code> be registered in it, referencing <a href="#request-signing" class="auto internal xref">Section 8</a> of this
-document (see <a href="#open-issues" class="auto internal xref">Appendix A</a>).<a href="#section-15.4-1" class="pilcrow">¶</a></p>
+document (see <a href="#open-issues" class="auto internal xref">Appendix B</a>).<a href="#section-15.4-1" class="pilcrow">¶</a></p>
 <p id="section-15.4-2">This document does not register any HTTP field names.<a href="#section-15.4-2" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -3210,7 +3228,7 @@ document (see <a href="#open-issues" class="auto internal xref">Appendix A</a>).
 Types" registry <span>[<a href="#RFC8288" class="cite xref">RFC8288</a>]</span>, with description "Refers to the Agent Identity
 Document of the link context." Registration of <code>agent-card</code>,
 <code>mcp-server-card</code>, and <code>oauth-client-metadata</code> is an open issue
-(<a href="#open-issues" class="auto internal xref">Appendix A</a>).<a href="#section-15.5-1" class="pilcrow">¶</a></p>
+(<a href="#open-issues" class="auto internal xref">Appendix B</a>).<a href="#section-15.5-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="iana-client-metadata">
@@ -3451,145 +3469,314 @@ identified by the sub claim", referencing <a href="#statements" class="auto inte
 </div>
 </section>
 </div>
-<div id="open-issues">
+<div id="test-vectors">
 <section id="appendix-A">
-      <h2 id="name-open-issues">
-<a href="#appendix-A" class="section-number selfRef">Appendix A. </a><a href="#name-open-issues" class="section-name selfRef">Open Issues</a>
+      <h2 id="name-test-vectors-agent-uri-proc">
+<a href="#appendix-A" class="section-number selfRef">Appendix A. </a><a href="#name-test-vectors-agent-uri-proc" class="section-name selfRef">Test Vectors: Agent URI Processing</a>
       </h2>
-<p id="appendix-A-1">This appendix will be removed before publication.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="appendix-A-2">
-<li id="appendix-A-2.1">
-          <p id="appendix-A-2.1.1"><strong>Signature-Agent type registry.</strong> <span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span> has no registry for
+<p id="appendix-A-1">This appendix is informative. It gives expected results for the syntactic
+processing defined in <a href="#agent-uri" class="auto internal xref">Section 4</a> and <a href="#aid-links" class="auto internal xref">Section 5.4</a>, so that independent
+implementations can check that they agree. Vectors for statements, request
+signatures, and Workload Identity Tokens will be added once an implementation
+can produce and cross-check them (<a href="#open-issues" class="auto internal xref">Appendix B</a>).<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<div id="tv-parsing">
+<section id="appendix-A.1">
+        <h3 id="name-parsing-and-canonicalizatio">
+<a href="#appendix-A.1" class="section-number selfRef">A.1. </a><a href="#name-parsing-and-canonicalizatio" class="section-name selfRef">Parsing and Canonicalization</a>
+        </h3>
+<p id="appendix-A.1-1">Each vector shows an input, then its result. "valid" inputs are canonical.
+"normalized" inputs differ from the ABNF only by deviations listed in
+<a href="#normalization" class="auto internal xref">Section 4.2</a>; parsers <span class="bcp14">MAY</span> accept them and, if they do, <span class="bcp14">MUST</span> produce the
+canonical form shown. "reject" inputs <span class="bcp14">MUST</span> be rejected. <code>&lt;U+00FC&gt;</code> denotes the
+single character LATIN SMALL LETTER U WITH DIAERESIS.<a href="#appendix-A.1-1" class="pilcrow">¶</a></p>
+<span id="name-parsing-and-canonicalization"></span><div id="fig-tv-parsing">
+<figure id="figure-7">
+          <div class="alignLeft art-text artwork" id="appendix-A.1-2.1">
+<pre>
+agent://example.com/planner
+    valid       agent://example.com/planner
+agent://planner.example.com
+    valid       agent://planner.example.com    (root agent)
+agent://example.com:8443/planner
+    valid       agent://example.com:8443/planner
+agent://example.com/acme/billing-assistant
+    valid       agent://example.com/acme/billing-assistant
+agent://123.example/planner
+    valid       agent://123.example/planner
+agent://example.com/p#kPrK_qmxVWaYVA9wwBF6Iuo3vVzz7TxHCTwXBygrS4k
+    valid       agent://example.com/p          (plus key fragment)
+
+AGENT://Example.COM/planner
+    normalized  agent://example.com/planner
+agent://example.com:443/planner
+    normalized  agent://example.com/planner
+agent://example.com:/planner
+    normalized  agent://example.com/planner
+agent://example.com/planner/
+    normalized  agent://example.com/planner
+agent://planner.example.com/
+    normalized  agent://planner.example.com
+agent://b&lt;U+00FC&gt;cher.example/planner
+    normalized  agent://xn--bcher-kva.example/planner
+
+agent://192.168.0.1/planner             reject  all-digit final label
+agent://localhost/planner               reject  single-label host
+agent://[::1]/planner                   reject  IP literal
+agent://user@example.com/planner        reject  userinfo
+agent://example.com./planner            reject  trailing "." on host
+agent://example.com:0443/planner        reject  leading zero in port
+agent://example.com:65536/planner       reject  port out of range
+agent://example.com/planner?task=1      reject  query
+agent://example.com/Planner             reject  uppercase name-path
+agent://example.com/plan%6Eer           reject  percent-encoding
+agent://example.com/a/../planner        reject  dot-segment
+agent://example.com//planner            reject  empty segment
+agent://example.com/-planner            reject  leading "-"
+agent://example.com/_                   reject  reserved segment
+agent://example.com/a/b/c/d/e/f/g/h/i   reject  more than 8 segments
+agent+https://example.com/planner       reject  not the agent scheme
+</pre>
+</div>
+<figcaption><a href="#figure-7" class="selfRef">Figure 7</a>:
+<a href="#name-parsing-and-canonicalization" class="selfRef">Parsing and canonicalization vectors</a>
+          </figcaption></figure>
+</div>
+<p id="appendix-A.1-3"><code>agent://example.com/p</code> with and without the key fragment identify the same
+agent (<a href="#normalization" class="auto internal xref">Section 4.2</a>).<a href="#appendix-A.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="tv-mapping">
+<section id="appendix-A.2">
+        <h3 id="name-mapping-to-aid-urls">
+<a href="#appendix-A.2" class="section-number selfRef">A.2. </a><a href="#name-mapping-to-aid-urls" class="section-name selfRef">Mapping to AID URLs</a>
+        </h3>
+<span id="name-agent-uri-to-aid-url-vector"></span><div id="fig-tv-mapping">
+<figure id="figure-8">
+          <div class="alignLeft art-text artwork" id="appendix-A.2-1.1">
+<pre>
+agent://example.com/planner
+    https://example.com/.well-known/agent/planner
+agent://planner.example.com
+    https://planner.example.com/.well-known/agent/_
+agent://example.com:8443/planner
+    https://example.com:8443/.well-known/agent/planner
+agent://example.com/acme/billing-assistant
+    https://example.com/.well-known/agent/acme/billing-assistant
+agent://xn--bcher-kva.example/planner
+    https://xn--bcher-kva.example/.well-known/agent/planner
+</pre>
+</div>
+<figcaption><a href="#figure-8" class="selfRef">Figure 8</a>:
+<a href="#name-agent-uri-to-aid-url-vector" class="selfRef">Agent URI to AID URL vectors</a>
+          </figcaption></figure>
+</div>
+</section>
+</div>
+<div id="tv-reverse">
+<section id="appendix-A.3">
+        <h3 id="name-reverse-mapping-of-signatur">
+<a href="#appendix-A.3" class="section-number selfRef">A.3. </a><a href="#name-reverse-mapping-of-signatur" class="section-name selfRef">Reverse Mapping of Signature-Agent Values</a>
+        </h3>
+<p id="appendix-A.3-1">Values are compared exactly, without normalization (<a href="#sig-verify" class="auto internal xref">Section 8.2</a>).<a href="#appendix-A.3-1" class="pilcrow">¶</a></p>
+<span id="name-reverse-mapping-vectors"></span><div id="fig-tv-reverse">
+<figure id="figure-9">
+          <div class="alignLeft art-text artwork" id="appendix-A.3-2.1">
+<pre>
+https://example.com/.well-known/agent/planner
+    agent://example.com/planner
+https://planner.example.com/.well-known/agent/_
+    agent://planner.example.com
+https://example.com:8443/.well-known/agent/planner
+    agent://example.com:8443/planner
+https://Example.com/.well-known/agent/planner
+    reject  not canonical (host case)
+https://example.com:443/.well-known/agent/planner
+    reject  not canonical (default port)
+https://example.com/.well-known/agent/planner/
+    reject  not canonical (trailing "/")
+https://example.com/.well-known/agent/planner?v=1
+    reject  query
+http://example.com/.well-known/agent/planner
+    reject  not HTTPS
+https://example.com/.well-known/agent
+    reject  neither a name-path nor the reserved segment
+https://example.com/.well-known/agent/_/planner
+    reject  reserved segment inside a name-path
+https://example.com/.well-known/agent/Planner
+    reject  invalid name-path
+</pre>
+</div>
+<figcaption><a href="#figure-9" class="selfRef">Figure 9</a>:
+<a href="#name-reverse-mapping-vectors" class="selfRef">Reverse mapping vectors</a>
+          </figcaption></figure>
+</div>
+</section>
+</div>
+<div id="tv-origin">
+<section id="appendix-A.4">
+        <h3 id="name-aid-origin-comparison">
+<a href="#appendix-A.4" class="section-number selfRef">A.4. </a><a href="#name-aid-origin-comparison" class="section-name selfRef">AID Origin Comparison</a>
+        </h3>
+<p id="appendix-A.4-1">For <code>agent://example.com/planner</code>, the AID Origin is ("https", "example.com",
+443). Link targets compare as follows (<a href="#aid-links" class="auto internal xref">Section 5.4</a>):<a href="#appendix-A.4-1" class="pilcrow">¶</a></p>
+<span id="name-aid-origin-comparison-vecto"></span><div id="fig-tv-origin">
+<figure id="figure-10">
+          <div class="alignLeft art-text artwork" id="appendix-A.4-2.1">
+<pre>
+https://example.com/planner/agent-card.json         same origin
+https://example.com:443/planner/agent-card.json     same origin
+https://EXAMPLE.com/planner/agent-card.json         same origin
+https://planner.example.com/agent-card.json         different host
+https://example.com:8443/planner/agent-card.json    different port
+http://example.com/planner/agent-card.json          different scheme
+</pre>
+</div>
+<figcaption><a href="#figure-10" class="selfRef">Figure 10</a>:
+<a href="#name-aid-origin-comparison-vecto" class="selfRef">AID Origin comparison vectors</a>
+          </figcaption></figure>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="open-issues">
+<section id="appendix-B">
+      <h2 id="name-open-issues">
+<a href="#appendix-B" class="section-number selfRef">Appendix B. </a><a href="#name-open-issues" class="section-name selfRef">Open Issues</a>
+      </h2>
+<p id="appendix-B-1">This appendix will be removed before publication.<a href="#appendix-B-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="appendix-B-2">
+<li id="appendix-B-2.1">
+          <p id="appendix-B-2.1.1"><strong>Signature-Agent type registry.</strong> <span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span> has no registry for
 <code>type</code> values. Work with the webbotauth WG to create one, or to define
 <code>agent-id</code> there. Until then, verifiers that only implement
-<span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span> ignore agent identities.<a href="#appendix-A-2.1.1" class="pilcrow">¶</a></p>
+<span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span> ignore agent identities.<a href="#appendix-B-2.1.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="appendix-A-2.2">
-          <p id="appendix-A-2.2.1"><strong>WIMSE alignment.</strong> Discuss with the WIMSE WG whether port-free agent
+        <li id="appendix-B-2.2">
+          <p id="appendix-B-2.2.1"><strong>WIMSE alignment.</strong> Discuss with the WIMSE WG whether port-free agent
 URIs are acceptable workload identifiers (their authority fits the trust
 domain shape of WIMSE identifiers), whether AID-based issuer discovery
 can become a recognized alternative to out-of-band trust-anchor
 provisioning, and whether instances should also be able to use the WIMSE
-HTTP signature profile <span>[<a href="#WIMSE-HTTPSIG" class="cite xref">WIMSE-HTTPSIG</a>]</span>.<a href="#appendix-A-2.2.1" class="pilcrow">¶</a></p>
+HTTP signature profile <span>[<a href="#WIMSE-HTTPSIG" class="cite xref">WIMSE-HTTPSIG</a>]</span>.<a href="#appendix-B-2.2.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="appendix-A-2.3">
-          <p id="appendix-A-2.3.1"><strong>Back-references from protocol metadata.</strong> Agree with the A2A and MCP
+        <li id="appendix-B-2.3">
+          <p id="appendix-B-2.3.1"><strong>Back-references from protocol metadata.</strong> Agree with the A2A and MCP
 projects on how an Agent Card or MCP server card names its agent URI, and
-who registers the <code>agent-card</code> and <code>mcp-server-card</code> link relations.<a href="#appendix-A-2.3.1" class="pilcrow">¶</a></p>
+who registers the <code>agent-card</code> and <code>mcp-server-card</code> link relations.<a href="#appendix-B-2.3.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="appendix-A-2.4">
-          <p id="appendix-A-2.4.1"><strong>Retired keys.</strong> Consider an optional list of retired keys with retirement
+        <li id="appendix-B-2.4">
+          <p id="appendix-B-2.4.1"><strong>Retired keys.</strong> Consider an optional list of retired keys with retirement
 times, so that statements issued before a planned rotation remain
-verifiable without re-issuance, while compromised keys are still removed.<a href="#appendix-A-2.4.1" class="pilcrow">¶</a></p>
+verifiable without re-issuance, while compromised keys are still removed.<a href="#appendix-B-2.4.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="appendix-A-2.5">
-          <p id="appendix-A-2.5.1"><strong>Reserved root segment.</strong> <code>/.well-known/agent/_</code> is chosen to work on
+        <li id="appendix-B-2.5">
+          <p id="appendix-B-2.5.1"><strong>Reserved root segment.</strong> <code>/.well-known/agent/_</code> is chosen to work on
 static hosting. Alternatives (a separate well-known suffix for the root
-agent) should be evaluated.<a href="#appendix-A-2.5.1" class="pilcrow">¶</a></p>
+agent) should be evaluated.<a href="#appendix-B-2.5.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="appendix-A-2.6">
-          <p id="appendix-A-2.6.1"><strong>Name path depth and character set.</strong> Lowercase LDH segments, at most 8,
+        <li id="appendix-B-2.6">
+          <p id="appendix-B-2.6.1"><strong>Name path depth and character set.</strong> Lowercase LDH segments, at most 8,
 are chosen for unambiguous comparison. Confirm this is sufficient for
-multi-tenant platforms.<a href="#appendix-A-2.6.1" class="pilcrow">¶</a></p>
+multi-tenant platforms.<a href="#appendix-B-2.6.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="appendix-A-2.7">
-          <p id="appendix-A-2.7.1"><strong>DNS-based verification.</strong> Consider an alternative proof of control via a
-DNS TXT record, for operators that cannot serve well-known paths.<a href="#appendix-A-2.7.1" class="pilcrow">¶</a></p>
+        <li id="appendix-B-2.7">
+          <p id="appendix-B-2.7.1"><strong>DNS-based verification.</strong> Consider an alternative proof of control via a
+DNS TXT record, for operators that cannot serve well-known paths.<a href="#appendix-B-2.7.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="appendix-A-2.8">
-          <p id="appendix-A-2.8.1"><strong>Port.</strong> Confirm that non-default ports should be permitted in agent
+        <li id="appendix-B-2.8">
+          <p id="appendix-B-2.8.1"><strong>Port.</strong> Confirm that non-default ports should be permitted in agent
 identities at all, given they complicate certificate and policy handling
-and are excluded from the agent-instance profile (<a href="#instances" class="auto internal xref">Section 9</a>).<a href="#appendix-A-2.8.1" class="pilcrow">¶</a></p>
+and are excluded from the agent-instance profile (<a href="#instances" class="auto internal xref">Section 9</a>).<a href="#appendix-B-2.8.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="appendix-A-2.9">
-          <p id="appendix-A-2.9.1"><strong>Test vectors.</strong> Publish positive and negative fixtures for: URI parsing
-and normalization (including dotted-quad and single-label hosts, empty
-ports), non-canonical <code>Signature-Agent</code> values, AID Origin comparison,
+        <li id="appendix-B-2.9">
+          <p id="appendix-B-2.9.1"><strong>Cryptographic test vectors.</strong> <a href="#test-vectors" class="auto internal xref">Appendix A</a> covers URI processing.
+Once an implementation can produce and cross-check them, add vectors for:
 statement <code>iss</code>/<code>sub</code> binding, DID key conversion and per-purpose
 selection, <code>agent_use</code> enforcement, a preserved DID with substituted
 same-origin client metadata keys, a WIT whose <code>sub</code> has a port, content
 tampering with a valid signature, fetches to forbidden destinations, and
 expired credentials. Two independent verifiers should reach the same
-decision for each.<a href="#appendix-A-2.9.1" class="pilcrow">¶</a></p>
+decision for each.<a href="#appendix-B-2.9.1" class="pilcrow">¶</a></p>
 </li>
       </ol>
 </section>
 </div>
 <div id="changes">
-<section id="appendix-B">
+<section id="appendix-C">
       <h2 id="name-changes-from-draft-narvanen">
-<a href="#appendix-B" class="section-number selfRef">Appendix B. </a><a href="#name-changes-from-draft-narvanen" class="section-name selfRef">Changes from draft-narvaneni-agent-uri-03</a>
+<a href="#appendix-C" class="section-number selfRef">Appendix C. </a><a href="#name-changes-from-draft-narvanen" class="section-name selfRef">Changes from draft-narvaneni-agent-uri-03</a>
       </h2>
-<p id="appendix-B-1">This revision changes the scope of the document from "addressing and
-discovery" to "identity".<a href="#appendix-B-1" class="pilcrow">¶</a></p>
-<p id="appendix-B-2">Removed:<a href="#appendix-B-2" class="pilcrow">¶</a></p>
+<p id="appendix-C-1">This revision changes the scope of the document from "addressing and
+discovery" to "identity".<a href="#appendix-C-1" class="pilcrow">¶</a></p>
+<p id="appendix-C-2">Removed:<a href="#appendix-C-2" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="appendix-B-3.1">
-          <p id="appendix-B-3.1.1"><code>agent+&lt;protocol&gt;</code> transport-binding schemes and the Transport Bindings
-registry.<a href="#appendix-B-3.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="appendix-C-3.1">
+          <p id="appendix-C-3.1.1"><code>agent+&lt;protocol&gt;</code> transport-binding schemes and the Transport Bindings
+registry.<a href="#appendix-C-3.1.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="appendix-B-3.2">
-          <p id="appendix-B-3.2.1">Invocation semantics (GET/POST rules, fallback behaviour), query
-parameters in agent URIs, and conformance levels.<a href="#appendix-B-3.2.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="appendix-C-3.2">
+          <p id="appendix-C-3.2.1">Invocation semantics (GET/POST rules, fallback behaviour), query
+parameters in agent URIs, and conformance levels.<a href="#appendix-C-3.2.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="appendix-B-3.3">
-          <p id="appendix-B-3.3.1">The <code>/.well-known/agents.json</code> registry, replaced by the deterministic
-mapping of <a href="#dereference" class="auto internal xref">Section 4.3</a> and optional RFC 9727 catalogs.<a href="#appendix-B-3.3.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="appendix-C-3.3">
+          <p id="appendix-C-3.3.1">The <code>/.well-known/agents.json</code> registry, replaced by the deterministic
+mapping of <a href="#dereference" class="auto internal xref">Section 4.3</a> and optional RFC 9727 catalogs.<a href="#appendix-C-3.3.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="appendix-B-3.4">
-          <p id="appendix-B-3.4.1">The agent descriptor's capability fields (<code>skills</code>, <code>transport</code>,
+        <li class="normal" id="appendix-C-3.4">
+          <p id="appendix-C-3.4.1">The agent descriptor's capability fields (<code>skills</code>, <code>transport</code>,
 <code>interactionModel</code>, versioning, content negotiation). Protocol metadata
-documents are linked instead.<a href="#appendix-B-3.4.1" class="pilcrow">¶</a></p>
+documents are linked instead.<a href="#appendix-C-3.4.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="appendix-B-3.5">
-          <p id="appendix-B-3.5.1">DID authorities in agent URIs, replaced by DID anchoring
-(<a href="#did-anchored" class="auto internal xref">Section 6.2</a>).<a href="#appendix-B-3.5.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="appendix-C-3.5">
+          <p id="appendix-C-3.5.1">DID authorities in agent URIs, replaced by DID anchoring
+(<a href="#did-anchored" class="auto internal xref">Section 6.2</a>).<a href="#appendix-C-3.5.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="appendix-B-3.6">
-          <p id="appendix-B-3.6.1">Cross-cutting conventions (tracing, idempotency, rate limits, health) and
-the Interaction Models registry.<a href="#appendix-B-3.6.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="appendix-C-3.6">
+          <p id="appendix-C-3.6.1">Cross-cutting conventions (tracing, idempotency, rate limits, health) and
+the Interaction Models registry.<a href="#appendix-C-3.6.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="appendix-B-3.7">
-          <p id="appendix-B-3.7.1">The monotonic scope narrowing rule, which conflicted with <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>.<a href="#appendix-B-3.7.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="appendix-C-3.7">
+          <p id="appendix-C-3.7.1">The monotonic scope narrowing rule, which conflicted with <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>.<a href="#appendix-C-3.7.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
-<p id="appendix-B-4">Added:<a href="#appendix-B-4" class="pilcrow">¶</a></p>
+<p id="appendix-C-4">Added:<a href="#appendix-C-4" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="appendix-B-5.1">
-          <p id="appendix-B-5.1.1">Strict URI syntax, normalization, comparison, and reverse-mapping rules.<a href="#appendix-B-5.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="appendix-C-5.1">
+          <p id="appendix-C-5.1.1">Strict URI syntax, normalization, comparison, and reverse-mapping rules.<a href="#appendix-C-5.1.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="appendix-B-5.2">
-          <p id="appendix-B-5.2.1">The Agent Identity Document, a single Key Identifier scheme, key purposes
+        <li class="normal" id="appendix-C-5.2">
+          <p id="appendix-C-5.2.1">The Agent Identity Document, a single Key Identifier scheme, key purposes
 (including <code>agent_use</code> for origin-anchored keys), and origin and DID
-anchoring with DID pinning.<a href="#appendix-B-5.2.1" class="pilcrow">¶</a></p>
+anchoring with DID pinning.<a href="#appendix-C-5.2.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="appendix-B-5.3">
-          <p id="appendix-B-5.3.1">Agent Statements bound to the links that carry them.<a href="#appendix-B-5.3.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="appendix-C-5.3">
+          <p id="appendix-C-5.3.1">Agent Statements bound to the links that carry them.<a href="#appendix-C-5.3.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="appendix-B-5.4">
-          <p id="appendix-B-5.4.1">A request-signing profile of <span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span>, an agent-instance profile
+        <li class="normal" id="appendix-C-5.4">
+          <p id="appendix-C-5.4.1">A request-signing profile of <span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span>, an agent-instance profile
 reusing the WIMSE Workload Identity Token format with AID-based trust, and
 OAuth bindings that distinguish
-metadata association from client authentication.<a href="#appendix-B-5.4.1" class="pilcrow">¶</a></p>
+metadata association from client authentication.<a href="#appendix-C-5.4.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="appendix-B-5.5">
-          <p id="appendix-B-5.5.1">Security and privacy considerations specific to agent identity, including a
-fetch policy covering every verifier-initiated request.<a href="#appendix-B-5.5.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="appendix-C-5.5">
+          <p id="appendix-C-5.5.1">Security and privacy considerations specific to agent identity, including a
+fetch policy covering every verifier-initiated request.<a href="#appendix-C-5.5.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>
 </div>
 <div id="acknowledgments">
-<section id="appendix-C">
+<section id="appendix-D">
       <h2 id="name-acknowledgments">
 <a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
       </h2>
-<p id="appendix-C-1">The authors thank the reviewers of earlier revisions, whose feedback led to
-the change of scope in this revision.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
+<p id="appendix-D-1">The authors thank the reviewers of earlier revisions, whose feedback led to
+the change of scope in this revision.<a href="#appendix-D-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="authors-addresses">
-<section id="appendix-D">
+<section id="appendix-E">
       <h2 id="name-authors-addresses">
 <a href="#name-authors-addresses" class="section-name selfRef">Authors' Addresses</a>
       </h2>
