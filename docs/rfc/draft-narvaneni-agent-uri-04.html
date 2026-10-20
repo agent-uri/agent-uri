@@ -1501,7 +1501,10 @@ how agents communicate, describe their capabilities, or are invoked.<a href="#se
                 <p id="section-toc.1-1.15.2.6.1"><a href="#section-15.6" class="auto internal xref">15.6</a>.  <a href="#name-oauth-client-metadata" class="internal xref">OAuth Client Metadata</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.7">
-                <p id="section-toc.1-1.15.2.7.1"><a href="#section-15.7" class="auto internal xref">15.7</a>.  <a href="#name-json-web-token-claims" class="internal xref">JSON Web Token Claims</a></p>
+                <p id="section-toc.1-1.15.2.7.1"><a href="#section-15.7" class="auto internal xref">15.7</a>.  <a href="#name-json-web-key-parameters" class="internal xref">JSON Web Key Parameters</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.8">
+                <p id="section-toc.1-1.15.2.8.1"><a href="#section-15.8" class="auto internal xref">15.8</a>.  <a href="#name-json-web-token-claims" class="internal xref">JSON Web Token Claims</a></p>
 </li>
             </ul>
 </li>
@@ -2075,9 +2078,9 @@ the thumbprint is computed:<a href="#section-5.2-4" class="pilcrow">¶</a></p>
             <p id="section-5.2-5.1.1">a <code>publicKeyJwk</code> value is used as-is (private members <span class="bcp14">MUST NOT</span> be present);<a href="#section-5.2-5.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-5.2-5.2">
-            <p id="section-5.2-5.2.1">a <code>publicKeyMultibase</code> value that decodes to an Ed25519 public key with the
-multicodec prefix <code>0xed01</code> <span>[<a href="#MULTICODEC" class="cite xref">MULTICODEC</a>]</span> is converted to an OKP JWK with
-<code>"crv": "Ed25519"</code>; and<a href="#section-5.2-5.2.1" class="pilcrow">¶</a></p>
+            <p id="section-5.2-5.2.1">a <code>publicKeyMultibase</code> value that is a Multikey encoding of an Ed25519
+public key (base58btc with the <code>0xed01</code> header, as defined in <span>[<a href="#CID" class="cite xref">CID</a>]</span>) is
+converted to an OKP JWK with <code>"crv": "Ed25519"</code>; and<a href="#section-5.2-5.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-5.2-5.3">
             <p id="section-5.2-5.3.1">verification methods in any other representation <span class="bcp14">MAY</span> be supported; those a
@@ -2109,8 +2112,14 @@ instances (<a href="#instances" class="auto internal xref">Section 9</a>).<a hre
 referenced from the DID document's <code>assertionMethod</code> relationship, and for
 authentication only if it is referenced from <code>authentication</code>
           <span>[<a href="#DID-CORE" class="cite xref">DID-CORE</a>]</span>. Verifiers <span class="bcp14">MUST</span> enforce these relationships.<a href="#section-5.3-3" class="pilcrow">¶</a></p>
-<p id="section-5.3-4">For origin-anchored agents, every key in <code>keys</code> is usable for both purposes
-(see <a href="#open-issues" class="auto internal xref">Appendix A</a>).<a href="#section-5.3-4" class="pilcrow">¶</a></p>
+<p id="section-5.3-4">For origin-anchored agents, a JWK in <code>keys</code> <span class="bcp14">MAY</span> carry an <code>agent_use</code> member
+(<a href="#iana-jwk-params" class="auto internal xref">Section 15.7</a>): an array containing one or both of the strings
+<code>"assertion"</code> and <code>"authentication"</code>. A key is usable only for the purposes
+listed; a key without <code>agent_use</code> is usable for both. Verifiers <span class="bcp14">MUST</span> enforce
+<code>agent_use</code> and <span class="bcp14">MUST</span> ignore keys whose <code>agent_use</code> contains no recognized
+value. Operators <span class="bcp14">SHOULD</span> give every key a single purpose, so that a key held by
+a running agent for request signing cannot mint Workload Identity Tokens or
+sign statements (<a href="#sec-key-compromise" class="auto internal xref">Section 13.6</a>).<a href="#section-5.3-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="aid-links">
@@ -2192,9 +2201,15 @@ authentication only if it is referenced from <code>authentication</code>
 the same canonical host, and the same effective port) is trusted to the same
 degree as the AID itself. A link to any other origin <span class="bcp14">MUST</span> carry a <code>statement</code>,
 and verifiers <span class="bcp14">MUST</span> ignore cross-origin links without a valid statement
-(<a href="#statement-verify" class="auto internal xref">Section 7.1</a>). Because verifier-initiated fetches never follow
+(<a href="#statement-verify" class="auto internal xref">Section 7.1</a>).<a href="#section-5.4-5" class="pilcrow">¶</a></p>
+<p id="section-5.4-6">For DID-anchored agents the same-origin exemption does not apply: every link
+<span class="bcp14">MUST</span> carry a statement signed with a key from the DID document's
+<code>assertionMethod</code>, and verifiers <span class="bcp14">MUST</span> ignore links without one. Otherwise
+whoever controls the origin could replace linked metadata, such as an OAuth
+client metadata document containing client keys, without holding any key
+authorized by the DID (<a href="#sec-trust-model" class="auto internal xref">Section 13.1</a>). Because verifier-initiated fetches never follow
 redirects (<a href="#sec-fetch" class="auto internal xref">Section 13.4</a>), a same-origin <code>href</code> cannot acquire the same-origin
-exemption for content served from another origin.<a href="#section-5.4-5" class="pilcrow">¶</a></p>
+exemption for content served from another origin.<a href="#section-5.4-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="aid-example">
@@ -2273,8 +2288,9 @@ failure.<a href="#section-5.6-2.1.1" class="pilcrow">¶</a></p>
 server certificate for <code>dns-name</code>.<a href="#section-5.6-2.4.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-5.6-2.5">
-            <p id="section-5.6-2.5.1">Treats any status code other than 200 (OK) <span>[<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>, including
-redirects, as a retrieval failure.<a href="#section-5.6-2.5.1" class="pilcrow">¶</a></p>
+            <p id="section-5.6-2.5.1">Treats any status code other than 200 (OK) <span>[<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>, or 304 (Not
+Modified) in response to a conditional request revalidating a cached copy
+<span>[<a href="#RFC9111" class="cite xref">RFC9111</a>]</span>, as a retrieval failure. Redirects are always failures.<a href="#section-5.6-2.5.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-5.6-2.6">
             <p id="section-5.6-2.6.1">Rejects responses larger than 64 KiB, or that are not valid JSON objects.
@@ -2483,7 +2499,8 @@ digest is computed over the resource canonicalized per <span>[<a href="#RFC8785"
             <p id="section-7.1-2.1.1">Checks that <code>typ</code> is <code>"agent-statement+jwt"</code>.<a href="#section-7.1-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-7.1-2.2">
-            <p id="section-7.1-2.2.1">Checks that <code>iss</code> is identical to the AID's <code>id</code>.<a href="#section-7.1-2.2.1" class="pilcrow">¶</a></p>
+            <p id="section-7.1-2.2.1">Checks that <code>iss</code> is identical to the AID's <code>id</code>, and checks the AID's
+<code>status</code> (<a href="#lifecycle" class="auto internal xref">Section 6.3</a>).<a href="#section-7.1-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-7.1-2.3">
             <p id="section-7.1-2.3.1">Checks that <code>sub</code> is identical to the link's <code>href</code>. A statement whose
@@ -2529,8 +2546,8 @@ protocol (see <a href="#open-issues" class="auto internal xref">Appendix A</a>).
 signed this way is a conforming <span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span> request; this profile adds a
 new <code>Signature-Agent</code> member <code>type</code> and constrains the signature further.<a href="#section-8.1-1" class="pilcrow">¶</a></p>
 <p id="section-8.1-2">The request <span class="bcp14">MUST</span> include a <code>Signature-Agent</code> Dictionary member, keyed by the
-signature label, whose value is the agent's AID URL (<a href="#dereference" class="auto internal xref">Section 4.3</a>) and which
-carries the parameter <code>type=agent-id</code>:<a href="#section-8.1-2" class="pilcrow">¶</a></p>
+signature label, whose value is the AID URL derived from the agent's canonical
+agent URI (<a href="#dereference" class="auto internal xref">Section 4.3</a>) and which carries the parameter <code>type=agent-id</code>:<a href="#section-8.1-2" class="pilcrow">¶</a></p>
 <span id="name-signature-agent-member-line"></span><div id="fig-sig-agent">
 <figure id="figure-4">
           <div class="lang-http sourcecode" id="section-8.1-3.1">
@@ -2610,7 +2627,9 @@ request does not carry an agent identity under this profile.<a href="#section-8.
 </li>
           <li id="section-8.2-2.2">
             <p id="section-8.2-2.2.1">Check that the member value is an AID URL and derive the agent URI from it
-(<a href="#dereference" class="auto internal xref">Section 4.3</a>).<a href="#section-8.2-2.2.1" class="pilcrow">¶</a></p>
+(<a href="#dereference" class="auto internal xref">Section 4.3</a>). Verifiers <span class="bcp14">MUST NOT</span> normalize the value before applying
+the reverse mapping; a value that is not exactly the AID URL of a canonical
+agent URI is rejected.<a href="#section-8.2-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-8.2-2.3">
             <p id="section-8.2-2.3.1">Check that the covered components include every component required by
@@ -2661,59 +2680,80 @@ signed by a known agent rather than failing.<a href="#section-8.2-4" class="pilc
 <p id="section-9-1">Agents frequently run as many short-lived instances, for example one per task.
 Publishing a key for each instance in the AID does not scale, and placing the
 agent's long-term private keys in every instance is unsafe.<a href="#section-9-1" class="pilcrow">¶</a></p>
-<p id="section-9-2">Instead, the agent's controlling infrastructure issues each instance a WIMSE
-Workload Identity Token (WIT) <span>[<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span> that binds the instance's key to
-the agent. The WIT <span class="bcp14">MUST</span> conform to <span>[<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span> and additionally:<a href="#section-9-2" class="pilcrow">¶</a></p>
+<p id="section-9-2">Instead, the agent's controlling infrastructure issues each instance a token
+in the WIMSE Workload Identity Token (WIT) format <span>[<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span> that binds
+the instance's key to the agent.<a href="#section-9-2" class="pilcrow">¶</a></p>
+<p id="section-9-3">This profile reuses the WIT format and header field but not the WIMSE trust
+model. <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-wimse-workload-creds-02#section-3" class="relref">Section 3</a> of [<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span> requires verifiers to bind each trust
+domain to issuers and trust anchors provisioned out of band. This profile
+replaces that requirement: the only authorized issuers of a WIT whose <code>sub</code> is
+an agent URI are the assertion keys anchored to <em>exactly that agent URI</em>
+(<a href="#anchoring" class="auto internal xref">Section 6</a>), discovered from its AID. Verifiers that also implement WIMSE
+<span class="bcp14">MUST NOT</span> treat these keys as trust anchors for any other workload identifier,
+in the same trust domain or otherwise, and <span class="bcp14">MUST NOT</span> accept such a WIT under
+WIMSE trust-domain configuration alone.<a href="#section-9-3" class="pilcrow">¶</a></p>
+<p id="section-9-4">This profile applies only to agent URIs without a port, because WIMSE
+workload identifiers cannot contain one. An agent whose URI has a port <span class="bcp14">MUST NOT</span>
+issue WITs under this profile, and verifiers <span class="bcp14">MUST</span> reject a WIT whose <code>sub</code> has
+a port. A port <span class="bcp14">MUST NOT</span> be removed to make a URI fit, since that names a
+different agent.<a href="#section-9-4" class="pilcrow">¶</a></p>
+<p id="section-9-5">The WIT <span class="bcp14">MUST</span> conform to the format and claim requirements of
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-wimse-workload-creds-02#section-5.1" class="relref">Section 5.1</a> of [<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span> and additionally:<a href="#section-9-5" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-9-3.1">
-          <p id="section-9-3.1.1">is signed with an Agent Key usable for assertion, with the JWS <code>kid</code> header
-set to that key's Key Identifier;<a href="#section-9-3.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="section-9-6.1">
+          <p id="section-9-6.1.1">is signed with an Agent Key usable for assertion, with the JWS <code>kid</code> header
+set to that key's Key Identifier;<a href="#section-9-6.1.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-9-3.2">
-          <p id="section-9-3.2.1">has a <code>cnf</code> claim <span>[<a href="#RFC7800" class="cite xref">RFC7800</a>]</span> containing the instance's public key as a
-<code>jwk</code>, as required by <span>[<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span>;<a href="#section-9-3.2.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="section-9-6.2">
+          <p id="section-9-6.2.1">has a <code>cnf</code> claim <span>[<a href="#RFC7800" class="cite xref">RFC7800</a>]</span> containing the instance's public key as a
+<code>jwk</code>, as required by <span>[<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span>;<a href="#section-9-6.2.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-9-3.3">
-          <p id="section-9-3.3.1">has <code>sub</code> set to the canonical agent URI;<a href="#section-9-3.3.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="section-9-6.3">
+          <p id="section-9-6.3.1">has <code>sub</code> set to the canonical agent URI;<a href="#section-9-6.3.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-9-3.4">
-          <p id="section-9-3.4.1">has <code>iss</code>, if present, set to the canonical agent URI;<a href="#section-9-3.4.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="section-9-6.4">
+          <p id="section-9-6.4.1">has <code>iss</code>, if present, set to the canonical agent URI;<a href="#section-9-6.4.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-9-3.5">
-          <p id="section-9-3.5.1">has a <code>jti</code> claim, which <span class="bcp14">MUST</span> be generated at random and not reused
-(<a href="#privacy" class="auto internal xref">Section 14</a>); and<a href="#section-9-3.5.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="section-9-6.5">
+          <p id="section-9-6.5.1">has a <code>jti</code> claim, which <span class="bcp14">MUST</span> be generated at random and not reused
+(<a href="#privacy" class="auto internal xref">Section 14</a>);<a href="#section-9-6.5.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-9-3.6">
-          <p id="section-9-3.6.1">has an <code>exp</code> no more than one hour after its issue time.<a href="#section-9-3.6.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="section-9-6.6">
+          <p id="section-9-6.6.1">has an <code>iat</code> claim; and<a href="#section-9-6.6.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-9-6.7">
+          <p id="section-9-6.7.1">has an <code>exp</code> no more than one hour after <code>iat</code>.<a href="#section-9-6.7.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
-<p id="section-9-4">The instance signs requests with its own key as in <a href="#sig-profile" class="auto internal xref">Section 8.1</a>, with
+<p id="section-9-7">The instance signs requests with its own key as in <a href="#sig-profile" class="auto internal xref">Section 8.1</a>, with
 <code>keyid</code> set to the Key Identifier of the key in the WIT's <code>cnf.jwk</code>, and sends
 the WIT in the <code>Workload-Identity-Token</code> field defined by <span>[<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span>,
-which the signature covers.<a href="#section-9-4" class="pilcrow">¶</a></p>
-<p id="section-9-5">To validate the WIT, the verifier:<a href="#section-9-5" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-9-6">
-<li id="section-9-6.1">
-          <p id="section-9-6.1.1">Validates the WIT as specified in <span>[<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span>, using, for key
-distribution, the AID retrieved for the agent URI in <code>sub</code>.<a href="#section-9-6.1.1" class="pilcrow">¶</a></p>
+which the signature covers.<a href="#section-9-7" class="pilcrow">¶</a></p>
+<p id="section-9-8">To validate the WIT, the verifier:<a href="#section-9-8" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-9-9">
+<li id="section-9-9.1">
+          <p id="section-9-9.1.1">Validates the WIT's format and claims as specified in
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-wimse-workload-creds-02#section-5.1" class="relref">Section 5.1</a> of [<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span> and the additional requirements above,
+rejecting it if <code>iat</code> is missing, if <code>exp</code> is more than one hour after
+<code>iat</code>, or if <code>sub</code> has a port.<a href="#section-9-9.1.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="section-9-6.2">
-          <p id="section-9-6.2.1">Checks that <code>sub</code> is identical to the agent URI derived from
-<code>Signature-Agent</code>.<a href="#section-9-6.2.1" class="pilcrow">¶</a></p>
+        <li id="section-9-9.2">
+          <p id="section-9-9.2.1">Checks that <code>sub</code> is identical to the agent URI derived from
+<code>Signature-Agent</code>, and retrieves its AID; trust-anchor provisioning is
+replaced as described above.<a href="#section-9-9.2.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="section-9-6.3">
-          <p id="section-9-6.3.1">Selects an anchored key usable for assertion whose Key Identifier equals
-the WIT's <code>kid</code>, and verifies the WIT signature.<a href="#section-9-6.3.1" class="pilcrow">¶</a></p>
+        <li id="section-9-9.3">
+          <p id="section-9-9.3.1">Selects an anchored key usable for assertion whose Key Identifier equals
+the WIT's <code>kid</code>, and verifies the WIT signature.<a href="#section-9-9.3.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="section-9-6.4">
-          <p id="section-9-6.4.1">Checks that the request signature's <code>keyid</code> equals the Key Identifier of
+        <li id="section-9-9.4">
+          <p id="section-9-9.4.1">Checks that the request signature's <code>keyid</code> equals the Key Identifier of
 <code>cnf.jwk</code>, and verifies the request signature with that key using the
-algorithm in <code>cnf.jwk.alg</code>.<a href="#section-9-6.4.1" class="pilcrow">¶</a></p>
+algorithm in <code>cnf.jwk.alg</code>.<a href="#section-9-9.4.1" class="pilcrow">¶</a></p>
 </li>
       </ol>
-<p id="section-9-7">This profile uses the WIT format and header field only. It does not use the
-WIMSE HTTP signature profile <span>[<a href="#WIMSE-HTTPSIG" class="cite xref">WIMSE-HTTPSIG</a>]</span>, whose <code>tag</code> and covered
-components differ; see <a href="#open-issues" class="auto internal xref">Appendix A</a>.<a href="#section-9-7" class="pilcrow">¶</a></p>
+<p id="section-9-10">This profile does not use the WIMSE HTTP signature profile <span>[<a href="#WIMSE-HTTPSIG" class="cite xref">WIMSE-HTTPSIG</a>]</span>,
+whose <code>tag</code> and covered components differ; see <a href="#open-issues" class="auto internal xref">Appendix A</a>.<a href="#section-9-10" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="authorization">
@@ -2751,11 +2791,15 @@ client metadata document; or<a href="#section-10.1-4.1.1" class="pilcrow">¶</a>
 URI.<a href="#section-10.1-4.2.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-10.1-5">Without such proof, the authorization server <span class="bcp14">MUST</span> handle the client as it
+<p id="section-10.1-5">For DID-anchored agents, keys from the client metadata document may be used
+for this proof only if that document is covered by a valid statement
+(<a href="#aid-links" class="auto internal xref">Section 5.4</a>); otherwise the authorization server <span class="bcp14">MUST</span> require a request
+signature.<a href="#section-10.1-5" class="pilcrow">¶</a></p>
+<p id="section-10.1-6">Without such proof, the authorization server <span class="bcp14">MUST</span> handle the client as it
 would any client using that <code>client_id</code>, and <span class="bcp14">MUST NOT</span> present it to users as a
 verified agent identity. Consent screens <span class="bcp14">SHOULD</span> display the agent URI or its
 DID and <span class="bcp14">MUST</span> present the operator name as claimed by the agent
-(<a href="#sec-operator" class="auto internal xref">Section 13.3</a>).<a href="#section-10.1-5" class="pilcrow">¶</a></p>
+(<a href="#sec-operator" class="auto internal xref">Section 13.3</a>).<a href="#section-10.1-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="delegation">
@@ -2885,7 +2929,9 @@ is appropriate for most agents.<a href="#section-13.1-1" class="pilcrow">¶</a><
 <p id="section-13.1-2">DID anchoring reduces this dependency only for verifiers that have pinned the
 agent's DID (<a href="#did-anchored" class="auto internal xref">Section 6.2</a>). On first contact, a verifier cannot tell a
 legitimate origin-anchored agent from an attacker who has taken over the
-domain and replaced a DID-anchored AID with an origin-anchored one.<a href="#section-13.1-2" class="pilcrow">¶</a></p>
+domain and replaced a DID-anchored AID with an origin-anchored one. Even for a
+pinned DID, assurance holds only if verifiers rely solely on DID-authorized
+keys and on metadata covered by statements made with them (<a href="#aid-links" class="auto internal xref">Section 5.4</a>).<a href="#section-13.1-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="sec-handle-reassignment">
@@ -2943,8 +2989,9 @@ exceptions for private deployments.<a href="#section-13.4-2.2.1" class="pilcrow"
 (pinned), so that DNS changes cannot redirect the request after the check.<a href="#section-13.4-2.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-13.4-2.4">
-            <p id="section-13.4-2.4.1">HTTP redirects <span class="bcp14">MUST NOT</span> be followed; any non-200 status is a failure, as in
-<span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span>.<a href="#section-13.4-2.4.1" class="pilcrow">¶</a></p>
+            <p id="section-13.4-2.4.1">HTTP redirects <span class="bcp14">MUST NOT</span> be followed, as in <span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span>. Any status
+other than 200, or 304 in response to a conditional revalidation request, is
+a failure.<a href="#section-13.4-2.4.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-13.4-2.5">
             <p id="section-13.4-2.5.1">Verifiers <span class="bcp14">MUST</span> enforce connection and response timeouts, and <span class="bcp14">MUST</span> bound
@@ -2954,7 +3001,9 @@ resources.<a href="#section-13.4-2.5.1" class="pilcrow">¶</a></p>
           <li class="normal" id="section-13.4-2.6">
             <p id="section-13.4-2.6.1">Verifiers <span class="bcp14">MUST</span> bound the number of fetches per verification. A limit of 4
 (for example, the AID, a DID resolution, and a statement subject) is
-<span class="bcp14">RECOMMENDED</span>. Verifiers <span class="bcp14">MUST NOT</span> recursively follow links or <code>depends</code>-style
+<span class="bcp14">RECOMMENDED</span>. A DID resolution counts as one fetch toward this limit;
+verifiers <span class="bcp14">MUST</span> separately bound the requests a DID resolver makes, by
+configuration for each allowed DID method. Verifiers <span class="bcp14">MUST NOT</span> recursively follow links or <code>depends</code>-style
 references from fetched documents.<a href="#section-13.4-2.6.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-13.4-2.7">
@@ -2992,7 +3041,10 @@ removed and caches expire. Operators <span class="bcp14">SHOULD</span> keep Agen
 key management service and use instance credentials (<a href="#instances" class="auto internal xref">Section 9</a>) so that
 long-term keys are never present in running agents. Workload Identity Tokens
 <span class="bcp14">SHOULD</span> be short-lived, because they cannot be individually revoked.<a href="#section-13.6-1" class="pilcrow">¶</a></p>
-<p id="section-13.6-2">Operators <span class="bcp14">SHOULD</span> use different keys for assertion and authentication, and <span class="bcp14">MUST NOT</span> use Agent Keys as DPoP keys (<a href="#delegation" class="auto internal xref">Section 10.2</a>).<a href="#section-13.6-2" class="pilcrow">¶</a></p>
+<p id="section-13.6-2">Operators <span class="bcp14">SHOULD</span> use different keys for assertion and authentication, using
+<code>agent_use</code> for origin-anchored keys and DID verification relationships for
+DID-anchored keys (<a href="#key-purposes" class="auto internal xref">Section 5.3</a>), and <span class="bcp14">MUST NOT</span> use Agent Keys as DPoP keys
+(<a href="#delegation" class="auto internal xref">Section 10.2</a>).<a href="#section-13.6-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="sec-cross-origin">
@@ -3171,14 +3223,25 @@ Client Registration Metadata" registry <span>[<a href="#RFC7591" class="cite xre
 agent URI of the client".<a href="#section-15.6-1" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="iana-jwt-claims">
+<div id="iana-jwk-params">
 <section id="section-15.7">
-        <h3 id="name-json-web-token-claims">
-<a href="#section-15.7" class="section-number selfRef">15.7. </a><a href="#name-json-web-token-claims" class="section-name selfRef">JSON Web Token Claims</a>
+        <h3 id="name-json-web-key-parameters">
+<a href="#section-15.7" class="section-number selfRef">15.7. </a><a href="#name-json-web-key-parameters" class="section-name selfRef">JSON Web Key Parameters</a>
         </h3>
-<p id="section-15.7-1">This document requests registration of <code>resource_digest</code> in the "JSON Web Token
+<p id="section-15.7-1">This document requests registration of <code>agent_use</code> in the "JSON Web Key
+Parameters" registry <span>[<a href="#RFC7517" class="cite xref">RFC7517</a>]</span>, with description "Purposes for which an
+Agent Key may be used", parameter information class "Public", used with all
+key types, referencing <a href="#key-purposes" class="auto internal xref">Section 5.3</a> of this document.<a href="#section-15.7-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="iana-jwt-claims">
+<section id="section-15.8">
+        <h3 id="name-json-web-token-claims">
+<a href="#section-15.8" class="section-number selfRef">15.8. </a><a href="#name-json-web-token-claims" class="section-name selfRef">JSON Web Token Claims</a>
+        </h3>
+<p id="section-15.8-1">This document requests registration of <code>resource_digest</code> in the "JSON Web Token
 Claims" registry <span>[<a href="#RFC7519" class="cite xref">RFC7519</a>]</span>, with description "Digest of the resource
-identified by the sub claim", referencing <a href="#statements" class="auto internal xref">Section 7</a> of this document.<a href="#section-15.7-1" class="pilcrow">¶</a></p>
+identified by the sub claim", referencing <a href="#statements" class="auto internal xref">Section 7</a> of this document.<a href="#section-15.8-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -3194,13 +3257,13 @@ identified by the sub claim", referencing <a href="#statements" class="auto inte
 <a href="#section-16.1" class="section-number selfRef">16.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
         </h3>
 <dl class="references">
+<dt id="CID">[CID]</dt>
+        <dd>
+<span class="refAuthor">Sporny, M.</span> and <span class="refAuthor">M. Jones</span>, <span class="refTitle">"Controlled Identifiers v1.0"</span>, <span class="seriesInfo">W3C Recommendation</span>, <time datetime="2025-05" class="refDate">May 2025</time>, <span>&lt;<a href="https://www.w3.org/TR/cid-1.0/">https://www.w3.org/TR/cid-1.0/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="DID-CORE">[DID-CORE]</dt>
         <dd>
 <span class="refAuthor">Sporny, M.</span>, <span class="refAuthor">Longley, D.</span>, <span class="refAuthor">Sabadello, M.</span>, <span class="refAuthor">Reed, D.</span>, <span class="refAuthor">Steele, O.</span>, and <span class="refAuthor">C. Allen</span>, <span class="refTitle">"Decentralized Identifiers (DIDs) v1.0"</span>, <span class="seriesInfo">W3C Recommendation</span>, <time datetime="2022-07" class="refDate">July 2022</time>, <span>&lt;<a href="https://www.w3.org/TR/did-core/">https://www.w3.org/TR/did-core/</a>&gt;</span>. </dd>
-<dd class="break"></dd>
-<dt id="MULTICODEC">[MULTICODEC]</dt>
-        <dd>
-<span class="refAuthor">Multiformats Project</span>, <span class="refTitle">"Multicodec table"</span>, <time datetime="2025" class="refDate">2025</time>, <span>&lt;<a href="https://github.com/multiformats/multicodec/blob/master/table.csv">https://github.com/multiformats/multicodec/blob/master/table.csv</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC2119">[RFC2119]</dt>
         <dd>
@@ -3402,11 +3465,12 @@ identified by the sub claim", referencing <a href="#statements" class="auto inte
 <span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span> ignore agent identities.<a href="#appendix-A-2.1.1" class="pilcrow">¶</a></p>
 </li>
         <li id="appendix-A-2.2">
-          <p id="appendix-A-2.2.1"><strong>WIMSE alignment.</strong> Confirm with the WIMSE WG that an agent URI is an
-acceptable workload identifier for a WIT <code>sub</code>, and that resolving the
-issuer's keys from the AID is an acceptable key-distribution method.
-Decide whether instances should also be able to use the WIMSE HTTP
-signature profile <span>[<a href="#WIMSE-HTTPSIG" class="cite xref">WIMSE-HTTPSIG</a>]</span> instead of <a href="#request-signing" class="auto internal xref">Section 8</a>.<a href="#appendix-A-2.2.1" class="pilcrow">¶</a></p>
+          <p id="appendix-A-2.2.1"><strong>WIMSE alignment.</strong> Discuss with the WIMSE WG whether port-free agent
+URIs are acceptable workload identifiers (their authority fits the trust
+domain shape of WIMSE identifiers), whether AID-based issuer discovery
+can become a recognized alternative to out-of-band trust-anchor
+provisioning, and whether instances should also be able to use the WIMSE
+HTTP signature profile <span>[<a href="#WIMSE-HTTPSIG" class="cite xref">WIMSE-HTTPSIG</a>]</span>.<a href="#appendix-A-2.2.1" class="pilcrow">¶</a></p>
 </li>
         <li id="appendix-A-2.3">
           <p id="appendix-A-2.3.1"><strong>Back-references from protocol metadata.</strong> Agree with the A2A and MCP
@@ -3414,40 +3478,39 @@ projects on how an Agent Card or MCP server card names its agent URI, and
 who registers the <code>agent-card</code> and <code>mcp-server-card</code> link relations.<a href="#appendix-A-2.3.1" class="pilcrow">¶</a></p>
 </li>
         <li id="appendix-A-2.4">
-          <p id="appendix-A-2.4.1"><strong>Key purposes for origin-anchored agents.</strong> Origin-anchored keys are
-currently usable for both assertion and authentication. Consider a JWK
-member that restricts a key to one purpose, matching the DID relationships.<a href="#appendix-A-2.4.1" class="pilcrow">¶</a></p>
+          <p id="appendix-A-2.4.1"><strong>Retired keys.</strong> Consider an optional list of retired keys with retirement
+times, so that statements issued before a planned rotation remain
+verifiable without re-issuance, while compromised keys are still removed.<a href="#appendix-A-2.4.1" class="pilcrow">¶</a></p>
 </li>
         <li id="appendix-A-2.5">
-          <p id="appendix-A-2.5.1"><strong>Retired keys.</strong> Consider an optional list of retired keys with retirement
-times, so that statements issued before a planned rotation remain
-verifiable without re-issuance, while compromised keys are still removed.<a href="#appendix-A-2.5.1" class="pilcrow">¶</a></p>
+          <p id="appendix-A-2.5.1"><strong>Reserved root segment.</strong> <code>/.well-known/agent/_</code> is chosen to work on
+static hosting. Alternatives (a separate well-known suffix for the root
+agent) should be evaluated.<a href="#appendix-A-2.5.1" class="pilcrow">¶</a></p>
 </li>
         <li id="appendix-A-2.6">
-          <p id="appendix-A-2.6.1"><strong>Reserved root segment.</strong> <code>/.well-known/agent/_</code> is chosen to work on
-static hosting. Alternatives (a separate well-known suffix for the root
-agent) should be evaluated.<a href="#appendix-A-2.6.1" class="pilcrow">¶</a></p>
+          <p id="appendix-A-2.6.1"><strong>Name path depth and character set.</strong> Lowercase LDH segments, at most 8,
+are chosen for unambiguous comparison. Confirm this is sufficient for
+multi-tenant platforms.<a href="#appendix-A-2.6.1" class="pilcrow">¶</a></p>
 </li>
         <li id="appendix-A-2.7">
-          <p id="appendix-A-2.7.1"><strong>Name path depth and character set.</strong> Lowercase LDH segments, at most 8,
-are chosen for unambiguous comparison. Confirm this is sufficient for
-multi-tenant platforms.<a href="#appendix-A-2.7.1" class="pilcrow">¶</a></p>
+          <p id="appendix-A-2.7.1"><strong>DNS-based verification.</strong> Consider an alternative proof of control via a
+DNS TXT record, for operators that cannot serve well-known paths.<a href="#appendix-A-2.7.1" class="pilcrow">¶</a></p>
 </li>
         <li id="appendix-A-2.8">
-          <p id="appendix-A-2.8.1"><strong>DNS-based verification.</strong> Consider an alternative proof of control via a
-DNS TXT record, for operators that cannot serve well-known paths.<a href="#appendix-A-2.8.1" class="pilcrow">¶</a></p>
+          <p id="appendix-A-2.8.1"><strong>Port.</strong> Confirm that non-default ports should be permitted in agent
+identities at all, given they complicate certificate and policy handling
+and are excluded from the agent-instance profile (<a href="#instances" class="auto internal xref">Section 9</a>).<a href="#appendix-A-2.8.1" class="pilcrow">¶</a></p>
 </li>
         <li id="appendix-A-2.9">
-          <p id="appendix-A-2.9.1"><strong>Port.</strong> Confirm that non-default ports should be permitted in agent
-identities at all, given they complicate certificate and policy handling.<a href="#appendix-A-2.9.1" class="pilcrow">¶</a></p>
-</li>
-        <li id="appendix-A-2.10">
-          <p id="appendix-A-2.10.1"><strong>Test vectors.</strong> Publish positive and negative fixtures for: URI parsing
+          <p id="appendix-A-2.9.1"><strong>Test vectors.</strong> Publish positive and negative fixtures for: URI parsing
 and normalization (including dotted-quad and single-label hosts, empty
-ports), AID Origin comparison, statement <code>iss</code>/<code>sub</code> binding, DID key
-conversion and per-purpose selection, content tampering with a valid
-signature, fetches to forbidden destinations, and expired credentials.
-Two independent verifiers should reach the same decision for each.<a href="#appendix-A-2.10.1" class="pilcrow">¶</a></p>
+ports), non-canonical <code>Signature-Agent</code> values, AID Origin comparison,
+statement <code>iss</code>/<code>sub</code> binding, DID key conversion and per-purpose
+selection, <code>agent_use</code> enforcement, a preserved DID with substituted
+same-origin client metadata keys, a WIT whose <code>sub</code> has a port, content
+tampering with a valid signature, fetches to forbidden destinations, and
+expired credentials. Two independent verifiers should reach the same
+decision for each.<a href="#appendix-A-2.9.1" class="pilcrow">¶</a></p>
 </li>
       </ol>
 </section>
@@ -3496,15 +3559,17 @@ the Interaction Models registry.<a href="#appendix-B-3.6.1" class="pilcrow">¶</
           <p id="appendix-B-5.1.1">Strict URI syntax, normalization, comparison, and reverse-mapping rules.<a href="#appendix-B-5.1.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="appendix-B-5.2">
-          <p id="appendix-B-5.2.1">The Agent Identity Document, a single Key Identifier scheme, key purposes,
-and origin and DID anchoring with DID pinning.<a href="#appendix-B-5.2.1" class="pilcrow">¶</a></p>
+          <p id="appendix-B-5.2.1">The Agent Identity Document, a single Key Identifier scheme, key purposes
+(including <code>agent_use</code> for origin-anchored keys), and origin and DID
+anchoring with DID pinning.<a href="#appendix-B-5.2.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="appendix-B-5.3">
           <p id="appendix-B-5.3.1">Agent Statements bound to the links that carry them.<a href="#appendix-B-5.3.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="appendix-B-5.4">
-          <p id="appendix-B-5.4.1">A request-signing profile of <span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span>, an agent-instance profile of
-the WIMSE Workload Identity Token, and OAuth bindings that distinguish
+          <p id="appendix-B-5.4.1">A request-signing profile of <span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span>, an agent-instance profile
+reusing the WIMSE Workload Identity Token format with AID-based trust, and
+OAuth bindings that distinguish
 metadata association from client authentication.<a href="#appendix-B-5.4.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="appendix-B-5.5">

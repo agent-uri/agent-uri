@@ -72,12 +72,15 @@ normative:
     seriesinfo:
       W3C: Recommendation
     target: https://www.w3.org/TR/did-core/
-  MULTICODEC:
-    title: "Multicodec table"
+  CID:
+    title: "Controlled Identifiers v1.0"
     author:
-      - ins: Multiformats Project
-    date: 2025
-    target: https://github.com/multiformats/multicodec/blob/master/table.csv
+      - ins: M. Sporny
+      - ins: M. Jones
+    date: 2025-05
+    seriesinfo:
+      W3C: Recommendation
+    target: https://www.w3.org/TR/cid-1.0/
 
 informative:
   RFC6973:
@@ -449,9 +452,9 @@ For DID-anchored agents, each verification method is converted to a JWK before
 the thumbprint is computed:
 
 - a `publicKeyJwk` value is used as-is (private members MUST NOT be present);
-- a `publicKeyMultibase` value that decodes to an Ed25519 public key with the
-  multicodec prefix `0xed01` {{MULTICODEC}} is converted to an OKP JWK with
-  `"crv": "Ed25519"`; and
+- a `publicKeyMultibase` value that is a Multikey encoding of an Ed25519
+  public key (base58btc with the `0xed01` header, as defined in {{CID}}) is
+  converted to an OKP JWK with `"crv": "Ed25519"`; and
 - verification methods in any other representation MAY be supported; those a
   verifier cannot convert are ignored.
 
@@ -471,8 +474,14 @@ referenced from the DID document's `assertionMethod` relationship, and for
 authentication only if it is referenced from `authentication`
 {{DID-CORE}}. Verifiers MUST enforce these relationships.
 
-For origin-anchored agents, every key in `keys` is usable for both purposes
-(see {{open-issues}}).
+For origin-anchored agents, a JWK in `keys` MAY carry an `agent_use` member
+({{iana-jwk-params}}): an array containing one or both of the strings
+`"assertion"` and `"authentication"`. A key is usable only for the purposes
+listed; a key without `agent_use` is usable for both. Verifiers MUST enforce
+`agent_use` and MUST ignore keys whose `agent_use` contains no recognized
+value. Operators SHOULD give every key a single purpose, so that a key held by
+a running agent for request signing cannot mint Workload Identity Tokens or
+sign statements ({{sec-key-compromise}}).
 
 ## Links {#aid-links}
 
@@ -505,7 +514,14 @@ A link whose `href` has the **same origin as the AID Origin** (scheme "https",
 the same canonical host, and the same effective port) is trusted to the same
 degree as the AID itself. A link to any other origin MUST carry a `statement`,
 and verifiers MUST ignore cross-origin links without a valid statement
-({{statement-verify}}). Because verifier-initiated fetches never follow
+({{statement-verify}}).
+
+For DID-anchored agents the same-origin exemption does not apply: every link
+MUST carry a statement signed with a key from the DID document's
+`assertionMethod`, and verifiers MUST ignore links without one. Otherwise
+whoever controls the origin could replace linked metadata, such as an OAuth
+client metadata document containing client keys, without holding any key
+authorized by the DID ({{sec-trust-model}}). Because verifier-initiated fetches never follow
 redirects ({{sec-fetch}}), a same-origin `href` cannot acquire the same-origin
 exemption for content served from another origin.
 
@@ -562,8 +578,9 @@ To obtain the AID for an agent URI, a verifier:
 3. Applies the fetch policy of {{sec-fetch}}.
 4. Sends an HTTPS GET with `Accept: application/agent-id+json`, validating the
    server certificate for `dns-name`.
-5. Treats any status code other than 200 (OK) {{RFC9110}}, including
-   redirects, as a retrieval failure.
+5. Treats any status code other than 200 (OK) {{RFC9110}}, or 304 (Not
+   Modified) in response to a conditional request revalidating a cached copy
+   {{RFC9111}}, as a retrieval failure. Redirects are always failures.
 6. Rejects responses larger than 64 KiB, or that are not valid JSON objects.
    Verifiers MUST NOT reject a response solely because its media type is
    `application/json` (to support static hosting) but MUST reject any other
@@ -706,7 +723,8 @@ The payload is a JWT Claims Set {{RFC7519}} with:
 To verify a statement carried in a link of an AID, a verifier:
 
 1. Checks that `typ` is `"agent-statement+jwt"`.
-2. Checks that `iss` is identical to the AID's `id`.
+2. Checks that `iss` is identical to the AID's `id`, and checks the AID's
+   `status` ({{lifecycle}}).
 3. Checks that `sub` is identical to the link's `href`. A statement whose
    `sub` differs MUST be rejected, even if it is otherwise valid.
 4. Selects an anchored key usable for assertion whose Key Identifier equals
@@ -736,8 +754,8 @@ signed this way is a conforming {{WEB-BOT-AUTH}} request; this profile adds a
 new `Signature-Agent` member `type` and constrains the signature further.
 
 The request MUST include a `Signature-Agent` Dictionary member, keyed by the
-signature label, whose value is the agent's AID URL ({{dereference}}) and which
-carries the parameter `type=agent-id`:
+signature label, whose value is the AID URL derived from the agent's canonical
+agent URI ({{dereference}}) and which carries the parameter `type=agent-id`:
 
 ~~~ http
 Signature-Agent: sig1="https://example.com/.well-known/agent/planner"
@@ -788,7 +806,9 @@ generic HTTP Message Signatures implementation to enforce them:
    `Signature-Agent` member with `type=agent-id`. If there is none, the
    request does not carry an agent identity under this profile.
 2. Check that the member value is an AID URL and derive the agent URI from it
-   ({{dereference}}).
+   ({{dereference}}). Verifiers MUST NOT normalize the value before applying
+   the reverse mapping; a value that is not exactly the AID URL of a canonical
+   agent URI is rejected.
 3. Check that the covered components include every component required by
    {{sig-profile}}, and that `expires` is no more than 300 seconds after
    `created` and the current time is between them, allowing for modest clock
@@ -824,9 +844,28 @@ Agents frequently run as many short-lived instances, for example one per task.
 Publishing a key for each instance in the AID does not scale, and placing the
 agent's long-term private keys in every instance is unsafe.
 
-Instead, the agent's controlling infrastructure issues each instance a WIMSE
-Workload Identity Token (WIT) {{WIMSE-CREDS}} that binds the instance's key to
-the agent. The WIT MUST conform to {{WIMSE-CREDS}} and additionally:
+Instead, the agent's controlling infrastructure issues each instance a token
+in the WIMSE Workload Identity Token (WIT) format {{WIMSE-CREDS}} that binds
+the instance's key to the agent.
+
+This profile reuses the WIT format and header field but not the WIMSE trust
+model. {{Section 3 of WIMSE-CREDS}} requires verifiers to bind each trust
+domain to issuers and trust anchors provisioned out of band. This profile
+replaces that requirement: the only authorized issuers of a WIT whose `sub` is
+an agent URI are the assertion keys anchored to *exactly that agent URI*
+({{anchoring}}), discovered from its AID. Verifiers that also implement WIMSE
+MUST NOT treat these keys as trust anchors for any other workload identifier,
+in the same trust domain or otherwise, and MUST NOT accept such a WIT under
+WIMSE trust-domain configuration alone.
+
+This profile applies only to agent URIs without a port, because WIMSE
+workload identifiers cannot contain one. An agent whose URI has a port MUST NOT
+issue WITs under this profile, and verifiers MUST reject a WIT whose `sub` has
+a port. A port MUST NOT be removed to make a URI fit, since that names a
+different agent.
+
+The WIT MUST conform to the format and claim requirements of
+{{Section 5.1 of WIMSE-CREDS}} and additionally:
 
 - is signed with an Agent Key usable for assertion, with the JWS `kid` header
   set to that key's Key Identifier;
@@ -835,8 +874,9 @@ the agent. The WIT MUST conform to {{WIMSE-CREDS}} and additionally:
 - has `sub` set to the canonical agent URI;
 - has `iss`, if present, set to the canonical agent URI;
 - has a `jti` claim, which MUST be generated at random and not reused
-  ({{privacy}}); and
-- has an `exp` no more than one hour after its issue time.
+  ({{privacy}});
+- has an `iat` claim; and
+- has an `exp` no more than one hour after `iat`.
 
 The instance signs requests with its own key as in {{sig-profile}}, with
 `keyid` set to the Key Identifier of the key in the WIT's `cnf.jwk`, and sends
@@ -845,19 +885,21 @@ which the signature covers.
 
 To validate the WIT, the verifier:
 
-1. Validates the WIT as specified in {{WIMSE-CREDS}}, using, for key
-   distribution, the AID retrieved for the agent URI in `sub`.
+1. Validates the WIT's format and claims as specified in
+   {{Section 5.1 of WIMSE-CREDS}} and the additional requirements above,
+   rejecting it if `iat` is missing, if `exp` is more than one hour after
+   `iat`, or if `sub` has a port.
 2. Checks that `sub` is identical to the agent URI derived from
-   `Signature-Agent`.
+   `Signature-Agent`, and retrieves its AID; trust-anchor provisioning is
+   replaced as described above.
 3. Selects an anchored key usable for assertion whose Key Identifier equals
    the WIT's `kid`, and verifies the WIT signature.
 4. Checks that the request signature's `keyid` equals the Key Identifier of
    `cnf.jwk`, and verifies the request signature with that key using the
    algorithm in `cnf.jwk.alg`.
 
-This profile uses the WIT format and header field only. It does not use the
-WIMSE HTTP signature profile {{WIMSE-HTTPSIG}}, whose `tag` and covered
-components differ; see {{open-issues}}.
+This profile does not use the WIMSE HTTP signature profile {{WIMSE-HTTPSIG}},
+whose `tag` and covered components differ; see {{open-issues}}.
 
 # Profile: Authorization {#authorization}
 
@@ -886,6 +928,11 @@ example:
   client metadata document; or
 - a request signature verified under {{request-signing}} for the same agent
   URI.
+
+For DID-anchored agents, keys from the client metadata document may be used
+for this proof only if that document is covered by a valid statement
+({{aid-links}}); otherwise the authorization server MUST require a request
+signature.
 
 Without such proof, the authorization server MUST handle the client as it
 would any client using that `client_id`, and MUST NOT present it to users as a
@@ -980,7 +1027,9 @@ is appropriate for most agents.
 DID anchoring reduces this dependency only for verifiers that have pinned the
 agent's DID ({{did-anchored}}). On first contact, a verifier cannot tell a
 legitimate origin-anchored agent from an attacker who has taken over the
-domain and replaced a DID-anchored AID with an origin-anchored one.
+domain and replaced a DID-anchored AID with an origin-anchored one. Even for a
+pinned DID, assurance holds only if verifiers rely solely on DID-authorized
+keys and on metadata covered by statements made with them ({{aid-links}}).
 
 ## Handle Reassignment {#sec-handle-reassignment}
 
@@ -1020,14 +1069,17 @@ to **every** fetch made in the course of verification:
   exceptions for private deployments.
 - The resolved address MUST be checked and then used for the connection
   (pinned), so that DNS changes cannot redirect the request after the check.
-- HTTP redirects MUST NOT be followed; any non-200 status is a failure, as in
-  {{WEB-BOT-AUTH}}.
+- HTTP redirects MUST NOT be followed, as in {{WEB-BOT-AUTH}}. Any status
+  other than 200, or 304 in response to a conditional revalidation request, is
+  a failure.
 - Verifiers MUST enforce connection and response timeouts, and MUST bound
   response sizes: 64 KiB for AIDs and a locally configured limit for other
   resources.
 - Verifiers MUST bound the number of fetches per verification. A limit of 4
   (for example, the AID, a DID resolution, and a statement subject) is
-  RECOMMENDED. Verifiers MUST NOT recursively follow links or `depends`-style
+  RECOMMENDED. A DID resolution counts as one fetch toward this limit;
+  verifiers MUST separately bound the requests a DID resolver makes, by
+  configuration for each allowed DID method. Verifiers MUST NOT recursively follow links or `depends`-style
   references from fetched documents.
 - Verifiers MUST rate-limit fetches per host and cache results, including
   failures.
@@ -1056,8 +1108,10 @@ key management service and use instance credentials ({{instances}}) so that
 long-term keys are never present in running agents. Workload Identity Tokens
 SHOULD be short-lived, because they cannot be individually revoked.
 
-Operators SHOULD use different keys for assertion and authentication, and MUST
-NOT use Agent Keys as DPoP keys ({{delegation}}).
+Operators SHOULD use different keys for assertion and authentication, using
+`agent_use` for origin-anchored keys and DID verification relationships for
+DID-anchored keys ({{key-purposes}}), and MUST NOT use Agent Keys as DPoP keys
+({{delegation}}).
 
 ## Cross-Origin Metadata {#sec-cross-origin}
 
@@ -1159,6 +1213,13 @@ This document requests registration of `agent_uri` in the "OAuth Dynamic
 Client Registration Metadata" registry {{RFC7591}}, with description "Canonical
 agent URI of the client".
 
+## JSON Web Key Parameters {#iana-jwk-params}
+
+This document requests registration of `agent_use` in the "JSON Web Key
+Parameters" registry {{RFC7517}}, with description "Purposes for which an
+Agent Key may be used", parameter information class "Public", used with all
+key types, referencing {{key-purposes}} of this document.
+
 ## JSON Web Token Claims {#iana-jwt-claims}
 
 This document requests registration of `resource_digest` in the "JSON Web Token
@@ -1175,36 +1236,38 @@ This appendix will be removed before publication.
    `type` values. Work with the webbotauth WG to create one, or to define
    `agent-id` there. Until then, verifiers that only implement
    {{WEB-BOT-AUTH}} ignore agent identities.
-2. **WIMSE alignment.** Confirm with the WIMSE WG that an agent URI is an
-   acceptable workload identifier for a WIT `sub`, and that resolving the
-   issuer's keys from the AID is an acceptable key-distribution method.
-   Decide whether instances should also be able to use the WIMSE HTTP
-   signature profile {{WIMSE-HTTPSIG}} instead of {{request-signing}}.
+2. **WIMSE alignment.** Discuss with the WIMSE WG whether port-free agent
+   URIs are acceptable workload identifiers (their authority fits the trust
+   domain shape of WIMSE identifiers), whether AID-based issuer discovery
+   can become a recognized alternative to out-of-band trust-anchor
+   provisioning, and whether instances should also be able to use the WIMSE
+   HTTP signature profile {{WIMSE-HTTPSIG}}.
 3. **Back-references from protocol metadata.** Agree with the A2A and MCP
    projects on how an Agent Card or MCP server card names its agent URI, and
    who registers the `agent-card` and `mcp-server-card` link relations.
-4. **Key purposes for origin-anchored agents.** Origin-anchored keys are
-   currently usable for both assertion and authentication. Consider a JWK
-   member that restricts a key to one purpose, matching the DID relationships.
-5. **Retired keys.** Consider an optional list of retired keys with retirement
+4. **Retired keys.** Consider an optional list of retired keys with retirement
    times, so that statements issued before a planned rotation remain
    verifiable without re-issuance, while compromised keys are still removed.
-6. **Reserved root segment.** `/.well-known/agent/_` is chosen to work on
+5. **Reserved root segment.** `/.well-known/agent/_` is chosen to work on
    static hosting. Alternatives (a separate well-known suffix for the root
    agent) should be evaluated.
-7. **Name path depth and character set.** Lowercase LDH segments, at most 8,
+6. **Name path depth and character set.** Lowercase LDH segments, at most 8,
    are chosen for unambiguous comparison. Confirm this is sufficient for
    multi-tenant platforms.
-8. **DNS-based verification.** Consider an alternative proof of control via a
+7. **DNS-based verification.** Consider an alternative proof of control via a
    DNS TXT record, for operators that cannot serve well-known paths.
-9. **Port.** Confirm that non-default ports should be permitted in agent
-   identities at all, given they complicate certificate and policy handling.
-10. **Test vectors.** Publish positive and negative fixtures for: URI parsing
-    and normalization (including dotted-quad and single-label hosts, empty
-    ports), AID Origin comparison, statement `iss`/`sub` binding, DID key
-    conversion and per-purpose selection, content tampering with a valid
-    signature, fetches to forbidden destinations, and expired credentials.
-    Two independent verifiers should reach the same decision for each.
+8. **Port.** Confirm that non-default ports should be permitted in agent
+   identities at all, given they complicate certificate and policy handling
+   and are excluded from the agent-instance profile ({{instances}}).
+9. **Test vectors.** Publish positive and negative fixtures for: URI parsing
+   and normalization (including dotted-quad and single-label hosts, empty
+   ports), non-canonical `Signature-Agent` values, AID Origin comparison,
+   statement `iss`/`sub` binding, DID key conversion and per-purpose
+   selection, `agent_use` enforcement, a preserved DID with substituted
+   same-origin client metadata keys, a WIT whose `sub` has a port, content
+   tampering with a valid signature, fetches to forbidden destinations, and
+   expired credentials. Two independent verifiers should reach the same
+   decision for each.
 
 # Changes from draft-narvaneni-agent-uri-03 {#changes}
 
@@ -1231,11 +1294,13 @@ Removed:
 Added:
 
 - Strict URI syntax, normalization, comparison, and reverse-mapping rules.
-- The Agent Identity Document, a single Key Identifier scheme, key purposes,
-  and origin and DID anchoring with DID pinning.
+- The Agent Identity Document, a single Key Identifier scheme, key purposes
+  (including `agent_use` for origin-anchored keys), and origin and DID
+  anchoring with DID pinning.
 - Agent Statements bound to the links that carry them.
-- A request-signing profile of {{WEB-BOT-AUTH}}, an agent-instance profile of
-  the WIMSE Workload Identity Token, and OAuth bindings that distinguish
+- A request-signing profile of {{WEB-BOT-AUTH}}, an agent-instance profile
+  reusing the WIMSE Workload Identity Token format with AID-based trust, and
+  OAuth bindings that distinguish
   metadata association from client authentication.
 - Security and privacy considerations specific to agent identity, including a
   fetch policy covering every verifier-initiated request.
