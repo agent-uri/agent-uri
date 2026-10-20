@@ -757,7 +757,7 @@ Internet-Draft                  agent-uri                   October 2026
        },
        {
          "rel": "mcp-server-card",
-         "href": "https://tools.example-cdn.net/planner/server.json",
+         "href": "https://cdn.example.net/planner/server.json",
          "statement": "eyJ0eXAiOiJhZ2VudC1zdGF0ZW1lbnQrand0Ii..."
        },
        {
@@ -1581,10 +1581,10 @@ Internet-Draft                  agent-uri                   October 2026
 
 13.8.  Confusable Names
 
-   Agent URIs can be visually similar (e.g., examp1e.com).  User
-   interfaces that display agent identities SHOULD display the A-label
-   form of the host, and SHOULD warn when an agent URI or DID is new to
-   the user.
+   Agent URIs can be visually similar (e.g., agent://examp1e.example/
+   planner and agent://example.example/planner).  User interfaces that
+   display agent identities SHOULD display the A-label form of the host,
+   and SHOULD warn when an agent URI or DID is new to the user.
 
 14.  Privacy Considerations
 

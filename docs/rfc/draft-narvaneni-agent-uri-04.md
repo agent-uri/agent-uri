@@ -129,8 +129,8 @@ to its protocol metadata. It also defines profiles that let an agent prove its
 identity on HTTP requests, building on HTTP Message Signatures for automated
 traffic, and that let short-lived agent instances act under the agent's
 identity using the WIMSE Workload Identity Token format. It deliberately does
-not define
-how agents communicate, describe their capabilities, or are invoked.
+not define how agents communicate, describe their capabilities, or are
+invoked.
 
 --- middle
 
@@ -563,7 +563,7 @@ authorized by the DID ({{sec-trust-model}}).
     },
     {
       "rel": "mcp-server-card",
-      "href": "https://tools.example-cdn.net/planner/server.json",
+      "href": "https://cdn.example.net/planner/server.json",
       "statement": "eyJ0eXAiOiJhZ2VudC1zdGF0ZW1lbnQrand0Ii..."
     },
     {
@@ -1182,8 +1182,9 @@ truth of the resource's contents.
 
 ## Confusable Names {#sec-confusables}
 
-Agent URIs can be visually similar (e.g., `examp1e.com`). User interfaces that
-display agent identities SHOULD display the A-label form of the host, and
+Agent URIs can be visually similar (e.g., `agent://examp1e.example/planner`
+and `agent://example.example/planner`). User interfaces that display agent
+identities SHOULD display the A-label form of the host, and
 SHOULD warn when an agent URI or DID is new to the user.
 
 # Privacy Considerations {#privacy}
