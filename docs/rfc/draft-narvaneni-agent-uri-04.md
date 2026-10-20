@@ -13,6 +13,7 @@ keyword:
 submissionType: IETF
 date: 2026-10-20
 
+v: 3
 stand_alone: yes
 pi: [toc, sortrefs, symrefs]
 

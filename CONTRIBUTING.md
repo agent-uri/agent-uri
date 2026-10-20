@@ -43,9 +43,8 @@ We welcome feedback, discussion, and pull requests across all areas of the proje
 
 For changes to the Internet-Draft:
 - Edits should be made to the latest revision in `docs/rfc/` (currently `draft-narvaneni-agent-uri-04.md`); earlier revisions are kept as published and should not be changed
-- Use [`kramdown-rfc2629`](https://github.com/cabo/kramdown-rfc) to generate `.xml` file
-- Use [`xml2rfc`](https://tools.ietf.org/tools/xml2rfc/) to regenerate `.txt` and `.html` if needed.
-- Ensure that there are no warnings or errors from `kramdown-rfc2629` or `xml2rfc`
+- Run `scripts/build-draft.sh draft-narvaneni-agent-uri-NN` to regenerate the `.xml`, `.txt`, `.html` and `.pdf`. It needs [`kramdown-rfc`](https://github.com/cabo/kramdown-rfc) and [`xml2rfc`](https://ietf-tools.github.io/xml2rfc/), and produces the v3 XML that should be submitted to the datatracker
+- Ensure that there are no warnings or errors from `kramdown-rfc` or `xml2rfc`
 - We can help you with the tooling!
 
 ---
