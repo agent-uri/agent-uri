@@ -1,0 +1,3230 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>The agent URI Scheme and Verifiable Agent Identity</title>
+<meta content="Yaswanth Narvaneni" name="author">
+<meta content="Sai Purnima Ravi" name="author">
+<meta content="
+       Software agents increasingly act on the Internet on behalf of people and
+organizations: they call APIs, browse websites, and delegate work to other
+agents. Protocols such as A2A and MCP define how agents communicate, but there
+is no interoperable way to answer a prior question:  which agent is this, who
+operates it, and how can its claims be verified? 
+       This document defines the  agent  URI scheme as a stable, human-readable
+identifier for an agent, a deterministic mapping from that identifier to an
+HTTPS-hosted Agent Identity Document, and a small set of mechanisms built on
+existing standards that let an agent prove its identity: signed statements
+binding the agent to its protocol metadata, an HTTP Message Signatures profile
+for requests made by the agent, short-lived credentials for ephemeral agent
+instances, and bindings to OAuth 2.0. It deliberately does not define how
+agents communicate, describe their capabilities, or are invoked. 
+    " name="description">
+<meta content="xml2rfc 3.33.0" name="generator">
+<meta content="agent" name="keyword">
+<meta content="identity" name="keyword">
+<meta content="URI scheme" name="keyword">
+<meta content="HTTP message signatures" name="keyword">
+<meta content="draft-narvaneni-agent-uri-04" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.33.0
+    Python 3.14.4
+    ConfigArgParse 1.7.5
+    google-i18n-address 3.1.1
+    intervaltree 3.2.1
+    Jinja2 3.1.6
+    lxml 6.1.0
+    platformdirs 4.9.6
+    pycountry 26.2.16
+    PyYAML 6.0.3
+    requests 2.33.1
+    wcwidth 0.6.0
+    weasyprint 68.1
+-->
+<link href="draft-narvaneni-agent-uri-04.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">/*
+
+  NOTE: Changes at the bottom of this file overrides some earlier settings.
+
+  Once the style has stabilized and has been adopted as an official RFC style,
+  this can be consolidated so that style settings occur only in one place, but
+  for now the contents of this file consists first of the initial CSS work as
+  provided to the RFC Formatter (xml2rfc) work, followed by itemized and
+  commented changes found necessary during the development of the v3
+  formatters.
+
+*/
+
+/* fonts */
+@import url('https://static.ietf.org/fonts/noto-sans/import.css'); /* Sans-serif */
+@import url('https://static.ietf.org/fonts/noto-serif/import.css'); /* Serif (print) */
+@import url('https://static.ietf.org/fonts/roboto-mono/import.css'); /* Monospace */
+
+:root {
+  --font-sans: 'Noto Sans', Arial, Helvetica, sans-serif;
+  --font-serif: 'Noto Serif', 'Times', 'Times New Roman', serif;
+  --font-mono: 'Roboto Mono', Courier, 'Courier New', monospace;
+}
+
+@viewport {
+  zoom: 1.0;
+}
+@-ms-viewport {
+  width: extend-to-zoom;
+  zoom: 1.0;
+}
+/* general and mobile first */
+html {
+}
+body {
+  max-width: 90%;
+  margin: 1.5em auto;
+  color: #222;
+  background-color: #fff;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  scroll-behavior: smooth;
+  overflow-wrap: break-word;
+}
+.ears {
+  display: none;
+}
+
+/* headings */
+#title, h1, h2, h3, h4, h5, h6 {
+  margin: 1em 0 0.5em;
+  font-weight: bold;
+  line-height: 1.3;
+}
+#title {
+  clear: both;
+  border-bottom: 1px solid #ddd;
+  margin: 0 0 0.5em 0;
+  padding: 1em 0 0.5em;
+}
+.author {
+  padding-bottom: 4px;
+}
+h1 {
+  font-size: 26px;
+  margin: 1em 0;
+}
+h2 {
+  font-size: 22px;
+  margin-top: -20px;  /* provide offset for in-page anchors */
+  padding-top: 33px;
+}
+h3 {
+  font-size: 18px;
+  margin-top: -36px;  /* provide offset for in-page anchors */
+  padding-top: 42px;
+}
+h4 {
+  font-size: 16px;
+  margin-top: -36px;  /* provide offset for in-page anchors */
+  padding-top: 42px;
+}
+h5, h6 {
+  font-size: 14px;
+}
+#n-copyright-notice {
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 1em;
+  margin-bottom: 1em;
+}
+/* general structure */
+p {
+  padding: 0;
+  margin: 0 0 1em 0;
+  text-align: left;
+}
+div, span {
+  position: relative;
+}
+div {
+  margin: 0;
+}
+.alignRight.art-text {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 3px;
+  padding: 1em 1em 0;
+  margin-bottom: 1.5em;
+}
+.alignRight.art-text pre {
+  padding: 0;
+}
+.alignRight {
+  margin: 1em 0;
+}
+.alignRight > *:first-child {
+  border: none;
+  margin: 0;
+  float: right;
+  clear: both;
+}
+.alignRight > *:nth-child(2) {
+  clear: both;
+  display: block;
+  border: none;
+}
+svg {
+  display: block;
+}
+@media print {
+  svg {
+    max-height: 850px;
+    max-width: 660px;
+  }
+}
+svg[font-family~="serif" i], svg [font-family~="serif" i] {
+  font-family: var(--font-serif);
+}
+svg[font-family~="sans-serif" i], svg [font-family~="sans-serif" i] {
+  font-family: var(--font-sans);
+}
+svg[font-family~="monospace" i], svg [font-family~="monospace" i] {
+  font-family: var(--font-mono);
+}
+.alignCenter.art-text {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 3px;
+  padding: 1em 1em 0;
+  margin-bottom: 1.5em;
+}
+.alignCenter.art-text pre {
+  padding: 0;
+}
+.alignCenter {
+  margin: 1em 0;
+}
+.alignCenter > *:first-child {
+  display: table;
+  border: none;
+  margin: 0 auto;
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 1em 2em;
+}
+ol ol, ul ul, ol ul, ul ol {
+  margin-left: 1em;
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+.ulCompact li {
+  margin: 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+}
+ul.empty li, .ulEmpty li {
+  margin-top: 0.5em;
+}
+ul.ulBare, li.ulBare {
+  margin-left: 0em !important;
+}
+ul.compact, .ulCompact,
+ol.compact, .olCompact {
+  line-height: 100%;
+  margin: 0 0 0 2em;
+}
+
+/* definition lists */
+dl {
+}
+dl > dt {
+  float: left;
+  margin-right: 1em;
+}
+/* 
+dl.nohang > dt {
+  float: none;
+}
+*/
+dl > dd {
+  margin-bottom: .8em;
+  min-height: 1.3em;
+}
+dl.compact > dd, .dlCompact > dd {
+  margin-bottom: 0em;
+}
+dl > dd > dl {
+  margin-top: 0.5em;
+  margin-bottom: 0em;
+}
+
+/* links */
+a {
+  text-decoration: none;
+}
+a[href] {
+  color: #22e; /* Arlen: WCAG 2019 */
+}
+a[href]:hover {
+  background-color: #f2f2f2;
+}
+figcaption a[href],
+a[href].selfRef {
+  color: #222;
+}
+/* XXX probably not this:
+a.selfRef:hover {
+  background-color: transparent;
+  cursor: default;
+} */
+
+/* Figures */
+tt, code, pre {
+  background-color: #f9f9f9;
+  font-family: var(--font-mono);
+}
+pre {
+  border: 1px solid #eee;
+  margin: 0;
+  padding: 1em;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0;
+}
+figure blockquote {
+  margin: 0.8em 0.4em 0.4em;
+}
+figcaption {
+  font-style: italic;
+  margin: 0 0 1em 0;
+}
+@media screen {
+  pre {
+    overflow-x: auto;
+    max-width: 100%;
+    max-width: calc(100% - 22px);
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 1.2em 2em;
+}
+blockquote {
+  background-color: #f9f9f9;
+  color: #111; /* Arlen: WCAG 2019 */
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  margin: 1em 0;
+}
+blockquote > *:last-child {
+  margin-bottom: 0;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+.xref {
+  overflow-wrap: normal;
+}
+
+/* tables */
+table {
+  width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+  border: 1px solid #eee;
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.5em 0.75em;
+}
+th {
+  text-align: left;
+  background-color: #e9e9e9;
+}
+tr:nth-child(2n+1) > td {
+  background-color: #f5f5f5;
+}
+table caption {
+  font-style: italic;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+table p {
+  /* XXX to avoid bottom margin on table row signifiers. If paragraphs should
+     be allowed within tables more generally, it would be far better to select on a class. */
+  margin: 0;
+}
+
+/* pilcrow */
+a.pilcrow {
+  color: #666; /* Arlen: AHDJ 2019 */
+  text-decoration: none;
+  visibility: hidden;
+  user-select: none;
+  -ms-user-select: none;
+  -o-user-select:none;
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+@media screen {
+  aside:hover > a.pilcrow,
+  p:hover > a.pilcrow,
+  blockquote:hover > a.pilcrow,
+  div:hover > a.pilcrow,
+  li:hover > a.pilcrow,
+  pre:hover > a.pilcrow {
+    visibility: visible;
+  }
+  a.pilcrow:hover {
+    background-color: transparent;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid #eee;
+}
+.bcp14 {
+  font-variant: small-caps;
+}
+
+.role {
+  font-variant: all-small-caps;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: 0.9em;
+}
+#identifiers dt {
+  width: 3em;
+  clear: left;
+}
+#identifiers dd {
+  float: left;
+  margin-bottom: 0;
+}
+/* Fix PDF info block run off issue */
+@media print {
+  #identifiers dd {
+    max-width: 100%;
+  }
+}
+#identifiers .authors .author {
+  display: inline-block;
+  margin-right: 1.5em;
+}
+#identifiers .authors .org {
+  font-style: italic;
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #666; /* Arlen: WCAG 2019 */
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+}
+.docInfo .prepared {
+  float: left;
+}
+.docInfo .prepared {
+  float: right;
+}
+
+/* table of contents */
+#toc  {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+}
+nav.toc ul {
+  margin: 0 0.5em 0 0;
+  padding: 0;
+  list-style: none;
+}
+nav.toc li {
+  line-height: 1.3em;
+  margin: 0.75em 0;
+  padding-left: 1.2em;
+  text-indent: -1.2em;
+}
+/* references */
+.references dt {
+  text-align: right;
+  font-weight: bold;
+  min-width: 7em;
+}
+.references dd {
+  margin-left: 8em;
+  overflow: auto;
+}
+
+.refInstance {
+  margin-bottom: 1.25em;
+}
+
+.refSubseries {
+  margin-bottom: 1.25em;
+}
+
+.references .ascii {
+  margin-bottom: 0.25em;
+}
+
+/* index */
+.index ul {
+  margin: 0 0 0 1em;
+  padding: 0;
+  list-style: none;
+}
+.index ul ul {
+  margin: 0;
+}
+.index li {
+  margin: 0;
+  text-indent: -2em;
+  padding-left: 2em;
+  padding-bottom: 5px;
+}
+.indexIndex {
+  margin: 0.5em 0 1em;
+}
+.index a {
+  font-weight: 700;
+}
+/* make the index two-column on all but the smallest screens */
+@media (min-width: 600px) {
+  .index ul {
+    -moz-column-count: 2;
+    -moz-column-gap: 20px;
+  }
+  .index ul ul {
+    -moz-column-count: 1;
+    -moz-column-gap: 0;
+  }
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  margin: 1em 0;
+}
+
+address.vcard .nameRole {
+  font-weight: 700;
+  margin-left: 0;
+}
+address.vcard .label {
+  font-family: var(--font-sans);
+  margin: 0.5em 0;
+}
+address.vcard .type {
+  display: none;
+}
+.alternative-contact {
+  margin: 1.5em 0 1em;
+}
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+
+/* temporary notes */
+.rfcEditorRemove::before {
+  position: absolute;
+  top: 0.2em;
+  right: 0.2em;
+  padding: 0.2em;
+  content: "The RFC Editor will remove this note";
+  color: #9e2a00; /* Arlen: WCAG 2019 */
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+}
+.rfcEditorRemove {
+  position: relative;
+  padding-top: 1.8em;
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+  border-radius: 3px;
+}
+.cref {
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+/* alternative layout for smaller screens */
+@media screen and (max-width: 1023px) {
+  body {
+    padding-top: 2em;
+  }
+  #title {
+    padding: 1em 0;
+  }
+  h1 {
+    font-size: 24px;
+  }
+  h2 {
+    font-size: 20px;
+    margin-top: -18px;  /* provide offset for in-page anchors */
+    padding-top: 38px;
+  }
+  #identifiers dd {
+    max-width: 60%;
+  }
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 0;
+    margin: 0;
+    background-color: inherit;
+    border-bottom: 1px solid #ccc;
+  }
+  #toc h2 {
+    margin: -1px 0 0 0;
+    padding: 4px 0 4px 6px;
+    padding-right: 1em;
+    min-width: 190px;
+    font-size: 1.1em;
+    text-align: right;
+    background-color: #444;
+    color: white;
+    cursor: pointer;
+  }
+  #toc h2::before { /* css hamburger */
+    float: right;
+    position: relative;
+    width: 1em;
+    height: 1px;
+    left: -164px;
+    margin: 6px 0 0 0;
+    background: white none repeat scroll 0 0;
+    box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+    content: "";
+  }
+  #toc nav {
+    display: none;
+    padding: 0.5em 1em 1em;
+    overflow: auto;
+    height: calc(100vh - 48px);
+    border-left: 1px solid #ddd;
+  }
+}
+
+/* alternative layout for wide screens */
+@media screen and (min-width: 1024px) {
+  body {
+    max-width: 724px;
+    margin: 42px auto;
+    padding-left: 1.5em;
+    padding-right: 29em;
+  }
+  #toc {
+    position: fixed;
+    top: 42px;
+    right: 42px;
+    width: 25%;
+    margin: 0;
+    padding: 0 1em;
+    z-index: 1;
+  }
+  #toc h2 {
+    border-top: none;
+    border-bottom: 1px solid #ddd;
+    font-size: 1em;
+    font-weight: normal;
+    margin: 0;
+    padding: 0.25em 1em 1em 0;
+  }
+  #toc nav {
+    display: block;
+    height: calc(90vh - 84px);
+    bottom: 0;
+    padding: 0.5em 0 0;
+    overflow: auto;
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc, #n-introduction {
+    page-break-before: always;
+  }
+  #toc {
+    border-top: none;
+    padding-top: 0;
+  }
+  figure, pre {
+    page-break-inside: avoid;
+  }
+  figure {
+    overflow: scroll;
+  }
+  .breakable pre {
+    break-inside: auto;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  h2+*, h3+*, h4+*, h5+*, h6+* {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+}
+
+/* This is commented out here, as the string-set: doesn't
+   pass W3C validation currently */
+/*
+.ears thead .left {
+  string-set: ears-top-left content();
+}
+
+.ears thead .center {
+  string-set: ears-top-center content();
+}
+
+.ears thead .right {
+  string-set: ears-top-right content();
+}
+
+.ears tfoot .left {
+  string-set: ears-bottom-left content();
+}
+
+.ears tfoot .center {
+  string-set: ears-bottom-center content();
+}
+
+.ears tfoot .right {
+  string-set: ears-bottom-right content();
+}
+*/
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+  /* The following is commented out here, but set appropriately by in code, as
+     the content depends on the document */
+  /*
+  @top-left {
+    content: 'Internet-Draft';
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-left {
+    content: string(ears-top-left);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-center {
+    content: string(ears-top-center);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-right {
+    content: string(ears-top-right);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @bottom-left {
+    content: string(ears-bottom-left);
+    vertical-align: top;
+    border-top: solid 1px #ccc;
+  }
+  @bottom-center {
+    content: string(ears-bottom-center);
+    vertical-align: top;
+    border-top: solid 1px #ccc;
+  }
+  @bottom-right {
+      content: '[Page ' counter(page) ']';
+      vertical-align: top;
+      border-top: solid 1px #ccc;
+  }
+  */
+
+}
+
+/* Changes introduced to fix issues found during implementation */
+/* Make sure links are clickable even if overlapped by following H* */
+a {
+  z-index: 2;
+}
+/* Separate body from document info even without intervening H1 */
+section {
+  clear: both;
+}
+
+
+/* Top align author divs, to avoid names without organization dropping level with org names */
+.author {
+  vertical-align: top;
+}
+
+/* Leave room in document info to show Internet-Draft on one line */
+#identifiers dt {
+  width: 8em;
+}
+
+/* Don't waste quite as much whitespace between label and value in doc info */
+#identifiers dd {
+  margin-left: 1em;
+}
+
+/* Give floating toc a background color (needed when it's a div inside section */
+#toc {
+  background-color: white;
+}
+
+/* Make the collapsed ToC header render white on gray also when it's a link */
+@media screen and (max-width: 1023px) {
+  #toc h2 a,
+  #toc h2 a:link,
+  #toc h2 a:focus,
+  #toc h2 a:hover,
+  #toc a.toplink,
+  #toc a.toplink:hover {
+    color: white;
+    background-color: #444;
+    text-decoration: none;
+  }
+}
+
+/* Give the bottom of the ToC some whitespace */
+@media screen and (min-width: 1024px) {
+  #toc {
+    padding: 0 0 1em 1em;
+  }
+}
+
+/* Style section numbers with more space between number and title */
+.section-number {
+  padding-right: 0.5em;
+}
+
+/* prevent monospace from becoming overly large */
+tt, code, pre {
+  font-size: 95%;
+}
+
+/* Fix the height/width aspect for ascii art*/
+.sourcecode pre,
+.art-text pre {
+  line-height: 1.12;
+}
+
+
+/* Add styling for a link in the ToC that points to the top of the document */
+a.toplink {
+  float: right;
+  margin-right: 0.5em;
+}
+
+/* Fix the dl styling to match the RFC 7992 attributes */
+dl > dt,
+dl.dlParallel > dt {
+  float: left;
+  margin-right: 1em;
+}
+dl.dlNewline > dt {
+  float: none;
+}
+
+/* Provide styling for table cell text alignment */
+table td.text-left,
+table th.text-left {
+  text-align: left;
+}
+table td.text-center,
+table th.text-center {
+  text-align: center;
+}
+table td.text-right,
+table th.text-right {
+  text-align: right;
+}
+
+/* Make the alternative author contact information look less like just another
+   author, and group it closer with the primary author contact information */
+.alternative-contact {
+  margin: 0.5em 0 0.25em 0;
+}
+address .non-ascii {
+  margin: 0 0 0 2em;
+}
+
+/* With it being possible to set tables with alignment
+  left, center, and right, { width: 100%; } does not make sense */
+table {
+  width: auto;
+}
+
+/* Avoid reference text that sits in a block with very wide left margin,
+   because of a long floating dt label.*/
+.references dd {
+  overflow: visible;
+}
+
+/* Control caption placement */
+caption {
+  caption-side: bottom;
+}
+
+/* Limit the width of the author address vcard, so names in right-to-left
+   script don't end up on the other side of the page. */
+
+address.vcard {
+  max-width: 30em;
+  margin-right: auto;
+}
+
+/* For address alignment dependent on LTR or RTL scripts */
+address div.left {
+  text-align: left;
+}
+address div.right {
+  text-align: right;
+}
+
+/* Provide table alignment support.  We can't use the alignX classes above
+   since they do unwanted things with caption and other styling. */
+table.right {
+ margin-left: auto;
+ margin-right: 0;
+}
+table.center {
+ margin-left: auto;
+ margin-right: auto;
+}
+table.left {
+ margin-left: 0;
+ margin-right: auto;
+}
+
+/* Give the table caption label the same styling as the figcaption */
+caption a[href] {
+  color: #222;
+}
+
+@media print {
+  .toplink {
+    display: none;
+  }
+
+  /* avoid overwriting the top border line with the ToC header */
+  #toc {
+    padding-top: 1px;
+  }
+
+  /* Avoid page breaks inside dl and author address entries */
+  .vcard {
+    page-break-inside: avoid;
+  }
+
+}
+/* Tweak the bcp14 keyword presentation */
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+/* Tweak the invisible space above H* in order not to overlay links in text above */
+ h2 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 31px;
+ }
+ h3 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 24px;
+ }
+ h4 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 24px;
+ }
+/* Float artwork pilcrow to the right */
+@media screen {
+  .artwork a.pilcrow {
+    display: block;
+    line-height: 0.7;
+    margin-top: 0.15em;
+  }
+}
+/* Make pilcrows on dd visible */
+@media screen {
+  dd:hover > a.pilcrow {
+    visibility: visible;
+  }
+}
+/* Make the placement of figcaption match that of a table's caption
+   by removing the figure's added bottom margin */
+.alignLeft.art-text,
+.alignCenter.art-text,
+.alignRight.art-text {
+   margin-bottom: 0;
+}
+.alignLeft,
+.alignCenter,
+.alignRight {
+  margin: 1em 0 0 0;
+}
+/* In print, the pilcrow won't show on hover, so prevent it from taking up space,
+   possibly even requiring a new line */
+@media print {
+  a.pilcrow {
+    display: none;
+  }
+}
+/* Styling for the external metadata */
+div#external-metadata {
+  background-color: #eee;
+  padding: 0.5em;
+  margin-bottom: 0.5em;
+  display: none;
+}
+div#internal-metadata {
+  padding: 0.5em;                       /* to match the external-metadata padding */
+}
+/* Styling for title RFC Number */
+h1#rfcnum {
+  clear: both;
+  margin: 0 0 -1em;
+  padding: 1em 0 0 0;
+}
+/* Make .olPercent look the same as <ol><li> */
+dl.olPercent > dd {
+  margin-bottom: 0.25em;
+  min-height: initial;
+}
+/* Give aside some styling to set it apart */
+aside {
+  border-left: 1px solid #ddd;
+  margin: 1em 0 1em 2em;
+  padding: 0.2em 2em;
+}
+aside > dl,
+aside > ol,
+aside > ul,
+aside > table,
+aside > p {
+  margin-bottom: 0.5em;
+}
+/* Additional page break settings */
+@media print {
+  figcaption, table caption {
+    page-break-before: avoid;
+  }
+}
+/* Font size adjustments for print */
+@media print {
+  body  { font-size: 10pt;      line-height: normal; max-width: 96%; }
+  h1    { font-size: 1.72em;    padding-top: 1.5em; } /* 1*1.2*1.2*1.2 */
+  h2    { font-size: 1.44em;    padding-top: 1.5em; } /* 1*1.2*1.2 */
+  h3    { font-size: 1.2em;     padding-top: 1.5em; } /* 1*1.2 */
+  h4    { font-size: 1em;       padding-top: 1.5em; }
+  h5, h6 { font-size: 1em;      margin: initial; padding: 0.5em 0 0.3em; }
+}
+/* Sourcecode margin in print, when there's no pilcrow */
+@media print {
+  .artwork,
+  .artwork > pre,
+  .sourcecode {
+    margin-bottom: 1em;
+  }
+}
+/* Avoid narrow tables forcing too narrow table captions, which may render badly */
+table {
+  min-width: 20em;
+}
+/* ol type a */
+ol.type-a { list-style-type: lower-alpha; }
+ol.type-A { list-style-type: upper-alpha; }
+ol.type-i { list-style-type: lower-roman; }
+ol.type-I { list-style-type: upper-roman; }
+/* Apply the print table and row borders in general, on request from the RPC,
+and increase the contrast between border and odd row background slightly */
+table {
+  border: 1px solid #ddd;
+}
+td {
+  border-top: 1px solid #ddd;
+}
+tr {
+  break-inside: avoid;
+}
+tr:nth-child(2n+1) > td {
+  background-color: #f8f8f8;
+}
+/* Use style rules to govern display of the TOC. */
+@media screen and (max-width: 1023px) {
+  #toc nav { display: none; }
+  #toc.active nav { display: block; }
+}
+/* Add support for keepWithNext */
+.keepWithNext {
+  break-after: avoid-page;
+  break-after: avoid-page;
+}
+/* Add support for keepWithPrevious */
+.keepWithPrevious {
+  break-before: avoid-page;
+}
+/* Change the approach to avoiding breaks inside artwork etc. */
+figure, pre, table, .artwork, .sourcecode  {
+  break-before: auto;
+  break-after: auto;
+}
+/* Avoid breaks between <dt> and <dd> */
+dl {
+  break-before: auto;
+  break-inside: auto;
+}
+dt {
+  break-before: auto;
+  break-after: avoid-page;
+}
+dd {
+  break-before: avoid-page;
+  break-after: auto;
+  orphans: 3;
+  widows: 3
+}
+span.break, dd.break {
+  margin-bottom: 0;
+  min-height: 0;
+  break-before: auto;
+  break-inside: auto;
+  break-after: auto;
+}
+/* Undo break-before ToC */
+@media print {
+  #toc {
+    break-before: auto;
+  }
+}
+/* Text in compact lists should not get extra bottom margin space,
+   since that would makes the list not compact */
+ul.compact p, .ulCompact p,
+ol.compact p, .olCompact p {
+ margin: 0;
+}
+/* But the list as a whole needs the extra space at the end */
+section ul.compact,
+section .ulCompact,
+section ol.compact,
+section .olCompact {
+  margin-bottom: 1em;                    /* same as p not within ul.compact etc. */
+}
+/* The tt and code background above interferes with for instance table cell
+   backgrounds.  Changed to something a bit more selective. */
+tt, code {
+  background-color: transparent;
+}
+p tt, p code, li tt, li code, dt tt, dt code {
+  background-color: #f8f8f8;
+}
+/* Tweak the pre margin -- 0px doesn't come out well */
+pre {
+   margin-top: 0.5px;
+}
+/* Tweak the compact list text */
+ul.compact, .ulCompact,
+ol.compact, .olCompact,
+dl.compact, .dlCompact {
+  line-height: normal;
+}
+/* Don't add top margin for nested lists */
+li > ul, li > ol, li > dl,
+dd > ul, dd > ol, dd > dl,
+dl > dd > dl {
+  margin-top: initial;
+}
+/* Elements that should not be rendered on the same line as a <dt> */
+/* This should match the element list in writer.text.TextWriter.render_dl() */
+dd > div.artwork:first-child,
+dd > aside:first-child,
+dd > blockquote:first-child,
+dd > figure:first-child,
+dd > ol:first-child,
+dd > div.sourcecode:first-child,
+dd > table:first-child,
+dd > ul:first-child {
+  clear: left;
+}
+/* fix for weird browser behaviour when <dd/> is empty */
+dt+dd:empty::before{
+  content: "\00a0";
+}
+/* Make paragraph spacing inside <li> smaller than in body text, to fit better within the list */
+li > p {
+  margin-bottom: 0.5em
+}
+/* Don't let p margin spill out from inside list items */
+li > p:last-of-type:only-child {
+  margin-bottom: 0;
+}
+</style>
+<script type="application/javascript">async function addMetadata(){try{const e=document.styleSheets[0].cssRules;for(let t=0;t<e.length;t++)if(/#identifiers/.exec(e[t].selectorText)){const a=e[t].cssText.replace("#identifiers","#external-updates");document.styleSheets[0].insertRule(a,document.styleSheets[0].cssRules.length)}}catch(e){console.log(e)}const e=document.getElementById("external-metadata");if(e)try{var t,a="",o=function(e){const t=document.getElementsByTagName("meta");for(let a=0;a<t.length;a++)if(t[a].getAttribute("name")===e)return t[a].getAttribute("content");return""}("rfc.number");if(o){t="https://www.rfc-editor.org/rfc/rfc"+o+".json";try{const e=await fetch(t);a=await e.json()}catch(e){t=document.URL.indexOf("html")>=0?document.URL.replace(/html$/,"json"):document.URL+".json";const o=await fetch(t);a=await o.json()}}if(!a)return;e.style.display="block";const s="",d="https://datatracker.ietf.org/doc",n="https://datatracker.ietf.org/ipr/search",c="https://www.rfc-editor.org/info",l=a.doc_id.toLowerCase(),i=a.doc_id.slice(0,3).toLowerCase(),f=a.doc_id.slice(3).replace(/^0+/,""),u={status:"Status",obsoletes:"Obsoletes",obsoleted_by:"Obsoleted By",updates:"Updates",updated_by:"Updated By",see_also:"See Also",errata_url:"Errata"};let h="<dl style='overflow:hidden' id='external-updates'>";["status","obsoletes","obsoleted_by","updates","updated_by","see_also","errata_url"].forEach(e=>{if("status"==e){a[e]=a[e].toLowerCase();var t=a[e].split(" "),o=t.length,w="",p=1;for(let e=0;e<o;e++)p<o?w=w+r(t[e])+" ":w+=r(t[e]),p++;a[e]=w}else if("obsoletes"==e||"obsoleted_by"==e||"updates"==e||"updated_by"==e){var g,m="",b=1;g=a[e].length;for(let t=0;t<g;t++)a[e][t]&&(a[e][t]=String(a[e][t]).toLowerCase(),m=b<g?m+"<a href='"+s+"/rfc/".concat(a[e][t])+"'>"+a[e][t].slice(3)+"</a>, ":m+"<a href='"+s+"/rfc/".concat(a[e][t])+"'>"+a[e][t].slice(3)+"</a>",b++);a[e]=m}else if("see_also"==e){var y,L="",C=1;y=a[e].length;for(let t=0;t<y;t++)if(a[e][t]){a[e][t]=String(a[e][t]);var _=a[e][t].slice(0,3),v=a[e][t].slice(3).replace(/^0+/,"");L=C<y?"RFC"!=_?L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+_+" "+v+"</a>, ":L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+v+"</a>, ":"RFC"!=_?L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+_+" "+v+"</a>":L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+v+"</a>",C++}a[e]=L}else if("errata_url"==e){var R="";R=a[e]?R+"<a href='"+a[e]+"'>Errata exist</a> | <a href='"+d+"/"+l+"'>Datatracker</a>| <a href='"+n+"/?"+i+"="+f+"&submit="+i+"'>IPR</a> | <a href='"+c+"/"+l+"'>Info page</a>":"<a href='"+d+"/"+l+"'>Datatracker</a> | <a href='"+n+"/?"+i+"="+f+"&submit="+i+"'>IPR</a> | <a href='"+c+"/"+l+"'>Info page</a>",a[e]=R}""!=a[e]?"Errata"==u[e]?h+=`<dt>More info:</dt><dd>${a[e]}</dd>`:h+=`<dt>${u[e]}:</dt><dd>${a[e]}</dd>`:"Errata"==u[e]&&(h+=`<dt>More info:</dt><dd>${a[e]}</dd>`)}),h+="</dl>",e.innerHTML=h}catch(e){console.log(e)}else console.log("Could not locate metadata <div> element");function r(e){return e.charAt(0).toUpperCase()+e.slice(1)}}window.removeEventListener("load",addMetadata),window.addEventListener("load",addMetadata);</script>
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">agent-uri</td>
+<td class="right">October 2026</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">Narvaneni &amp; Ravi</td>
+<td class="center">Expires 23 April 2027</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">Network Working Group</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-narvaneni-agent-uri-04</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2026-10-20" class="published">20 October 2026</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Standards Track</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2027-04-23">23 April 2027</time></dd>
+<dt class="label-authors">Authors:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">Y. Narvaneni</div>
+<div class="org">Independent Researcher</div>
+</div>
+<div class="author">
+      <div class="author-name">S. P. Ravi</div>
+<div class="org">Independent Researcher</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">The agent URI Scheme and Verifiable Agent Identity</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">Software agents increasingly act on the Internet on behalf of people and
+organizations: they call APIs, browse websites, and delegate work to other
+agents. Protocols such as A2A and MCP define how agents communicate, but there
+is no interoperable way to answer a prior question: <em>which agent is this, who
+operates it, and how can its claims be verified?</em><a href="#section-abstract-1" class="pilcrow">¶</a></p>
+<p id="section-abstract-2">This document defines the <code>agent</code> URI scheme as a stable, human-readable
+identifier for an agent, a deterministic mapping from that identifier to an
+HTTPS-hosted Agent Identity Document, and a small set of mechanisms built on
+existing standards that let an agent prove its identity: signed statements
+binding the agent to its protocol metadata, an HTTP Message Signatures profile
+for requests made by the agent, short-lived credentials for ephemeral agent
+instances, and bindings to OAuth 2.0. It deliberately does not define how
+agents communicate, describe their capabilities, or are invoked.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 23 April 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2026 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document. Code Components extracted from this
+            document must include Revised BSD License text as described in
+            Section 4.e of the Trust Legal Provisions and are provided without
+            warranty as described in the Revised BSD License.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.1">
+                <p id="section-toc.1-1.1.2.1.1" class="keepWithNext"><a href="#section-1.1" class="auto internal xref">1.1</a>.  <a href="#name-design-principles" class="internal xref">Design Principles</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.2">
+                <p id="section-toc.1-1.1.2.2.1" class="keepWithNext"><a href="#section-1.2" class="auto internal xref">1.2</a>.  <a href="#name-non-goals" class="internal xref">Non-Goals</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-terminology" class="internal xref">Conventions and Terminology</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-overview" class="internal xref">Overview</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-the-agent-uri-scheme" class="internal xref">The agent URI Scheme</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-syntax" class="internal xref">Syntax</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2">
+                <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-normalization-and-compariso" class="internal xref">Normalization and Comparison</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3">
+                <p id="section-toc.1-1.4.2.3.1"><a href="#section-4.3" class="auto internal xref">4.3</a>.  <a href="#name-dereferencing" class="internal xref">Dereferencing</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4">
+                <p id="section-toc.1-1.4.2.4.1"><a href="#section-4.4" class="auto internal xref">4.4</a>.  <a href="#name-fragments" class="internal xref">Fragments</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-agent-identity-document" class="internal xref">Agent Identity Document</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-format" class="internal xref">Format</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
+                <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-keys" class="internal xref">Keys</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3">
+                <p id="section-toc.1-1.5.2.3.1"><a href="#section-5.3" class="auto internal xref">5.3</a>.  <a href="#name-links" class="internal xref">Links</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.4">
+                <p id="section-toc.1-1.5.2.4.1"><a href="#section-5.4" class="auto internal xref">5.4</a>.  <a href="#name-example" class="internal xref">Example</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.5">
+                <p id="section-toc.1-1.5.2.5.1"><a href="#section-5.5" class="auto internal xref">5.5</a>.  <a href="#name-retrieval-and-validation" class="internal xref">Retrieval and Validation</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-anchoring" class="internal xref">Anchoring</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.1">
+                <p id="section-toc.1-1.6.2.1.1"><a href="#section-6.1" class="auto internal xref">6.1</a>.  <a href="#name-origin-anchored-agents" class="internal xref">Origin-Anchored Agents</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.2">
+                <p id="section-toc.1-1.6.2.2.1"><a href="#section-6.2" class="auto internal xref">6.2</a>.  <a href="#name-did-anchored-agents" class="internal xref">DID-Anchored Agents</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.3">
+                <p id="section-toc.1-1.6.2.3.1"><a href="#section-6.3" class="auto internal xref">6.3</a>.  <a href="#name-lifecycle-rotation-and-revo" class="internal xref">Lifecycle, Rotation, and Revocation</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-agent-statements" class="internal xref">Agent Statements</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-proving-identity-in-request" class="internal xref">Proving Identity in Requests</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.1">
+                <p id="section-toc.1-1.8.2.1.1"><a href="#section-8.1" class="auto internal xref">8.1</a>.  <a href="#name-http-message-signatures-pro" class="internal xref">HTTP Message Signatures Profile</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.2">
+                <p id="section-toc.1-1.8.2.2.1"><a href="#section-8.2" class="auto internal xref">8.2</a>.  <a href="#name-agent-instances" class="internal xref">Agent Instances</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-authorization" class="internal xref">Authorization</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.1">
+                <p id="section-toc.1-1.9.2.1.1"><a href="#section-9.1" class="auto internal xref">9.1</a>.  <a href="#name-the-agent-as-an-oauth-clien" class="internal xref">The Agent as an OAuth Client</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.2">
+                <p id="section-toc.1-1.9.2.2.1"><a href="#section-9.2" class="auto internal xref">9.2</a>.  <a href="#name-delegation" class="internal xref">Delegation</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.3">
+                <p id="section-toc.1-1.9.2.3.1"><a href="#section-9.3" class="auto internal xref">9.3</a>.  <a href="#name-protected-resources" class="internal xref">Protected Resources</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-discovery" class="internal xref">Discovery</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref">11</a>. <a href="#name-relationship-to-other-proto" class="internal xref">Relationship to Other Protocols</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#section-12" class="auto internal xref">12</a>. <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.1">
+                <p id="section-toc.1-1.12.2.1.1"><a href="#section-12.1" class="auto internal xref">12.1</a>.  <a href="#name-trust-model" class="internal xref">Trust Model</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.2">
+                <p id="section-toc.1-1.12.2.2.1"><a href="#section-12.2" class="auto internal xref">12.2</a>.  <a href="#name-handle-reassignment" class="internal xref">Handle Reassignment</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.3">
+                <p id="section-toc.1-1.12.2.3.1"><a href="#section-12.3" class="auto internal xref">12.3</a>.  <a href="#name-request-destination-restric" class="internal xref">Request-Destination Restrictions</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.4">
+                <p id="section-toc.1-1.12.2.4.1"><a href="#section-12.4" class="auto internal xref">12.4</a>.  <a href="#name-replay" class="internal xref">Replay</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.5">
+                <p id="section-toc.1-1.12.2.5.1"><a href="#section-12.5" class="auto internal xref">12.5</a>.  <a href="#name-key-compromise" class="internal xref">Key Compromise</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.6">
+                <p id="section-toc.1-1.12.2.6.1"><a href="#section-12.6" class="auto internal xref">12.6</a>.  <a href="#name-cross-origin-metadata" class="internal xref">Cross-Origin Metadata</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.7">
+                <p id="section-toc.1-1.12.2.7.1"><a href="#section-12.7" class="auto internal xref">12.7</a>.  <a href="#name-confusable-names" class="internal xref">Confusable Names</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
+            <p id="section-toc.1-1.13.1"><a href="#section-13" class="auto internal xref">13</a>. <a href="#name-privacy-considerations" class="internal xref">Privacy Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
+            <p id="section-toc.1-1.14.1"><a href="#section-14" class="auto internal xref">14</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.1">
+                <p id="section-toc.1-1.14.2.1.1"><a href="#section-14.1" class="auto internal xref">14.1</a>.  <a href="#name-uri-scheme-registration" class="internal xref">URI Scheme Registration</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.2">
+                <p id="section-toc.1-1.14.2.2.1"><a href="#section-14.2" class="auto internal xref">14.2</a>.  <a href="#name-well-known-uri-registration" class="internal xref">Well-Known URI Registration</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.3">
+                <p id="section-toc.1-1.14.2.3.1"><a href="#section-14.3" class="auto internal xref">14.3</a>.  <a href="#name-media-types" class="internal xref">Media Types</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.4">
+                <p id="section-toc.1-1.14.2.4.1"><a href="#section-14.4" class="auto internal xref">14.4</a>.  <a href="#name-http-field-names" class="internal xref">HTTP Field Names</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.5">
+                <p id="section-toc.1-1.14.2.5.1"><a href="#section-14.5" class="auto internal xref">14.5</a>.  <a href="#name-link-relations" class="internal xref">Link Relations</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.6">
+                <p id="section-toc.1-1.14.2.6.1"><a href="#section-14.6" class="auto internal xref">14.6</a>.  <a href="#name-oauth-client-metadata" class="internal xref">OAuth Client Metadata</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.7">
+                <p id="section-toc.1-1.14.2.7.1"><a href="#section-14.7" class="auto internal xref">14.7</a>.  <a href="#name-http-message-signature-tag" class="internal xref">HTTP Message Signature Tag</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
+            <p id="section-toc.1-1.15.1"><a href="#section-15" class="auto internal xref">15</a>. <a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.1">
+                <p id="section-toc.1-1.15.2.1.1"><a href="#section-15.1" class="auto internal xref">15.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.2">
+                <p id="section-toc.1-1.15.2.2.1"><a href="#section-15.2" class="auto internal xref">15.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.16">
+            <p id="section-toc.1-1.16.1"><a href="#appendix-A" class="auto internal xref">Appendix A</a>.  <a href="#name-open-issues" class="internal xref">Open Issues</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.17">
+            <p id="section-toc.1-1.17.1"><a href="#appendix-B" class="auto internal xref">Appendix B</a>.  <a href="#name-changes-from-draft-narvanen" class="internal xref">Changes from draft-narvaneni-agent-uri-03</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.18">
+            <p id="section-toc.1-1.18.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.19">
+            <p id="section-toc.1-1.19.1"><a href="#appendix-D" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">Agents are now first-class actors on the Internet. A single user task can cause
+an agent to call dozens of APIs and other agents, each of which needs to decide
+whether to serve the request. Today those services can see a TLS client, an IP
+address, perhaps an OAuth access token issued to <em>some</em> client, and a
+<code>User-Agent</code> string that anyone can forge. They cannot reliably tell which agent
+is calling, who is accountable for it, or whether the protocol metadata it
+advertises was really published by its operator.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">Communication protocols already exist. <span>[<a href="#A2A" class="cite xref">A2A</a>]</span> defines agent-to-agent
+interaction and an Agent Card; <span>[<a href="#MCP" class="cite xref">MCP</a>]</span> defines how agents reach tools and
+publishes server metadata; OpenAPI describes HTTP APIs. Each of these describes
+<em>how to talk to</em> an endpoint. None of them defines a portable answer to <em>who</em> an
+agent is that works across all of them.<a href="#section-1-2" class="pilcrow">¶</a></p>
+<p id="section-1-3">This document defines that missing identity layer:<a href="#section-1-3" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-1-4">
+<li id="section-1-4.1">
+          <p id="section-1-4.1.1"><strong>A name.</strong> The <code>agent</code> URI (e.g., <code>agent://example.com/planner</code>) is a
+stable, human-readable identifier for an agent (<a href="#agent-uri" class="auto internal xref">Section 4</a>).<a href="#section-1-4.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-1-4.2">
+          <p id="section-1-4.2.1"><strong>A document.</strong> Every agent URI maps deterministically to an HTTPS URL that
+serves an Agent Identity Document listing the agent's operator, public keys,
+and links to its protocol metadata (<a href="#aid" class="auto internal xref">Section 5</a>).<a href="#section-1-4.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-1-4.3">
+          <p id="section-1-4.3.1"><strong>An anchor.</strong> The document is trusted because of where it is served (the
+origin of the agent URI) or, for agents that need identity to survive a
+change of domain, because of a Decentralized Identifier (<a href="#anchoring" class="auto internal xref">Section 6</a>).<a href="#section-1-4.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-1-4.4">
+          <p id="section-1-4.4.1"><strong>Proofs.</strong> Agents prove their identity by signing statements about their
+metadata (<a href="#statements" class="auto internal xref">Section 7</a>) and by signing the HTTP requests they make
+(<a href="#request-signing" class="auto internal xref">Section 8</a>), including from short-lived instances
+(<a href="#instances" class="auto internal xref">Section 8.2</a>). Identity is connected to OAuth 2.0 authorization without new
+token formats (<a href="#authorization" class="auto internal xref">Section 9</a>).<a href="#section-1-4.4.1" class="pilcrow">¶</a></p>
+</li>
+      </ol>
+<div id="principles">
+<section id="section-1.1">
+        <h3 id="name-design-principles">
+<a href="#section-1.1" class="section-number selfRef">1.1. </a><a href="#name-design-principles" class="section-name selfRef">Design Principles</a>
+        </h3>
+<ul class="normal">
+<li class="normal" id="section-1.1-1.1">
+            <p id="section-1.1-1.1.1"><strong>Identify, do not invoke.</strong> An agent URI names an agent. It is not a
+locator for an endpoint and carries no invocation parameters.<a href="#section-1.1-1.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.1-1.2">
+            <p id="section-1.1-1.2.1"><strong>Reuse before invent.</strong> Every mechanism is a profile of an existing
+standard: HTTPS and well-known URIs <span>[<a href="#RFC8615" class="cite xref">RFC8615</a>]</span>, JWK <span>[<a href="#RFC7517" class="cite xref">RFC7517</a>]</span>, JWS
+<span>[<a href="#RFC7515" class="cite xref">RFC7515</a>]</span>, HTTP Message Signatures <span>[<a href="#RFC9421" class="cite xref">RFC9421</a>]</span>, OAuth 2.0, and
+DIDs <span>[<a href="#DID-CORE" class="cite xref">DID-CORE</a>]</span>.<a href="#section-1.1-1.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.1-1.3">
+            <p id="section-1.1-1.3.1"><strong>Anchor trust outside the document being verified.</strong> A key is trusted
+because of the origin or DID it is published under, never because a document
+names it about itself.<a href="#section-1.1-1.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.1-1.4">
+            <p id="section-1.1-1.4.1"><strong>Separate the name from the long-lived identity when needed.</strong> Domains
+change hands; agents get renamed and sold. The scheme supports a stable
+cryptographic identifier behind the human-readable name.<a href="#section-1.1-1.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.1-1.5">
+            <p id="section-1.1-1.5.1"><strong>Work for agents that live for seconds.</strong> Most agent executions are
+ephemeral. Instances act under the identity of their agent without being
+individually published.<a href="#section-1.1-1.5.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="non-goals">
+<section id="section-1.2">
+        <h3 id="name-non-goals">
+<a href="#section-1.2" class="section-number selfRef">1.2. </a><a href="#name-non-goals" class="section-name selfRef">Non-Goals</a>
+        </h3>
+<p id="section-1.2-1">The following are explicitly out of scope:<a href="#section-1.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-1.2-2.1">
+            <p id="section-1.2-2.1.1">Communication semantics, message formats, task lifecycles, and invocation.
+These belong to A2A, MCP, OpenAPI-described APIs, and similar protocols.<a href="#section-1.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.2-2.2">
+            <p id="section-1.2-2.2.1">Capability, skill, or tool description. Protocol metadata documents (for
+example, an A2A Agent Card or an MCP server card) remain authoritative for
+these.<a href="#section-1.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.2-2.3">
+            <p id="section-1.2-2.3.1">Transport bindings.<a href="#section-1.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.2-2.4">
+            <p id="section-1.2-2.4.1">Search, ranking, or registry services. This document makes identity
+verifiable so that any registry can index agents without being trusted.<a href="#section-1.2-2.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.2-2.5">
+            <p id="section-1.2-2.5.1">Reputation, pricing, payments, and service levels.<a href="#section-1.2-2.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.2-2.6">
+            <p id="section-1.2-2.6.1">Authorization policy. Knowing who an agent is does not grant it anything.<a href="#section-1.2-2.6.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+</section>
+</div>
+<div id="terminology">
+<section id="section-2">
+      <h2 id="name-conventions-and-terminology">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-conventions-and-terminology" class="section-name selfRef">Conventions and Terminology</a>
+      </h2>
+<p id="section-2-1">The key words "<span class="bcp14">MUST</span>", "<span class="bcp14">MUST NOT</span>", "<span class="bcp14">REQUIRED</span>", "<span class="bcp14">SHALL</span>", "<span class="bcp14">SHALL NOT</span>", "<span class="bcp14">SHOULD</span>", "<span class="bcp14">SHOULD NOT</span>", "<span class="bcp14">RECOMMENDED</span>", "<span class="bcp14">NOT RECOMMENDED</span>",
+"<span class="bcp14">MAY</span>", and "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
+described in BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when, they
+appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶</a></p>
+<p id="section-2-2">This document uses the terms "JSON object", "member", and "string" from
+<span>[<a href="#RFC8259" class="cite xref">RFC8259</a>]</span>, "origin" from <span>[<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>, and "structured field" from
+<span>[<a href="#RFC9651" class="cite xref">RFC9651</a>]</span>.<a href="#section-2-2" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-2-3">
+        <dt id="section-2-3.1">Agent:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.2">
+          <p id="section-2-3.2.1">A software system that acts autonomously or semi-autonomously, typically on
+behalf of a person or organization.<a href="#section-2-3.2.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.3">Operator:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.4">
+          <p id="section-2-3.4.1">The person or organization accountable for an agent.<a href="#section-2-3.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.5">Agent URI:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.6">
+          <p id="section-2-3.6.1">An <code>agent</code> URI as defined in <a href="#agent-uri" class="auto internal xref">Section 4</a>. The human-readable name of an
+agent.<a href="#section-2-3.6.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.7">Agent Identity Document (AID):</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.8">
+          <p id="section-2-3.8.1">A JSON document, retrieved by dereferencing an agent URI, that describes the
+agent's operator, keys, and links (<a href="#aid" class="auto internal xref">Section 5</a>).<a href="#section-2-3.8.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.9">Agent Key:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.10">
+          <p id="section-2-3.10.1">A public key listed for an agent, used to verify statements, request
+signatures, and instance credentials made by the agent.<a href="#section-2-3.10.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.11">Instance:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.12">
+          <p id="section-2-3.12.1">A running, typically short-lived execution of an agent that holds its own
+key pair and acts under the agent's identity (<a href="#instances" class="auto internal xref">Section 8.2</a>).<a href="#section-2-3.12.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.13">Verifier:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.14">
+          <p id="section-2-3.14.1">Any party that checks an agent's identity: a website or API receiving
+requests, an authorization server, a registry, or another agent.<a href="#section-2-3.14.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="overview">
+<section id="section-3">
+      <h2 id="name-overview">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-overview" class="section-name selfRef">Overview</a>
+      </h2>
+<span id="name-from-agent-uri-to-verifiabl"></span><div id="fig-overview">
+<figure id="figure-1">
+        <div class="alignLeft art-text artwork" id="section-3-1.1">
+<pre>
+                    agent://example.com/planner           (name)
+                               |
+                               | deterministic mapping
+                               v
+     https://example.com/.well-known/agent/planner        (AID URL)
+                               |
+          +--------------------+---------------------+
+          |                    |                     |
+     operator             keys (JWK Set)        links (rel, href)
+                               |                     |
+     origin-anchored: trusted via HTTPS        A2A Agent Card,
+     DID-anchored: keys from DID document      MCP server card,
+                                               OAuth client metadata
+</pre>
+</div>
+<figcaption><a href="#figure-1" class="selfRef">Figure 1</a>:
+<a href="#name-from-agent-uri-to-verifiabl" class="selfRef">From agent URI to verifiable identity</a>
+        </figcaption></figure>
+</div>
+<p id="section-3-2">A typical verification, for a request received by an API:<a href="#section-3-2" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-3-3">
+<li id="section-3-3.1">
+          <p id="section-3-3.1.1">The request carries an HTTP message signature and a <code>Signature-Agent</code>
+field naming <code>agent://example.com/planner</code>.<a href="#section-3-3.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-3-3.2">
+          <p id="section-3-3.2.1">The verifier maps the agent URI to its AID URL and retrieves the AID (or
+uses a cached copy).<a href="#section-3-3.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-3-3.3">
+          <p id="section-3-3.3.1">The verifier finds the key identified by the signature, checks it is
+anchored (<a href="#anchoring" class="auto internal xref">Section 6</a>), and verifies the signature.<a href="#section-3-3.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-3-3.4">
+          <p id="section-3-3.4.1">The verifier now knows which agent made the request and which operator is
+accountable. Whether to serve it remains a policy decision.<a href="#section-3-3.4.1" class="pilcrow">¶</a></p>
+</li>
+      </ol>
+</section>
+</div>
+<div id="agent-uri">
+<section id="section-4">
+      <h2 id="name-the-agent-uri-scheme">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-the-agent-uri-scheme" class="section-name selfRef">The agent URI Scheme</a>
+      </h2>
+<div id="uri-syntax">
+<section id="section-4.1">
+        <h3 id="name-syntax">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-syntax" class="section-name selfRef">Syntax</a>
+        </h3>
+<p id="section-4.1-1">The following ABNF <span>[<a href="#RFC5234" class="cite xref">RFC5234</a>]</span> uses <code>port</code> and <code>fragment</code> from <span>[<a href="#RFC3986" class="cite xref">RFC3986</a>]</span> and
+<code>ALPHA</code> and <code>DIGIT</code> from <span>[<a href="#RFC5234" class="cite xref">RFC5234</a>]</span>.<a href="#section-4.1-1" class="pilcrow">¶</a></p>
+<span id="name-abnf-for-the-agent-uri"></span><div id="fig-abnf">
+<figure id="figure-2">
+          <div class="lang-abnf sourcecode" id="section-4.1-2.1">
+<pre>
+agent-uri    = "agent://" agent-host [ name-path ] [ "#" fragment ]
+
+agent-host   = dns-name [ ":" port ]
+dns-name     = label *( "." label )
+label        = let-dig [ *61( let-dig / "-" ) let-dig ]
+let-dig      = ALPHA / DIGIT
+
+name-path    = 1*8( "/" name-segment )
+name-segment = lc-let-dig [ *61( lc-let-dig / "-" ) lc-let-dig ]
+lc-let-dig   = %x61-7A / DIGIT        ; a-z, 0-9
+</pre>
+</div>
+<figcaption><a href="#figure-2" class="selfRef">Figure 2</a>:
+<a href="#name-abnf-for-the-agent-uri" class="selfRef">ABNF for the agent URI</a>
+          </figcaption></figure>
+</div>
+<p id="section-4.1-3">Additional constraints:<a href="#section-4.1-3" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.1-4.1">
+            <p id="section-4.1-4.1.1"><code>dns-name</code> <span class="bcp14">MUST</span> be a fully qualified domain name. Internationalized domain
+names <span class="bcp14">MUST</span> be represented as A-labels <span>[<a href="#RFC5890" class="cite xref">RFC5890</a>]</span> <span>[<a href="#RFC5891" class="cite xref">RFC5891</a>]</span>. IP literals and
+<code>userinfo</code> are not permitted.<a href="#section-4.1-4.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.1-4.2">
+            <p id="section-4.1-4.2.1">An agent URI <span class="bcp14">MUST NOT</span> contain a query component.<a href="#section-4.1-4.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.1-4.3">
+            <p id="section-4.1-4.3.1">An agent URI with an empty <code>name-path</code> (e.g., <code>agent://planner.example.com</code>)
+identifies the domain's root agent.<a href="#section-4.1-4.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-4.1-5">Examples:<a href="#section-4.1-5" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.1-6.1">
+            <p id="section-4.1-6.1.1"><code>agent://example.com/planner</code><a href="#section-4.1-6.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.1-6.2">
+            <p id="section-4.1-6.2.1"><code>agent://planner.example.com</code><a href="#section-4.1-6.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.1-6.3">
+            <p id="section-4.1-6.3.1"><code>agent://example.com/acme/billing-assistant</code><a href="#section-4.1-6.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.1-6.4">
+            <p id="section-4.1-6.4.1"><code>agent://example.com/planner#k1</code> (a reference to key <code>k1</code> of the agent;
+see <a href="#fragments" class="auto internal xref">Section 4.4</a>)<a href="#section-4.1-6.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="normalization">
+<section id="section-4.2">
+        <h3 id="name-normalization-and-compariso">
+<a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-normalization-and-compariso" class="section-name selfRef">Normalization and Comparison</a>
+        </h3>
+<p id="section-4.2-1">The canonical form of an agent URI is produced by:<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-4.2-2">
+<li id="section-4.2-2.1">
+            <p id="section-4.2-2.1.1">Lowercasing the scheme and <code>dns-name</code>.<a href="#section-4.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-4.2-2.2">
+            <p id="section-4.2-2.2.1">Converting any U-labels to A-labels.<a href="#section-4.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-4.2-2.3">
+            <p id="section-4.2-2.3.1">Removing a port equal to 443.<a href="#section-4.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-4.2-2.4">
+            <p id="section-4.2-2.4.1">Removing a single trailing "/" if present.<a href="#section-4.2-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="section-4.2-3">Parsers <span class="bcp14">MAY</span> accept input that differs from the ABNF only by the deviations
+corrected above, and <span class="bcp14">MUST</span> normalize it. Any other deviation (uppercase in
+<code>name-path</code>, percent-encoding, dot-segments, a query) <span class="bcp14">MUST</span> be rejected.<a href="#section-4.2-3" class="pilcrow">¶</a></p>
+<p id="section-4.2-4">Two agent URIs identify the same agent if and only if their canonical forms,
+with any fragment removed, are identical octet strings. In particular,
+<code>agent://example.com/planner</code> and <code>agent://planner.example.com</code> are different
+agents, even if the same operator runs both.<a href="#section-4.2-4" class="pilcrow">¶</a></p>
+<p id="section-4.2-5">Agent URIs in AIDs, statements, signatures, and tokens <span class="bcp14">MUST</span> be in canonical
+form.<a href="#section-4.2-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="dereference">
+<section id="section-4.3">
+        <h3 id="name-dereferencing">
+<a href="#section-4.3" class="section-number selfRef">4.3. </a><a href="#name-dereferencing" class="section-name selfRef">Dereferencing</a>
+        </h3>
+<p id="section-4.3-1">An agent URI is dereferenced by mapping it to the HTTPS URL of its AID:<a href="#section-4.3-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.3-2">
+<pre>
+https://&lt;agent-host&gt;/.well-known/agent&lt;name-path&gt;      (named agent)
+https://&lt;agent-host&gt;/.well-known/agent/_                (root agent)
+</pre><a href="#section-4.3-2" class="pilcrow">¶</a>
+</div>
+<p id="section-4.3-3">For example:<a href="#section-4.3-3" class="pilcrow">¶</a></p>
+<span id="name-agent-uri-to-aid-url-mappin"></span><div id="tab-mapping">
+<table class="center" id="table-1">
+          <caption>
+<a href="#table-1" class="selfRef">Table 1</a>:
+<a href="#name-agent-uri-to-aid-url-mappin" class="selfRef">Agent URI to AID URL mapping</a>
+          </caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Agent URI</th>
+              <th class="text-left" rowspan="1" colspan="1">AID URL</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>agent://example.com/planner</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>https://example.com/.well-known/agent/planner</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>agent://example.com/acme/billing-assistant</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>https://example.com/.well-known/agent/acme/billing-assistant</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>agent://planner.example.com</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>https://planner.example.com/.well-known/agent/_</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>agent://example.com:8443/planner</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>https://example.com:8443/.well-known/agent/planner</code>
+</td>
+            </tr>
+          </tbody>
+        </table>
+</div>
+<p id="section-4.3-5">The root agent uses the reserved segment <code>_</code>, which cannot appear in a
+<code>name-segment</code>. This allows the root AID and named AIDs to coexist on static
+file hosting.<a href="#section-4.3-5" class="pilcrow">¶</a></p>
+<p id="section-4.3-6">The mapping is purely syntactic. No registry or index needs to be fetched to
+dereference an agent URI.<a href="#section-4.3-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="fragments">
+<section id="section-4.4">
+        <h3 id="name-fragments">
+<a href="#section-4.4" class="section-number selfRef">4.4. </a><a href="#name-fragments" class="section-name selfRef">Fragments</a>
+        </h3>
+<p id="section-4.4-1">A fragment in an agent URI identifies an Agent Key by its <code>kid</code>
+(<a href="#aid-keys" class="auto internal xref">Section 5.2</a>). For example, <code>agent://example.com/planner#k1</code> refers to the key
+with <code>"kid": "k1"</code> in the agent's key set. No other fragment semantics are
+defined.<a href="#section-4.4-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="aid">
+<section id="section-5">
+      <h2 id="name-agent-identity-document">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-agent-identity-document" class="section-name selfRef">Agent Identity Document</a>
+      </h2>
+<div id="aid-format">
+<section id="section-5.1">
+        <h3 id="name-format">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-format" class="section-name selfRef">Format</a>
+        </h3>
+<p id="section-5.1-1">An AID is a JSON object <span>[<a href="#RFC8259" class="cite xref">RFC8259</a>]</span> served with media type
+<code>application/agent-id+json</code> (<a href="#iana-media-type" class="auto internal xref">Section 14.3</a>). It has the following
+members:<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-5.1-2">
+          <dt id="section-5.1-2.1">
+<code>id</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.1-2.2">
+            <p id="section-5.1-2.2.1"><span class="bcp14">REQUIRED</span>. String. The canonical agent URI that this document describes.<a href="#section-5.1-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.1-2.3">
+<code>operator</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.1-2.4">
+            <p id="section-5.1-2.4.1"><span class="bcp14">REQUIRED</span>. Object identifying who is accountable for the agent, with members
+<code>name</code> (<span class="bcp14">REQUIRED</span>, string) and <code>url</code> (<span class="bcp14">OPTIONAL</span>, string, HTTPS URL).<a href="#section-5.1-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.1-2.5">
+<code>keys</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.1-2.6">
+            <p id="section-5.1-2.6.1"><span class="bcp14">REQUIRED</span> for origin-anchored agents; <span class="bcp14">MUST</span> be absent for DID-anchored
+agents. A JWK Set <span>[<a href="#RFC7517" class="cite xref">RFC7517</a>]</span> containing the agent's public keys
+(<a href="#aid-keys" class="auto internal xref">Section 5.2</a>).<a href="#section-5.1-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.1-2.7">
+<code>did</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.1-2.8">
+            <p id="section-5.1-2.8.1"><span class="bcp14">OPTIONAL</span>. String. A DID <span>[<a href="#DID-CORE" class="cite xref">DID-CORE</a>]</span> whose DID document is the anchor for
+this agent's keys (<a href="#did-anchored" class="auto internal xref">Section 6.2</a>).<a href="#section-5.1-2.8.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.1-2.9">
+<code>name</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.1-2.10">
+            <p id="section-5.1-2.10.1"><span class="bcp14">OPTIONAL</span>. String. A display name for people. It has no identity semantics.<a href="#section-5.1-2.10.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.1-2.11">
+<code>status</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.1-2.12">
+            <p id="section-5.1-2.12.1"><span class="bcp14">OPTIONAL</span>. String. One of <code>"active"</code> (default), <code>"suspended"</code>, or
+<code>"retired"</code> (<a href="#lifecycle" class="auto internal xref">Section 6.3</a>).<a href="#section-5.1-2.12.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.1-2.13">
+<code>links</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.1-2.14">
+            <p id="section-5.1-2.14.1"><span class="bcp14">OPTIONAL</span>. Array of link objects (<a href="#aid-links" class="auto internal xref">Section 5.3</a>).<a href="#section-5.1-2.14.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.1-2.15">
+<code>updated</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.1-2.16">
+            <p id="section-5.1-2.16.1"><span class="bcp14">OPTIONAL</span>. String. The time the document was last changed, as an RFC 3339
+timestamp.<a href="#section-5.1-2.16.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-5.1-3">Members not defined here <span class="bcp14">MUST</span> be ignored by verifiers that do not understand
+them. Extension member names <span class="bcp14">SHOULD</span> be namespaced (e.g., <code>"acme_tier"</code>) to
+avoid collision with future versions of this document.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
+<p id="section-5.1-4">An AID <span class="bcp14">MUST NOT</span> exceed 64 KiB.<a href="#section-5.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="aid-keys">
+<section id="section-5.2">
+        <h3 id="name-keys">
+<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-keys" class="section-name selfRef">Keys</a>
+        </h3>
+<p id="section-5.2-1">Each key in <code>keys</code> <span class="bcp14">MUST</span>:<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-5.2-2.1">
+            <p id="section-5.2-2.1.1">contain only public key parameters;<a href="#section-5.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-5.2-2.2">
+            <p id="section-5.2-2.2.1">have a <code>kid</code>, which <span class="bcp14">SHOULD</span> be the JWK Thumbprint <span>[<a href="#RFC7638" class="cite xref">RFC7638</a>]</span> of the key;<a href="#section-5.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-5.2-2.3">
+            <p id="section-5.2-2.3.1">have an <code>alg</code> member; and<a href="#section-5.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-5.2-2.4">
+            <p id="section-5.2-2.4.1">be usable for signatures (<code>"use": "sig"</code> or a <code>key_ops</code> containing
+<code>"verify"</code>).<a href="#section-5.2-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-5.2-3">Implementations <span class="bcp14">MUST</span> support <code>EdDSA</code> (Ed25519) and <code>ES256</code>. Algorithms <span class="bcp14">MUST</span> be
+restricted as described in <span>[<a href="#RFC8725" class="cite xref">RFC8725</a>]</span>; in particular, <code>none</code> and symmetric
+algorithms <span class="bcp14">MUST NOT</span> be accepted.<a href="#section-5.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="aid-links">
+<section id="section-5.3">
+        <h3 id="name-links">
+<a href="#section-5.3" class="section-number selfRef">5.3. </a><a href="#name-links" class="section-name selfRef">Links</a>
+        </h3>
+<p id="section-5.3-1">Each link object has the following members, with the semantics of Web Linking
+<span>[<a href="#RFC8288" class="cite xref">RFC8288</a>]</span>:<a href="#section-5.3-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-5.3-2">
+          <dt id="section-5.3-2.1">
+<code>rel</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.3-2.2">
+            <p id="section-5.3-2.2.1"><span class="bcp14">REQUIRED</span>. String. A registered link relation type or a URI.<a href="#section-5.3-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.3-2.3">
+<code>href</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.3-2.4">
+            <p id="section-5.3-2.4.1"><span class="bcp14">REQUIRED</span>. String. An absolute HTTPS URL.<a href="#section-5.3-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.3-2.5">
+<code>type</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.3-2.6">
+            <p id="section-5.3-2.6.1"><span class="bcp14">OPTIONAL</span>. String. The media type of the target.<a href="#section-5.3-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.3-2.7">
+<code>statement</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.3-2.8">
+            <p id="section-5.3-2.8.1"><span class="bcp14">OPTIONAL</span>. String. An Agent Statement (<a href="#statements" class="auto internal xref">Section 7</a>) about the target.<a href="#section-5.3-2.8.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-5.3-3">Link relations expected to be common include:<a href="#section-5.3-3" class="pilcrow">¶</a></p>
+<span id="name-common-link-relations"></span><div id="tab-links">
+<table class="center" id="table-2">
+          <caption>
+<a href="#table-2" class="selfRef">Table 2</a>:
+<a href="#name-common-link-relations" class="selfRef">Common link relations</a>
+          </caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Relation</th>
+              <th class="text-left" rowspan="1" colspan="1">Target</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>agent-card</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">The agent's <span>[<a href="#A2A" class="cite xref">A2A</a>]</span> Agent Card</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>mcp-server-card</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">The agent's <span>[<a href="#MCP" class="cite xref">MCP</a>]</span> server metadata</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>service-desc</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">An OpenAPI or other API description <span>[<a href="#RFC9727" class="cite xref">RFC9727</a>]</span>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>oauth-client-metadata</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">The agent's OAuth Client ID Metadata Document (<a href="#oauth-client" class="auto internal xref">Section 9.1</a>)</td>
+            </tr>
+          </tbody>
+        </table>
+</div>
+<p id="section-5.3-5">A link to a target on the <strong>same origin</strong> as the agent URI is trusted to the
+same degree as the AID itself. A link to a target on <strong>any other origin</strong> <span class="bcp14">MUST</span>
+carry a <code>statement</code>; verifiers <span class="bcp14">MUST</span> ignore cross-origin links without a valid
+statement.<a href="#section-5.3-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="aid-example">
+<section id="section-5.4">
+        <h3 id="name-example">
+<a href="#section-5.4" class="section-number selfRef">5.4. </a><a href="#name-example" class="section-name selfRef">Example</a>
+        </h3>
+<span id="name-example-agent-identity-docu"></span><div id="fig-aid-example">
+<figure id="figure-3">
+          <div class="lang-json sourcecode" id="section-5.4-1.1">
+<pre>
+{
+  "id": "agent://example.com/planner",
+  "name": "Example Trip Planner",
+  "operator": {
+    "name": "Example Travel Ltd",
+    "url": "https://example.com"
+  },
+  "keys": {
+    "keys": [
+      {
+        "kty": "OKP",
+        "crv": "Ed25519",
+        "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo",
+        "kid": "kPrK_qmxVWaYVA9wwBF6Iuo3vVzz7TxHCTwXBygrS4k",
+        "alg": "EdDSA",
+        "use": "sig"
+      }
+    ]
+  },
+  "links": [
+    {
+      "rel": "agent-card",
+      "href": "https://example.com/planner/agent-card.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "mcp-server-card",
+      "href": "https://tools.example-cdn.net/planner/server.json",
+      "statement": "eyJ0eXAiOiJhZ2VudC1zdGF0ZW1lbnQrand0Ii..."
+    },
+    {
+      "rel": "oauth-client-metadata",
+      "href": "https://example.com/planner/oauth-client.json"
+    }
+  ],
+  "updated": "2026-10-20T09:00:00Z"
+}
+</pre>
+</div>
+<figcaption><a href="#figure-3" class="selfRef">Figure 3</a>:
+<a href="#name-example-agent-identity-docu" class="selfRef">Example Agent Identity Document (origin-anchored)</a>
+          </figcaption></figure>
+</div>
+</section>
+</div>
+<div id="aid-retrieval">
+<section id="section-5.5">
+        <h3 id="name-retrieval-and-validation">
+<a href="#section-5.5" class="section-number selfRef">5.5. </a><a href="#name-retrieval-and-validation" class="section-name selfRef">Retrieval and Validation</a>
+        </h3>
+<p id="section-5.5-1">To obtain the AID for an agent URI, a verifier:<a href="#section-5.5-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-5.5-2">
+<li id="section-5.5-2.1">
+            <p id="section-5.5-2.1.1">Parses and canonicalizes the agent URI (<a href="#normalization" class="auto internal xref">Section 4.2</a>), rejecting it on
+failure.<a href="#section-5.5-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-5.5-2.2">
+            <p id="section-5.5-2.2.1">Constructs the AID URL (<a href="#dereference" class="auto internal xref">Section 4.3</a>).<a href="#section-5.5-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-5.5-2.3">
+            <p id="section-5.5-2.3.1">Applies the request-destination restrictions of <a href="#sec-fetch" class="auto internal xref">Section 12.3</a>.<a href="#section-5.5-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-5.5-2.4">
+            <p id="section-5.5-2.4.1">Sends an HTTPS GET with <code>Accept: application/agent-id+json</code>, validating the
+server certificate for <code>dns-name</code>.<a href="#section-5.5-2.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-5.5-2.5">
+            <p id="section-5.5-2.5.1">Follows redirects only to URLs with the same origin as the AID URL.<a href="#section-5.5-2.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-5.5-2.6">
+            <p id="section-5.5-2.6.1">Rejects responses larger than 64 KiB, or that are not valid JSON objects.
+Verifiers <span class="bcp14">MUST NOT</span> reject a response solely because its media type is
+<code>application/json</code> (to support static hosting) but <span class="bcp14">MUST</span> reject any other
+media type.<a href="#section-5.5-2.6.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-5.5-2.7">
+            <p id="section-5.5-2.7.1">Rejects the document unless its <code>id</code> member is identical to the canonical
+agent URI.<a href="#section-5.5-2.7.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-5.5-2.8">
+            <p id="section-5.5-2.8.1">If <code>did</code> is present, performs the DID binding check of <a href="#did-anchored" class="auto internal xref">Section 6.2</a>.<a href="#section-5.5-2.8.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="section-5.5-3">Verifiers <span class="bcp14">SHOULD</span> cache AIDs according to HTTP caching <span>[<a href="#RFC9111" class="cite xref">RFC9111</a>]</span>. Operators
+<span class="bcp14">SHOULD NOT</span> set a freshness lifetime longer than 24 hours, so that key removal
+takes effect promptly (<a href="#lifecycle" class="auto internal xref">Section 6.3</a>). Verifiers <span class="bcp14">SHOULD</span> cache failures for a
+short period to limit repeated fetches.<a href="#section-5.5-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="anchoring">
+<section id="section-6">
+      <h2 id="name-anchoring">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-anchoring" class="section-name selfRef">Anchoring</a>
+      </h2>
+<p id="section-6-1">An Agent Key is <em>anchored</em> when the verifier has established that the agent's
+controller published it. This document defines two anchoring modes. An agent
+uses exactly one.<a href="#section-6-1" class="pilcrow">¶</a></p>
+<div id="origin-anchored">
+<section id="section-6.1">
+        <h3 id="name-origin-anchored-agents">
+<a href="#section-6.1" class="section-number selfRef">6.1. </a><a href="#name-origin-anchored-agents" class="section-name selfRef">Origin-Anchored Agents</a>
+        </h3>
+<p id="section-6.1-1">The AID contains <code>keys</code> and no <code>did</code>. The keys are anchored by the HTTPS
+retrieval of <a href="#aid-retrieval" class="auto internal xref">Section 5.5</a>: control of the agent URI's origin is control of
+the agent's identity.<a href="#section-6.1-1" class="pilcrow">¶</a></p>
+<p id="section-6.1-2">This mode needs nothing beyond a web server. Its weakness is that identity is
+exactly as durable as control of the domain: if the domain lapses or is
+transferred, so does the agent's identity (<a href="#sec-handle-reassignment" class="auto internal xref">Section 12.2</a>).<a href="#section-6.1-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="did-anchored">
+<section id="section-6.2">
+        <h3 id="name-did-anchored-agents">
+<a href="#section-6.2" class="section-number selfRef">6.2. </a><a href="#name-did-anchored-agents" class="section-name selfRef">DID-Anchored Agents</a>
+        </h3>
+<p id="section-6.2-1">The AID contains a <code>did</code> member and no <code>keys</code>. The agent's keys are the
+verification methods in the DID document's <code>assertionMethod</code> and
+<code>authentication</code> relationships <span>[<a href="#DID-CORE" class="cite xref">DID-CORE</a>]</span>.<a href="#section-6.2-1" class="pilcrow">¶</a></p>
+<p id="section-6.2-2">The binding between the agent URI and the DID <span class="bcp14">MUST</span> be bidirectional:<a href="#section-6.2-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-6.2-3.1">
+            <p id="section-6.2-3.1.1">the AID retrieved for the agent URI names the DID in <code>did</code>; and<a href="#section-6.2-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.2-3.2">
+            <p id="section-6.2-3.2.1">the DID document lists the canonical agent URI in its <code>alsoKnownAs</code>
+property.<a href="#section-6.2-3.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-6.2-4">Verifiers <span class="bcp14">MUST</span> check both directions and <span class="bcp14">MUST</span> treat the agent as unverified if
+either is missing.<a href="#section-6.2-4" class="pilcrow">¶</a></p>
+<p id="section-6.2-5">DID-anchored agents can change their human-readable name without changing
+their identity: the operator publishes an AID under the new agent URI and adds
+the new URI to <code>alsoKnownAs</code>. Verifiers that record the DID (rather than only
+the agent URI) keep continuity across the rename.<a href="#section-6.2-5" class="pilcrow">¶</a></p>
+<p id="section-6.2-6">DID methods that support verifiable key rotation history (for example,
+<span>[<a href="#DID-WEBVH" class="cite xref">DID-WEBVH</a>]</span>) are <span class="bcp14">RECOMMENDED</span>. Verifiers <span class="bcp14">MUST</span> maintain an allowlist of DID
+methods they support and <span class="bcp14">MUST</span> reject any other method.<a href="#section-6.2-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="lifecycle">
+<section id="section-6.3">
+        <h3 id="name-lifecycle-rotation-and-revo">
+<a href="#section-6.3" class="section-number selfRef">6.3. </a><a href="#name-lifecycle-rotation-and-revo" class="section-name selfRef">Lifecycle, Rotation, and Revocation</a>
+        </h3>
+<ul class="normal">
+<li class="normal" id="section-6.3-1.1">
+            <p id="section-6.3-1.1.1"><strong>Rotation.</strong> Operators add the new key, start using it, and remove the old
+key once signatures made with it are no longer expected to be verified.<a href="#section-6.3-1.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.3-1.2">
+            <p id="section-6.3-1.2.1"><strong>Revocation.</strong> Removing a key from the AID (or DID document) revokes it.
+Verifiers learn of revocation when their cached copy expires.<a href="#section-6.3-1.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.3-1.3">
+            <p id="section-6.3-1.3.1"><strong>Suspension and retirement.</strong> If <code>status</code> is <code>"suspended"</code> or
+<code>"retired"</code>, verifiers <span class="bcp14">MUST</span> treat all signatures and credentials from the
+agent as invalid. A retired agent URI <span class="bcp14">SHOULD NOT</span> be reassigned to a
+different agent.<a href="#section-6.3-1.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-6.3-2">Operators that need faster or auditable revocation <span class="bcp14">MAY</span> additionally record
+their AIDs and statements in a transparency service (<span>[<a href="#SCITT-ARCH" class="cite xref">SCITT-ARCH</a>]</span>). This
+document does not require it.<a href="#section-6.3-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="statements">
+<section id="section-7">
+      <h2 id="name-agent-statements">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-agent-statements" class="section-name selfRef">Agent Statements</a>
+      </h2>
+<p id="section-7-1">An Agent Statement is a JWS <span>[<a href="#RFC7515" class="cite xref">RFC7515</a>]</span> in compact serialization, signed with
+an Agent Key, that binds the agent to a specific version of a resource such as
+an Agent Card. It allows protocol metadata to be served from any origin,
+mirrored, or included in registries without losing its link to the agent.<a href="#section-7-1" class="pilcrow">¶</a></p>
+<p id="section-7-2">The JWS Protected Header <span class="bcp14">MUST</span> contain:<a href="#section-7-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7-3.1">
+          <p id="section-7-3.1.1"><code>typ</code>: <code>"agent-statement+jwt"</code>;<a href="#section-7-3.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-7-3.2">
+          <p id="section-7-3.2.1"><code>alg</code>: the algorithm of the signing key;<a href="#section-7-3.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-7-3.3">
+          <p id="section-7-3.3.1"><code>kid</code>: the agent URI with a fragment identifying the signing key, e.g.,
+<code>"agent://example.com/planner#kPrK_qmxVWaYVA9wwBF6Iuo3vVzz7TxHCTwXBygrS4k"</code>.<a href="#section-7-3.3.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-7-4">The payload is a JWT Claims Set <span>[<a href="#RFC7519" class="cite xref">RFC7519</a>]</span> with:<a href="#section-7-4" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-7-5">
+        <dt id="section-7-5.1">
+<code>iss</code>:</dt>
+        <dd style="margin-left: 1.5em" id="section-7-5.2">
+          <p id="section-7-5.2.1"><span class="bcp14">REQUIRED</span>. The canonical agent URI.<a href="#section-7-5.2.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-7-5.3">
+<code>sub</code>:</dt>
+        <dd style="margin-left: 1.5em" id="section-7-5.4">
+          <p id="section-7-5.4.1"><span class="bcp14">REQUIRED</span>. The URL of the resource the statement is about.<a href="#section-7-5.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-7-5.5">
+<code>resource_digest</code>:</dt>
+        <dd style="margin-left: 1.5em" id="section-7-5.6">
+          <p id="section-7-5.6.1"><span class="bcp14">REQUIRED</span>. An object with members <code>alg</code> (<code>"sha-256"</code>), <code>canon</code> (<code>"jcs"</code> or
+<code>"none"</code>), and <code>value</code> (the base64url-encoded digest). With <code>"jcs"</code>, the
+digest is computed over the resource canonicalized per <span>[<a href="#RFC8785" class="cite xref">RFC8785</a>]</span>; with
+<code>"none"</code>, over the exact bytes of the representation.<a href="#section-7-5.6.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-7-5.7">
+<code>iat</code>:</dt>
+        <dd style="margin-left: 1.5em" id="section-7-5.8">
+          <p id="section-7-5.8.1"><span class="bcp14">REQUIRED</span>. Issue time.<a href="#section-7-5.8.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-7-5.9">
+<code>exp</code>:</dt>
+        <dd style="margin-left: 1.5em" id="section-7-5.10">
+          <p id="section-7-5.10.1"><span class="bcp14">OPTIONAL</span>. Expiry time. Statements about metadata that changes <span class="bcp14">SHOULD</span> expire.<a href="#section-7-5.10.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+<p id="section-7-6">To verify a statement, a verifier: checks <code>typ</code>; resolves <code>iss</code> to an AID;
+checks that the <code>kid</code> agent URI equals <code>iss</code>; locates and checks the anchoring
+of the key; verifies the signature; checks <code>iat</code> and <code>exp</code>; fetches the
+resource at <code>sub</code> (or uses a copy); and compares its digest with
+<code>resource_digest</code>.<a href="#section-7-6" class="pilcrow">¶</a></p>
+<p id="section-7-7">Protocol metadata documents that support extension fields <span class="bcp14">SHOULD</span> include a
+reference back to the agent URI, so that a client starting from the metadata
+can find the identity. How that reference is expressed is defined by each
+protocol (see <a href="#open-issues" class="auto internal xref">Appendix A</a>).<a href="#section-7-7" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="request-signing">
+<section id="section-8">
+      <h2 id="name-proving-identity-in-request">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-proving-identity-in-request" class="section-name selfRef">Proving Identity in Requests</a>
+      </h2>
+<div id="sig-profile">
+<section id="section-8.1">
+        <h3 id="name-http-message-signatures-pro">
+<a href="#section-8.1" class="section-number selfRef">8.1. </a><a href="#name-http-message-signatures-pro" class="section-name selfRef">HTTP Message Signatures Profile</a>
+        </h3>
+<p id="section-8.1-1">An agent proves its identity on an HTTP request by signing it with
+<span>[<a href="#RFC9421" class="cite xref">RFC9421</a>]</span> as follows. The profile is designed to be compatible with the
+architecture of <span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span>.<a href="#section-8.1-1" class="pilcrow">¶</a></p>
+<p id="section-8.1-2">The request <span class="bcp14">MUST</span> include a <code>Signature-Agent</code> header field whose value is a
+structured-field String <span>[<a href="#RFC9651" class="cite xref">RFC9651</a>]</span> containing the canonical agent URI:<a href="#section-8.1-2" class="pilcrow">¶</a></p>
+<div class="lang-http sourcecode" id="section-8.1-3">
+<pre>
+Signature-Agent: "agent://example.com/planner"
+</pre><a href="#section-8.1-3" class="pilcrow">¶</a>
+</div>
+<p id="section-8.1-4">The signature <span class="bcp14">MUST</span>:<a href="#section-8.1-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-8.1-5.1">
+            <p id="section-8.1-5.1.1">cover at least <code>@method</code>, <code>@authority</code>, <code>@target-uri</code>, and
+<code>signature-agent</code>, and <code>content-digest</code> <span>[<a href="#RFC9530" class="cite xref">RFC9530</a>]</span> when the request has
+content;<a href="#section-8.1-5.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.1-5.2">
+            <p id="section-8.1-5.2.1">include the <code>created</code> and <code>expires</code> parameters, with <code>expires</code> no more than
+300 seconds after <code>created</code>;<a href="#section-8.1-5.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.1-5.3">
+            <p id="section-8.1-5.3.1">include a <code>keyid</code> parameter whose value is the JWK Thumbprint
+<span>[<a href="#RFC7638" class="cite xref">RFC7638</a>]</span> of the signing key; and<a href="#section-8.1-5.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.1-5.4">
+            <p id="section-8.1-5.4.1">include the parameter <code>tag="agent-uri"</code>.<a href="#section-8.1-5.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-8.1-6">A <code>nonce</code> parameter <span class="bcp14">SHOULD</span> be included where the verifier is expected to detect
+replay.<a href="#section-8.1-6" class="pilcrow">¶</a></p>
+<p id="section-8.1-7">Example:<a href="#section-8.1-7" class="pilcrow">¶</a></p>
+<span id="name-a-signed-request-line-break"></span><div id="fig-signed-request">
+<figure id="figure-4">
+          <div class="lang-http sourcecode" id="section-8.1-8.1">
+<pre>
+POST /v1/bookings HTTP/1.1
+Host: api.example.net
+Content-Type: application/json
+Content-Digest: sha-256=:...:
+Signature-Agent: "agent://example.com/planner"
+Signature-Input: sig1=("@method" "@authority" "@target-uri"
+    "signature-agent" "content-digest");created=1760950000;
+    expires=1760950060;
+    keyid="kPrK_qmxVWaYVA9wwBF6Iuo3vVzz7TxHCTwXBygrS4k";
+    tag="agent-uri"
+Signature: sig1=:...:
+</pre>
+</div>
+<figcaption><a href="#figure-4" class="selfRef">Figure 4</a>:
+<a href="#name-a-signed-request-line-break" class="selfRef">A signed request (line breaks for display only)</a>
+          </figcaption></figure>
+</div>
+<p id="section-8.1-9">A verifier:<a href="#section-8.1-9" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-8.1-10">
+<li id="section-8.1-10.1">
+            <p id="section-8.1-10.1.1">Parses <code>Signature-Agent</code> and canonicalizes the agent URI.<a href="#section-8.1-10.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-8.1-10.2">
+            <p id="section-8.1-10.2.1">Selects the signature with <code>tag="agent-uri"</code>.<a href="#section-8.1-10.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-8.1-10.3">
+            <p id="section-8.1-10.3.1">Retrieves the AID (<a href="#aid-retrieval" class="auto internal xref">Section 5.5</a>) and finds an anchored key whose
+thumbprint equals <code>keyid</code>, or, if an <code>Agent-Instance</code> field is present,
+validates the instance credential (<a href="#instances" class="auto internal xref">Section 8.2</a>).<a href="#section-8.1-10.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-8.1-10.4">
+            <p id="section-8.1-10.4.1">Verifies the signature per <span>[<a href="#RFC9421" class="cite xref">RFC9421</a>]</span> and checks that the current time is
+between <code>created</code> and <code>expires</code>, allowing for modest clock skew.<a href="#section-8.1-10.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-8.1-10.5">
+            <p id="section-8.1-10.5.1">Checks <code>status</code> (<a href="#lifecycle" class="auto internal xref">Section 6.3</a>).<a href="#section-8.1-10.5.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="section-8.1-11">On success, the verifier has established that the request was made by (an
+instance of) the agent. On failure, the verifier <span class="bcp14">MUST NOT</span> treat the request as
+coming from the named agent; it <span class="bcp14">MAY</span> process it as an unauthenticated request.<a href="#section-8.1-11" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="instances">
+<section id="section-8.2">
+        <h3 id="name-agent-instances">
+<a href="#section-8.2" class="section-number selfRef">8.2. </a><a href="#name-agent-instances" class="section-name selfRef">Agent Instances</a>
+        </h3>
+<p id="section-8.2-1">Agents frequently run as many short-lived instances, for example one per task.
+Publishing a key for each instance in the AID does not scale, and keeping the
+agent's long-term private key in every instance is unsafe.<a href="#section-8.2-1" class="pilcrow">¶</a></p>
+<p id="section-8.2-2">Instead, the agent (through its controlling infrastructure) issues each
+instance an <strong>Agent Instance Credential</strong>: a JWT <span>[<a href="#RFC7519" class="cite xref">RFC7519</a>]</span> signed with an
+Agent Key, with:<a href="#section-8.2-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-8.2-3.1">
+            <p id="section-8.2-3.1.1">protected header <code>typ</code>: <code>"agent-instance+jwt"</code> and <code>kid</code> as in
+<a href="#statements" class="auto internal xref">Section 7</a>;<a href="#section-8.2-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.2-3.2">
+            <p id="section-8.2-3.2.1"><code>iss</code>: the canonical agent URI;<a href="#section-8.2-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.2-3.3">
+            <p id="section-8.2-3.3.1"><code>sub</code>: an identifier for the instance, unique per agent and <span class="bcp14">SHOULD</span> be
+random (<a href="#privacy" class="auto internal xref">Section 13</a>);<a href="#section-8.2-3.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.2-3.4">
+            <p id="section-8.2-3.4.1"><code>cnf</code>: a confirmation claim containing the instance's public key as a <code>jwk</code>;<a href="#section-8.2-3.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.2-3.5">
+            <p id="section-8.2-3.5.1"><code>iat</code> and <code>exp</code>. The lifetime <span class="bcp14">SHOULD NOT</span> exceed one hour.<a href="#section-8.2-3.5.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-8.2-4">The instance signs requests with its own key as in <a href="#sig-profile" class="auto internal xref">Section 8.1</a>, with
+<code>keyid</code> set to the thumbprint of the instance key, and sends the credential in
+the <code>Agent-Instance</code> header field as a structured-field String.<a href="#section-8.2-4" class="pilcrow">¶</a></p>
+<p id="section-8.2-5">The verifier validates the credential against the agent's anchored keys,
+checks that <code>iss</code> equals the <code>Signature-Agent</code> value, and verifies the request
+signature using the key in <code>cnf</code>.<a href="#section-8.2-5" class="pilcrow">¶</a></p>
+<p id="section-8.2-6">This construction is intentionally close to the Workload Identity Token of
+<span>[<a href="#WIMSE-S2S" class="cite xref">WIMSE-S2S</a>]</span>; see <a href="#open-issues" class="auto internal xref">Appendix A</a>.<a href="#section-8.2-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="authorization">
+<section id="section-9">
+      <h2 id="name-authorization">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-authorization" class="section-name selfRef">Authorization</a>
+      </h2>
+<p id="section-9-1">Identity is not authorization. This section connects agent identity to OAuth
+2.0 without defining new token formats.<a href="#section-9-1" class="pilcrow">¶</a></p>
+<div id="oauth-client">
+<section id="section-9.1">
+        <h3 id="name-the-agent-as-an-oauth-clien">
+<a href="#section-9.1" class="section-number selfRef">9.1. </a><a href="#name-the-agent-as-an-oauth-clien" class="section-name selfRef">The Agent as an OAuth Client</a>
+        </h3>
+<p id="section-9.1-1">An agent that obtains OAuth tokens <span class="bcp14">SHOULD</span> use a Client ID Metadata Document
+<span>[<a href="#OAUTH-CIMD" class="cite xref">OAUTH-CIMD</a>]</span> as its client identifier and link to it from its AID with
+<code>rel="oauth-client-metadata"</code>. The client metadata document <span class="bcp14">SHOULD</span> include the
+<code>agent_uri</code> client metadata parameter (<a href="#iana-client-metadata" class="auto internal xref">Section 14.6</a>) containing
+the canonical agent URI.<a href="#section-9.1-1" class="pilcrow">¶</a></p>
+<p id="section-9.1-2">An authorization server that sees <code>agent_uri</code> <span class="bcp14">MAY</span> verify it by retrieving the
+AID and checking that it links to the same <code>client_id</code>. When verified, the
+authorization server knows which agent the client is and <span class="bcp14">MAY</span> show the agent's
+identity and operator to the user at consent time.<a href="#section-9.1-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="delegation">
+<section id="section-9.2">
+        <h3 id="name-delegation">
+<a href="#section-9.2" class="section-number selfRef">9.2. </a><a href="#name-delegation" class="section-name selfRef">Delegation</a>
+        </h3>
+<p id="section-9.2-1">When an agent acts on behalf of a user or another agent, the delegation <span class="bcp14">SHOULD</span>
+be expressed with OAuth 2.0 Token Exchange <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>, with the agent
+identified in the <code>act</code> claim by <code>"sub"</code> set to its canonical agent URI. As
+required by <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>, only the current actor is relevant to access-control
+decisions; nested actors are informational.<a href="#section-9.2-1" class="pilcrow">¶</a></p>
+<p id="section-9.2-2">Access tokens used by agents <span class="bcp14">SHOULD</span> be sender-constrained, for example with
+DPoP <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span> using the agent's or instance's key, so that a stolen token
+cannot be used by a different agent. Within a single trust domain,
+<span>[<a href="#TXN-TOKENS" class="cite xref">TXN-TOKENS</a>]</span> can carry the agent identity and call context between services.<a href="#section-9.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="protected-resources">
+<section id="section-9.3">
+        <h3 id="name-protected-resources">
+<a href="#section-9.3" class="section-number selfRef">9.3. </a><a href="#name-protected-resources" class="section-name selfRef">Protected Resources</a>
+        </h3>
+<p id="section-9.3-1">Resource servers advertise their requirements using OAuth 2.0 Protected
+Resource Metadata <span>[<a href="#RFC9728" class="cite xref">RFC9728</a>]</span>. A resource server <span class="bcp14">MAY</span> require a valid agent
+signature (<a href="#sig-profile" class="auto internal xref">Section 8.1</a>) in addition to an access token, and <span class="bcp14">MAY</span> apply
+policy based on the agent URI, its operator, or its DID.<a href="#section-9.3-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="discovery">
+<section id="section-10">
+      <h2 id="name-discovery">
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-discovery" class="section-name selfRef">Discovery</a>
+      </h2>
+<p id="section-10-1">Dereferencing a known agent URI requires no discovery. To let others find
+which agents a domain operates, a domain <span class="bcp14">MAY</span> list them in an API catalog
+<span>[<a href="#RFC9727" class="cite xref">RFC9727</a>]</span> (a linkset <span>[<a href="#RFC9264" class="cite xref">RFC9264</a>]</span>) at <code>/.well-known/api-catalog</code>, using the agent URI as the link
+context and <code>agent-identity</code> links to the AIDs:<a href="#section-10-1" class="pilcrow">¶</a></p>
+<span id="name-listing-agents-in-an-api-ca"></span><div id="fig-catalog">
+<figure id="figure-5">
+        <div class="lang-json sourcecode" id="section-10-2.1">
+<pre>
+{
+  "linkset": [
+    {
+      "anchor": "agent://example.com/planner",
+      "agent-identity": [
+        { "href": "https://example.com/.well-known/agent/planner",
+          "type": "application/agent-id+json" }
+      ]
+    }
+  ]
+}
+</pre>
+</div>
+<figcaption><a href="#figure-5" class="selfRef">Figure 5</a>:
+<a href="#name-listing-agents-in-an-api-ca" class="selfRef">Listing agents in an API catalog</a>
+        </figcaption></figure>
+</div>
+<p id="section-10-3">Publishing a catalog is optional (<a href="#privacy" class="auto internal xref">Section 13</a>). Registries and search services
+that index agents <span class="bcp14">SHOULD</span> verify AIDs and statements themselves rather than
+asking clients to trust the index.<a href="#section-10-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="relationships">
+<section id="section-11">
+      <h2 id="name-relationship-to-other-proto">
+<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-relationship-to-other-proto" class="section-name selfRef">Relationship to Other Protocols</a>
+      </h2>
+<span class="break"></span><dl class="dlParallel" id="section-11-1">
+        <dt id="section-11-1.1">A2A:</dt>
+        <dd style="margin-left: 1.5em" id="section-11-1.2">
+          <p id="section-11-1.2.1">An Agent Card describes how to communicate with an agent. The AID links to
+it with <code>rel="agent-card"</code>. A2A clients can verify a card by checking the
+agent's statement about it.<a href="#section-11-1.2.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-11-1.3">MCP:</dt>
+        <dd style="margin-left: 1.5em" id="section-11-1.4">
+          <p id="section-11-1.4.1">MCP server metadata describes tools and how to reach them. The AID links to
+it with <code>rel="mcp-server-card"</code>. MCP clients can use the agent URI and
+request signatures to identify the calling agent to MCP servers.<a href="#section-11-1.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-11-1.5">OpenAPI:</dt>
+        <dd style="margin-left: 1.5em" id="section-11-1.6">
+          <p id="section-11-1.6.1">The AID links to API descriptions with <code>rel="service-desc"</code> <span>[<a href="#RFC9727" class="cite xref">RFC9727</a>]</span>.<a href="#section-11-1.6.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-11-1.7">Web Bot Auth:</dt>
+        <dd style="margin-left: 1.5em" id="section-11-1.8">
+          <p id="section-11-1.8.1"><span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span> lets automated clients sign requests and publish keys.
+This document adds a named, operator-accountable identity and an optional
+DID anchor on top of the same signature mechanism.<a href="#section-11-1.8.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-11-1.9">WIMSE:</dt>
+        <dd style="margin-left: 1.5em" id="section-11-1.10">
+          <p id="section-11-1.10.1">WIMSE addresses workload identity inside and across trust domains. Agent
+instance credentials (<a href="#instances" class="auto internal xref">Section 8.2</a>) address the same problem for agents;
+alignment is an open issue.<a href="#section-11-1.10.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="security">
+<section id="section-12">
+      <h2 id="name-security-considerations">
+<a href="#section-12" class="section-number selfRef">12. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+      </h2>
+<div id="sec-trust-model">
+<section id="section-12.1">
+        <h3 id="name-trust-model">
+<a href="#section-12.1" class="section-number selfRef">12.1. </a><a href="#name-trust-model" class="section-name selfRef">Trust Model</a>
+        </h3>
+<p id="section-12.1-1">For origin-anchored agents, the trust anchors are DNS and the Web PKI: anyone
+who can obtain a certificate for the agent URI's host and serve content there
+can impersonate the agent. This is the same trust model as the web itself and
+is appropriate for most agents. DID-anchored agents can reduce this dependency,
+at the cost of trusting the DID method's security.<a href="#section-12.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-handle-reassignment">
+<section id="section-12.2">
+        <h3 id="name-handle-reassignment">
+<a href="#section-12.2" class="section-number selfRef">12.2. </a><a href="#name-handle-reassignment" class="section-name selfRef">Handle Reassignment</a>
+        </h3>
+<p id="section-12.2-1">If a domain lapses and is registered by someone else, the new holder can
+publish an AID for the same agent URIs. Verifiers that record identities for
+audit or reputation <span class="bcp14">SHOULD</span> record the key thumbprint (and DID, when present)
+alongside the agent URI, and <span class="bcp14">SHOULD</span> treat a change of all keys for an agent as
+a significant event.<a href="#section-12.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-fetch">
+<section id="section-12.3">
+        <h3 id="name-request-destination-restric">
+<a href="#section-12.3" class="section-number selfRef">12.3. </a><a href="#name-request-destination-restric" class="section-name selfRef">Request-Destination Restrictions</a>
+        </h3>
+<p id="section-12.3-1"><code>Signature-Agent</code> values arrive in requests from untrusted parties, so any
+verifier can be made to fetch AIDs on attacker-chosen hosts. Verifiers <span class="bcp14">MUST</span>:<a href="#section-12.3-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-12.3-2.1">
+            <p id="section-12.3-2.1.1">refuse to fetch AID URLs whose host resolves to addresses in the IANA IPv4
+and IPv6 Special-Purpose Address Registries that are not globally
+reachable, unless explicitly configured to allow them (e.g., for private
+deployments);<a href="#section-12.3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-12.3-2.2">
+            <p id="section-12.3-2.2.1">apply the same check after every redirect and pin the resolved address for
+the duration of the fetch;<a href="#section-12.3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-12.3-2.3">
+            <p id="section-12.3-2.3.1">enforce timeouts and the 64 KiB size limit; and<a href="#section-12.3-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-12.3-2.4">
+            <p id="section-12.3-2.4.1">rate-limit fetches per host and cache results, including failures.<a href="#section-12.3-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="sec-replay">
+<section id="section-12.4">
+        <h3 id="name-replay">
+<a href="#section-12.4" class="section-number selfRef">12.4. </a><a href="#name-replay" class="section-name selfRef">Replay</a>
+        </h3>
+<p id="section-12.4-1">Signatures cover the target authority and URI, which prevents replay against a
+different service. The short <code>created</code>-<code>expires</code> window limits replay against
+the same service; verifiers for non-idempotent operations <span class="bcp14">SHOULD</span> require and
+track <code>nonce</code> values.<a href="#section-12.4-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-key-compromise">
+<section id="section-12.5">
+        <h3 id="name-key-compromise">
+<a href="#section-12.5" class="section-number selfRef">12.5. </a><a href="#name-key-compromise" class="section-name selfRef">Key Compromise</a>
+        </h3>
+<p id="section-12.5-1">Compromise of an Agent Key lets the attacker act as the agent until the key is
+removed and caches expire. Operators <span class="bcp14">SHOULD</span> keep Agent Keys in hardware or a
+key management service and use instance credentials (<a href="#instances" class="auto internal xref">Section 8.2</a>) so that
+long-term keys are never present in running agents. Instance credentials
+<span class="bcp14">SHOULD</span> be short-lived, because they cannot be individually revoked.<a href="#section-12.5-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-cross-origin">
+<section id="section-12.6">
+        <h3 id="name-cross-origin-metadata">
+<a href="#section-12.6" class="section-number selfRef">12.6. </a><a href="#name-cross-origin-metadata" class="section-name selfRef">Cross-Origin Metadata</a>
+        </h3>
+<p id="section-12.6-1">Requiring statements for cross-origin links (<a href="#aid-links" class="auto internal xref">Section 5.3</a>) prevents a
+compromised or malicious third-party host from attaching metadata to an agent's
+identity. A statement does not vouch for the <em>contents</em> of the resource beyond
+its integrity: an agent can make false claims in its own Agent Card, and
+verifiers must not treat identity as an endorsement.<a href="#section-12.6-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-confusables">
+<section id="section-12.7">
+        <h3 id="name-confusable-names">
+<a href="#section-12.7" class="section-number selfRef">12.7. </a><a href="#name-confusable-names" class="section-name selfRef">Confusable Names</a>
+        </h3>
+<p id="section-12.7-1">Agent URIs can be visually similar (e.g., <code>examp1e.com</code>). User interfaces that
+display agent identities <span class="bcp14">SHOULD</span> display the operator name and the A-label form
+of the domain, and <span class="bcp14">SHOULD</span> warn when a DID-anchored agent's DID is new to the
+user.<a href="#section-12.7-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="privacy">
+<section id="section-13">
+      <h2 id="name-privacy-considerations">
+<a href="#section-13" class="section-number selfRef">13. </a><a href="#name-privacy-considerations" class="section-name selfRef">Privacy Considerations</a>
+      </h2>
+<p id="section-13-1">The considerations of <span>[<a href="#RFC6973" class="cite xref">RFC6973</a>]</span> apply.<a href="#section-13-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-13-2.1">
+          <p id="section-13-2.1.1"><strong>Linkability is the point, for agents.</strong> Request signatures make an agent's
+traffic attributable and linkable across services. That is intended for the
+agent; it must not extend to the people it acts for. Agent URIs, instance
+identifiers, and <code>Signature-Agent</code> values <span class="bcp14">MUST NOT</span> encode user identifiers.
+Instance <code>sub</code> values <span class="bcp14">SHOULD</span> be random and not reused across users.<a href="#section-13-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-13-2.2">
+          <p id="section-13-2.2.1"><strong>Per-user agents.</strong> Deployments that create one agent per end user (e.g.,
+<code>agent://example.com/u/alice</code>) make that user's activity linkable across all
+services the agent visits. Such deployments <span class="bcp14">SHOULD</span> use a shared agent
+identity and convey user context only through authorization tokens sent to
+parties entitled to it.<a href="#section-13-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-13-2.3">
+          <p id="section-13-2.3.1"><strong>Enumeration.</strong> API catalogs (<a href="#discovery" class="auto internal xref">Section 10</a>) let anyone list a domain's
+agents. Domains that do not want their agents to be enumerable should not
+publish them in a catalog; AIDs remain retrievable by those who already
+know the agent URI.<a href="#section-13-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-13-2.4">
+          <p id="section-13-2.4.1"><strong>Verifier fetches.</strong> Fetching an AID reveals to the operator that a
+verifier has seen the agent. Caching reduces this signal.<a href="#section-13-2.4.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+</section>
+</div>
+<div id="iana">
+<section id="section-14">
+      <h2 id="name-iana-considerations">
+<a href="#section-14" class="section-number selfRef">14. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<div id="iana-uri-scheme">
+<section id="section-14.1">
+        <h3 id="name-uri-scheme-registration">
+<a href="#section-14.1" class="section-number selfRef">14.1. </a><a href="#name-uri-scheme-registration" class="section-name selfRef">URI Scheme Registration</a>
+        </h3>
+<p id="section-14.1-1">This document requests registration of the <code>agent</code> URI scheme in the
+"Uniform Resource Identifier (URI) Schemes" registry per <span>[<a href="#RFC7595" class="cite xref">RFC7595</a>]</span>:<a href="#section-14.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-14.1-2.1">
+            <p id="section-14.1-2.1.1">Scheme name: agent<a href="#section-14.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-14.1-2.2">
+            <p id="section-14.1-2.2.1">Status: Permanent<a href="#section-14.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-14.1-2.3">
+            <p id="section-14.1-2.3.1">Applications/protocols that use this scheme name: Identification of
+software agents and retrieval of their Agent Identity Documents.<a href="#section-14.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-14.1-2.4">
+            <p id="section-14.1-2.4.1">Contact: The authors.<a href="#section-14.1-2.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-14.1-2.5">
+            <p id="section-14.1-2.5.1">Change controller: IETF.<a href="#section-14.1-2.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-14.1-2.6">
+            <p id="section-14.1-2.6.1">Reference: <a href="#agent-uri" class="auto internal xref">Section 4</a> of this document.<a href="#section-14.1-2.6.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-14.1-3">This document does not define or request registration of <code>agent+&lt;suffix&gt;</code>
+schemes.<a href="#section-14.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="iana-well-known">
+<section id="section-14.2">
+        <h3 id="name-well-known-uri-registration">
+<a href="#section-14.2" class="section-number selfRef">14.2. </a><a href="#name-well-known-uri-registration" class="section-name selfRef">Well-Known URI Registration</a>
+        </h3>
+<p id="section-14.2-1">This document requests registration in the "Well-Known URIs" registry
+<span>[<a href="#RFC8615" class="cite xref">RFC8615</a>]</span>:<a href="#section-14.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-14.2-2.1">
+            <p id="section-14.2-2.1.1">URI suffix: agent<a href="#section-14.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-14.2-2.2">
+            <p id="section-14.2-2.2.1">Change controller: IETF<a href="#section-14.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-14.2-2.3">
+            <p id="section-14.2-2.3.1">Specification document: <a href="#dereference" class="auto internal xref">Section 4.3</a> of this document<a href="#section-14.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-14.2-2.4">
+            <p id="section-14.2-2.4.1">Status: permanent<a href="#section-14.2-2.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-14.2-2.5">
+            <p id="section-14.2-2.5.1">Related information: Sub-paths are used; see <a href="#dereference" class="auto internal xref">Section 4.3</a>.<a href="#section-14.2-2.5.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="iana-media-type">
+<section id="section-14.3">
+        <h3 id="name-media-types">
+<a href="#section-14.3" class="section-number selfRef">14.3. </a><a href="#name-media-types" class="section-name selfRef">Media Types</a>
+        </h3>
+<p id="section-14.3-1">This document requests registration of the following media types per
+<span>[<a href="#RFC6838" class="cite xref">RFC6838</a>]</span>:<a href="#section-14.3-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-14.3-2.1">
+            <p id="section-14.3-2.1.1"><code>application/agent-id+json</code>, for Agent Identity Documents (<a href="#aid" class="auto internal xref">Section 5</a>).<a href="#section-14.3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-14.3-2.2">
+            <p id="section-14.3-2.2.1"><code>application/agent-statement+jwt</code>, for Agent Statements (<a href="#statements" class="auto internal xref">Section 7</a>).<a href="#section-14.3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-14.3-2.3">
+            <p id="section-14.3-2.3.1"><code>application/agent-instance+jwt</code>, for Agent Instance Credentials
+(<a href="#instances" class="auto internal xref">Section 8.2</a>).<a href="#section-14.3-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-14.3-3">Full registration templates will be provided in a future revision.<a href="#section-14.3-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="iana-fields">
+<section id="section-14.4">
+        <h3 id="name-http-field-names">
+<a href="#section-14.4" class="section-number selfRef">14.4. </a><a href="#name-http-field-names" class="section-name selfRef">HTTP Field Names</a>
+        </h3>
+<p id="section-14.4-1">This document requests registration in the "Hypertext Transfer Protocol (HTTP)
+Field Name Registry":<a href="#section-14.4-1" class="pilcrow">¶</a></p>
+<span id="name-http-field-registrations"></span><div id="tab-iana-fields">
+<table class="center" id="table-3">
+          <caption>
+<a href="#table-3" class="selfRef">Table 3</a>:
+<a href="#name-http-field-registrations" class="selfRef">HTTP field registrations</a>
+          </caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Field Name</th>
+              <th class="text-left" rowspan="1" colspan="1">Status</th>
+              <th class="text-left" rowspan="1" colspan="1">Structured Type</th>
+              <th class="text-left" rowspan="1" colspan="1">Reference</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Signature-Agent</td>
+              <td class="text-left" rowspan="1" colspan="1">permanent</td>
+              <td class="text-left" rowspan="1" colspan="1">Item</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <a href="#sig-profile" class="auto internal xref">Section 8.1</a>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Agent-Instance</td>
+              <td class="text-left" rowspan="1" colspan="1">permanent</td>
+              <td class="text-left" rowspan="1" colspan="1">Item</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <a href="#instances" class="auto internal xref">Section 8.2</a>
+</td>
+            </tr>
+          </tbody>
+        </table>
+</div>
+<p id="section-14.4-3">If <code>Signature-Agent</code> is registered by <span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span>, this document will
+instead reference that registration and define agent URIs as a permitted
+value.<a href="#section-14.4-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="iana-link-relations">
+<section id="section-14.5">
+        <h3 id="name-link-relations">
+<a href="#section-14.5" class="section-number selfRef">14.5. </a><a href="#name-link-relations" class="section-name selfRef">Link Relations</a>
+        </h3>
+<p id="section-14.5-1">This document requests registration of <code>agent-identity</code> in the "Link Relation
+Types" registry <span>[<a href="#RFC8288" class="cite xref">RFC8288</a>]</span>, with description "Refers to the Agent Identity
+Document of the link context." Registration of <code>agent-card</code>,
+<code>mcp-server-card</code>, and <code>oauth-client-metadata</code> is an open issue
+(<a href="#open-issues" class="auto internal xref">Appendix A</a>).<a href="#section-14.5-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="iana-client-metadata">
+<section id="section-14.6">
+        <h3 id="name-oauth-client-metadata">
+<a href="#section-14.6" class="section-number selfRef">14.6. </a><a href="#name-oauth-client-metadata" class="section-name selfRef">OAuth Client Metadata</a>
+        </h3>
+<p id="section-14.6-1">This document requests registration of <code>agent_uri</code> in the "OAuth Dynamic
+Client Registration Metadata" registry <span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span>, with description "Canonical
+agent URI of the client".<a href="#section-14.6-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="iana-sig-tag">
+<section id="section-14.7">
+        <h3 id="name-http-message-signature-tag">
+<a href="#section-14.7" class="section-number selfRef">14.7. </a><a href="#name-http-message-signature-tag" class="section-name selfRef">HTTP Message Signature Tag</a>
+        </h3>
+<p id="section-14.7-1">This document uses the signature <code>tag</code> value <code>agent-uri</code>. Whether a registry
+entry is needed is an open issue.<a href="#section-14.7-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="sec-combined-references">
+<section id="section-15">
+      <h2 id="name-references">
+<a href="#section-15" class="section-number selfRef">15. </a><a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<div id="sec-normative-references">
+<section id="section-15.1">
+        <h3 id="name-normative-references">
+<a href="#section-15.1" class="section-number selfRef">15.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="RFC2119">[RFC2119]</dt>
+        <dd>
+<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc2119">https://www.rfc-editor.org/rfc/rfc2119</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC3986">[RFC3986]</dt>
+        <dd>
+<span class="refAuthor">Berners-Lee, T.</span>, <span class="refAuthor">Fielding, R.</span>, and <span class="refAuthor">L. Masinter</span>, <span class="refTitle">"Uniform Resource Identifier (URI): Generic Syntax"</span>, <span class="seriesInfo">STD 66</span>, <span class="seriesInfo">RFC 3986</span>, <span class="seriesInfo">DOI 10.17487/RFC3986</span>, <time datetime="2005-01" class="refDate">January 2005</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc3986">https://www.rfc-editor.org/rfc/rfc3986</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC5234">[RFC5234]</dt>
+        <dd>
+<span class="refAuthor">Crocker, D., Ed.</span> and <span class="refAuthor">P. Overell</span>, <span class="refTitle">"Augmented BNF for Syntax Specifications: ABNF"</span>, <span class="seriesInfo">STD 68</span>, <span class="seriesInfo">RFC 5234</span>, <span class="seriesInfo">DOI 10.17487/RFC5234</span>, <time datetime="2008-01" class="refDate">January 2008</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc5234">https://www.rfc-editor.org/rfc/rfc5234</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC5890">[RFC5890]</dt>
+        <dd>
+<span class="refAuthor">Klensin, J.</span>, <span class="refTitle">"Internationalized Domain Names for Applications (IDNA): Definitions and Document Framework"</span>, <span class="seriesInfo">RFC 5890</span>, <span class="seriesInfo">DOI 10.17487/RFC5890</span>, <time datetime="2010-08" class="refDate">August 2010</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc5890">https://www.rfc-editor.org/rfc/rfc5890</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC5891">[RFC5891]</dt>
+        <dd>
+<span class="refAuthor">Klensin, J.</span>, <span class="refTitle">"Internationalized Domain Names in Applications (IDNA): Protocol"</span>, <span class="seriesInfo">RFC 5891</span>, <span class="seriesInfo">DOI 10.17487/RFC5891</span>, <time datetime="2010-08" class="refDate">August 2010</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc5891">https://www.rfc-editor.org/rfc/rfc5891</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6838">[RFC6838]</dt>
+        <dd>
+<span class="refAuthor">Freed, N.</span>, <span class="refAuthor">Klensin, J.</span>, and <span class="refAuthor">T. Hansen</span>, <span class="refTitle">"Media Type Specifications and Registration Procedures"</span>, <span class="seriesInfo">BCP 13</span>, <span class="seriesInfo">RFC 6838</span>, <span class="seriesInfo">DOI 10.17487/RFC6838</span>, <time datetime="2013-01" class="refDate">January 2013</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6838">https://www.rfc-editor.org/rfc/rfc6838</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7515">[RFC7515]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">N. Sakimura</span>, <span class="refTitle">"JSON Web Signature (JWS)"</span>, <span class="seriesInfo">RFC 7515</span>, <span class="seriesInfo">DOI 10.17487/RFC7515</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7515">https://www.rfc-editor.org/rfc/rfc7515</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7517">[RFC7517]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refTitle">"JSON Web Key (JWK)"</span>, <span class="seriesInfo">RFC 7517</span>, <span class="seriesInfo">DOI 10.17487/RFC7517</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7517">https://www.rfc-editor.org/rfc/rfc7517</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7519">[RFC7519]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">N. Sakimura</span>, <span class="refTitle">"JSON Web Token (JWT)"</span>, <span class="seriesInfo">RFC 7519</span>, <span class="seriesInfo">DOI 10.17487/RFC7519</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7519">https://www.rfc-editor.org/rfc/rfc7519</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7591">[RFC7591]</dt>
+        <dd>
+<span class="refAuthor">Richer, J., Ed.</span>, <span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Bradley, J.</span>, <span class="refAuthor">Machulak, M.</span>, and <span class="refAuthor">P. Hunt</span>, <span class="refTitle">"OAuth 2.0 Dynamic Client Registration Protocol"</span>, <span class="seriesInfo">RFC 7591</span>, <span class="seriesInfo">DOI 10.17487/RFC7591</span>, <time datetime="2015-07" class="refDate">July 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7591">https://www.rfc-editor.org/rfc/rfc7591</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7595">[RFC7595]</dt>
+        <dd>
+<span class="refAuthor">Thaler, D., Ed.</span>, <span class="refAuthor">Hansen, T.</span>, and <span class="refAuthor">T. Hardie</span>, <span class="refTitle">"Guidelines and Registration Procedures for URI Schemes"</span>, <span class="seriesInfo">BCP 35</span>, <span class="seriesInfo">RFC 7595</span>, <span class="seriesInfo">DOI 10.17487/RFC7595</span>, <time datetime="2015-06" class="refDate">June 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7595">https://www.rfc-editor.org/rfc/rfc7595</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7638">[RFC7638]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span> and <span class="refAuthor">N. Sakimura</span>, <span class="refTitle">"JSON Web Key (JWK) Thumbprint"</span>, <span class="seriesInfo">RFC 7638</span>, <span class="seriesInfo">DOI 10.17487/RFC7638</span>, <time datetime="2015-09" class="refDate">September 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7638">https://www.rfc-editor.org/rfc/rfc7638</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8174">[RFC8174]</dt>
+        <dd>
+<span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8174">https://www.rfc-editor.org/rfc/rfc8174</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8259">[RFC8259]</dt>
+        <dd>
+<span class="refAuthor">Bray, T., Ed.</span>, <span class="refTitle">"The JavaScript Object Notation (JSON) Data Interchange Format"</span>, <span class="seriesInfo">STD 90</span>, <span class="seriesInfo">RFC 8259</span>, <span class="seriesInfo">DOI 10.17487/RFC8259</span>, <time datetime="2017-12" class="refDate">December 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8259">https://www.rfc-editor.org/rfc/rfc8259</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8288">[RFC8288]</dt>
+        <dd>
+<span class="refAuthor">Nottingham, M.</span>, <span class="refTitle">"Web Linking"</span>, <span class="seriesInfo">RFC 8288</span>, <span class="seriesInfo">DOI 10.17487/RFC8288</span>, <time datetime="2017-10" class="refDate">October 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8288">https://www.rfc-editor.org/rfc/rfc8288</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8615">[RFC8615]</dt>
+        <dd>
+<span class="refAuthor">Nottingham, M.</span>, <span class="refTitle">"Well-Known Uniform Resource Identifiers (URIs)"</span>, <span class="seriesInfo">RFC 8615</span>, <span class="seriesInfo">DOI 10.17487/RFC8615</span>, <time datetime="2019-05" class="refDate">May 2019</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8615">https://www.rfc-editor.org/rfc/rfc8615</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8725">[RFC8725]</dt>
+        <dd>
+<span class="refAuthor">Sheffer, Y.</span>, <span class="refAuthor">Hardt, D.</span>, and <span class="refAuthor">M. Jones</span>, <span class="refTitle">"JSON Web Token Best Current Practices"</span>, <span class="seriesInfo">BCP 225</span>, <span class="seriesInfo">RFC 8725</span>, <span class="seriesInfo">DOI 10.17487/RFC8725</span>, <time datetime="2020-02" class="refDate">February 2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8725">https://www.rfc-editor.org/rfc/rfc8725</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8785">[RFC8785]</dt>
+        <dd>
+<span class="refAuthor">Rundgren, A.</span>, <span class="refAuthor">Jordan, B.</span>, and <span class="refAuthor">S. Erdtman</span>, <span class="refTitle">"JSON Canonicalization Scheme (JCS)"</span>, <span class="seriesInfo">RFC 8785</span>, <span class="seriesInfo">DOI 10.17487/RFC8785</span>, <time datetime="2020-06" class="refDate">June 2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8785">https://www.rfc-editor.org/rfc/rfc8785</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9110">[RFC9110]</dt>
+        <dd>
+<span class="refAuthor">Fielding, R., Ed.</span>, <span class="refAuthor">Nottingham, M., Ed.</span>, and <span class="refAuthor">J. Reschke, Ed.</span>, <span class="refTitle">"HTTP Semantics"</span>, <span class="seriesInfo">STD 97</span>, <span class="seriesInfo">RFC 9110</span>, <span class="seriesInfo">DOI 10.17487/RFC9110</span>, <time datetime="2022-06" class="refDate">June 2022</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9110">https://www.rfc-editor.org/rfc/rfc9110</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9111">[RFC9111]</dt>
+        <dd>
+<span class="refAuthor">Fielding, R., Ed.</span>, <span class="refAuthor">Nottingham, M., Ed.</span>, and <span class="refAuthor">J. Reschke, Ed.</span>, <span class="refTitle">"HTTP Caching"</span>, <span class="seriesInfo">STD 98</span>, <span class="seriesInfo">RFC 9111</span>, <span class="seriesInfo">DOI 10.17487/RFC9111</span>, <time datetime="2022-06" class="refDate">June 2022</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9111">https://www.rfc-editor.org/rfc/rfc9111</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9421">[RFC9421]</dt>
+        <dd>
+<span class="refAuthor">Backman, A., Ed.</span>, <span class="refAuthor">Richer, J., Ed.</span>, and <span class="refAuthor">M. Sporny</span>, <span class="refTitle">"HTTP Message Signatures"</span>, <span class="seriesInfo">RFC 9421</span>, <span class="seriesInfo">DOI 10.17487/RFC9421</span>, <time datetime="2024-02" class="refDate">February 2024</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9421">https://www.rfc-editor.org/rfc/rfc9421</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9530">[RFC9530]</dt>
+        <dd>
+<span class="refAuthor">Polli, R.</span> and <span class="refAuthor">L. Pardue</span>, <span class="refTitle">"Digest Fields"</span>, <span class="seriesInfo">RFC 9530</span>, <span class="seriesInfo">DOI 10.17487/RFC9530</span>, <time datetime="2024-02" class="refDate">February 2024</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9530">https://www.rfc-editor.org/rfc/rfc9530</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9651">[RFC9651]</dt>
+      <dd>
+<span class="refAuthor">Nottingham, M.</span> and <span class="refAuthor">P. Kamp</span>, <span class="refTitle">"Structured Field Values for HTTP"</span>, <span class="seriesInfo">RFC 9651</span>, <span class="seriesInfo">DOI 10.17487/RFC9651</span>, <time datetime="2024-09" class="refDate">September 2024</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9651">https://www.rfc-editor.org/rfc/rfc9651</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="sec-informative-references">
+<section id="section-15.2">
+        <h3 id="name-informative-references">
+<a href="#section-15.2" class="section-number selfRef">15.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="A2A">[A2A]</dt>
+        <dd>
+<span class="refAuthor">A2A Project, Linux Foundation</span>, <span class="refTitle">"Agent2Agent (A2A) Protocol Specification"</span>, <time datetime="2025" class="refDate">2025</time>, <span>&lt;<a href="https://a2a-protocol.org/latest/specification/">https://a2a-protocol.org/latest/specification/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="DID-CORE">[DID-CORE]</dt>
+        <dd>
+<span class="refAuthor">Sporny, M.</span>, <span class="refAuthor">Longley, D.</span>, <span class="refAuthor">Sabadello, M.</span>, <span class="refAuthor">Reed, D.</span>, <span class="refAuthor">Steele, O.</span>, and <span class="refAuthor">C. Allen</span>, <span class="refTitle">"Decentralized Identifiers (DIDs) v1.0"</span>, <span class="seriesInfo">W3C Recommendation</span>, <time datetime="2022-07" class="refDate">July 2022</time>, <span>&lt;<a href="https://www.w3.org/TR/did-core/">https://www.w3.org/TR/did-core/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="DID-WEBVH">[DID-WEBVH]</dt>
+        <dd>
+<span class="refAuthor">Decentralized Identity Foundation</span>, <span class="refTitle">"The did:webvh DID Method"</span>, <time datetime="2025" class="refDate">2025</time>, <span>&lt;<a href="https://identity.foundation/didwebvh/">https://identity.foundation/didwebvh/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="MCP">[MCP]</dt>
+        <dd>
+<span class="refAuthor">Model Context Protocol Project</span>, <span class="refTitle">"Model Context Protocol Specification"</span>, <time datetime="2025" class="refDate">2025</time>, <span>&lt;<a href="https://modelcontextprotocol.io/specification/">https://modelcontextprotocol.io/specification/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="OAUTH-CIMD">[OAUTH-CIMD]</dt>
+        <dd>
+<span class="refAuthor">Parecki, A.</span> and <span class="refAuthor">E. Smith</span>, <span class="refTitle">"OAuth Client ID Metadata Document"</span>, <time datetime="2025" class="refDate">2025</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/">https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6973">[RFC6973]</dt>
+        <dd>
+<span class="refAuthor">Cooper, A.</span>, <span class="refAuthor">Tschofenig, H.</span>, <span class="refAuthor">Aboba, B.</span>, <span class="refAuthor">Peterson, J.</span>, <span class="refAuthor">Morris, J.</span>, <span class="refAuthor">Hansen, M.</span>, and <span class="refAuthor">R. Smith</span>, <span class="refTitle">"Privacy Considerations for Internet Protocols"</span>, <span class="seriesInfo">RFC 6973</span>, <span class="seriesInfo">DOI 10.17487/RFC6973</span>, <time datetime="2013-07" class="refDate">July 2013</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6973">https://www.rfc-editor.org/rfc/rfc6973</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8693">[RFC8693]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Nadalin, A.</span>, <span class="refAuthor">Campbell, B., Ed.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">C. Mortimore</span>, <span class="refTitle">"OAuth 2.0 Token Exchange"</span>, <span class="seriesInfo">RFC 8693</span>, <span class="seriesInfo">DOI 10.17487/RFC8693</span>, <time datetime="2020-01" class="refDate">January 2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8693">https://www.rfc-editor.org/rfc/rfc8693</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9264">[RFC9264]</dt>
+        <dd>
+<span class="refAuthor">Wilde, E.</span> and <span class="refAuthor">H. Van de Sompel</span>, <span class="refTitle">"Linkset: Media Types and a Link Relation Type for Link Sets"</span>, <span class="seriesInfo">RFC 9264</span>, <span class="seriesInfo">DOI 10.17487/RFC9264</span>, <time datetime="2022-07" class="refDate">July 2022</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9264">https://www.rfc-editor.org/rfc/rfc9264</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9449">[RFC9449]</dt>
+        <dd>
+<span class="refAuthor">Fett, D.</span>, <span class="refAuthor">Campbell, B.</span>, <span class="refAuthor">Bradley, J.</span>, <span class="refAuthor">Lodderstedt, T.</span>, <span class="refAuthor">Jones, M.</span>, and <span class="refAuthor">D. Waite</span>, <span class="refTitle">"OAuth 2.0 Demonstrating Proof of Possession (DPoP)"</span>, <span class="seriesInfo">RFC 9449</span>, <span class="seriesInfo">DOI 10.17487/RFC9449</span>, <time datetime="2023-09" class="refDate">September 2023</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9449">https://www.rfc-editor.org/rfc/rfc9449</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9727">[RFC9727]</dt>
+        <dd>
+<span class="refAuthor">Smith, K.</span>, <span class="refTitle">"api-catalog: A Well-Known URI and Link Relation to Help Discovery of APIs"</span>, <span class="seriesInfo">RFC 9727</span>, <span class="seriesInfo">DOI 10.17487/RFC9727</span>, <time datetime="2025-06" class="refDate">June 2025</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9727">https://www.rfc-editor.org/rfc/rfc9727</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9728">[RFC9728]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.B.</span>, <span class="refAuthor">Hunt, P.</span>, and <span class="refAuthor">A. Parecki</span>, <span class="refTitle">"OAuth 2.0 Protected Resource Metadata"</span>, <span class="seriesInfo">RFC 9728</span>, <span class="seriesInfo">DOI 10.17487/RFC9728</span>, <time datetime="2025-04" class="refDate">April 2025</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9728">https://www.rfc-editor.org/rfc/rfc9728</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="SCITT-ARCH">[SCITT-ARCH]</dt>
+        <dd>
+<span class="refAuthor">Birkholz, H.</span>, <span class="refAuthor">Delignat-Lavaud, A.</span>, <span class="refAuthor">Fournet, C.</span>, <span class="refAuthor">Deshpande, Y.</span>, and <span class="refAuthor">S. Lasker</span>, <span class="refTitle">"An Architecture for Trustworthy and Transparent Digital Supply Chains"</span>, <time datetime="2025" class="refDate">2025</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-ietf-scitt-architecture/">https://datatracker.ietf.org/doc/draft-ietf-scitt-architecture/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="TXN-TOKENS">[TXN-TOKENS]</dt>
+        <dd>
+<span class="refAuthor">Tulshibagwale, A.</span>, <span class="refAuthor">Fletcher, G.</span>, and <span class="refAuthor">P. Kasselman</span>, <span class="refTitle">"Transaction Tokens"</span>, <time datetime="2025" class="refDate">2025</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-ietf-oauth-transaction-tokens/">https://datatracker.ietf.org/doc/draft-ietf-oauth-transaction-tokens/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="WEB-BOT-AUTH">[WEB-BOT-AUTH]</dt>
+        <dd>
+<span class="refAuthor">Meunier, T.</span>, <span class="refTitle">"HTTP Message Signatures for Automated Traffic Architecture"</span>, <time datetime="2025" class="refDate">2025</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-meunier-web-bot-auth-architecture/">https://datatracker.ietf.org/doc/draft-meunier-web-bot-auth-architecture/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="WIMSE-S2S">[WIMSE-S2S]</dt>
+      <dd>
+<span class="refAuthor">Campbell, B.</span>, <span class="refAuthor">Salowey, J.</span>, <span class="refAuthor">Schwenkschuster, A.</span>, and <span class="refAuthor">Y. Sheffer</span>, <span class="refTitle">"WIMSE Workload-to-Workload Authentication"</span>, <time datetime="2025" class="refDate">2025</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-ietf-wimse-s2s-protocol/">https://datatracker.ietf.org/doc/draft-ietf-wimse-s2s-protocol/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+<div id="open-issues">
+<section id="appendix-A">
+      <h2 id="name-open-issues">
+<a href="#appendix-A" class="section-number selfRef">Appendix A. </a><a href="#name-open-issues" class="section-name selfRef">Open Issues</a>
+      </h2>
+<p id="appendix-A-1">This appendix will be removed before publication.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="appendix-A-2">
+<li id="appendix-A-2.1">
+          <p id="appendix-A-2.1.1"><strong>Web Bot Auth alignment.</strong> <span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span> uses <code>Signature-Agent</code> to
+point at a key directory URL. Decide whether agent URIs become a permitted
+value of that field, whether the AID also serves as (or links to) an
+HTTP message signatures directory, or whether a distinct field is needed.<a href="#appendix-A-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-A-2.2">
+          <p id="appendix-A-2.2.1"><strong>WIMSE alignment.</strong> Decide whether Agent Instance Credentials should be a
+profile of the WIMSE Workload Identity Token <span>[<a href="#WIMSE-S2S" class="cite xref">WIMSE-S2S</a>]</span> with <code>iss</code> set
+to the agent URI, rather than a separate type.<a href="#appendix-A-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-A-2.3">
+          <p id="appendix-A-2.3.1"><strong>Back-references from protocol metadata.</strong> Agree with the A2A and MCP
+projects on how an Agent Card or MCP server card names its agent URI, and
+who registers the <code>agent-card</code> and <code>mcp-server-card</code> link relations.<a href="#appendix-A-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-A-2.4">
+          <p id="appendix-A-2.4.1"><strong>Reserved root segment.</strong> <code>/.well-known/agent/_</code> is chosen to work on
+static hosting. Alternatives (a separate well-known suffix for the root
+agent) should be evaluated.<a href="#appendix-A-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-A-2.5">
+          <p id="appendix-A-2.5.1"><strong>Name path depth and character set.</strong> Lowercase LDH segments, at most 8,
+are chosen for unambiguous comparison. Confirm this is sufficient for
+multi-tenant platforms.<a href="#appendix-A-2.5.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-A-2.6">
+          <p id="appendix-A-2.6.1"><strong>DNS-based verification.</strong> Consider an alternative proof of control via a
+DNS TXT record (as for some handle systems), for operators that cannot
+serve well-known paths.<a href="#appendix-A-2.6.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-A-2.7">
+          <p id="appendix-A-2.7.1"><strong>Revocation latency.</strong> Evaluate whether cache lifetimes alone are
+adequate, or whether a status list or transparency log should be <span class="bcp14">RECOMMENDED</span>.<a href="#appendix-A-2.7.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-A-2.8">
+          <p id="appendix-A-2.8.1"><strong>Port.</strong> Confirm that non-default ports should be permitted in agent
+identities at all, given they complicate certificate and policy handling.<a href="#appendix-A-2.8.1" class="pilcrow">¶</a></p>
+</li>
+      </ol>
+</section>
+</div>
+<div id="changes">
+<section id="appendix-B">
+      <h2 id="name-changes-from-draft-narvanen">
+<a href="#appendix-B" class="section-number selfRef">Appendix B. </a><a href="#name-changes-from-draft-narvanen" class="section-name selfRef">Changes from draft-narvaneni-agent-uri-03</a>
+      </h2>
+<p id="appendix-B-1">This revision changes the scope of the document from "addressing and
+discovery" to "identity".<a href="#appendix-B-1" class="pilcrow">¶</a></p>
+<p id="appendix-B-2">Removed:<a href="#appendix-B-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="appendix-B-3.1">
+          <p id="appendix-B-3.1.1"><code>agent+&lt;protocol&gt;</code> transport-binding schemes and the Transport Bindings
+registry.<a href="#appendix-B-3.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-B-3.2">
+          <p id="appendix-B-3.2.1">Invocation semantics (GET/POST rules, fallback behaviour), query
+parameters in agent URIs, and conformance levels.<a href="#appendix-B-3.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-B-3.3">
+          <p id="appendix-B-3.3.1">The <code>/.well-known/agents.json</code> registry, replaced by the deterministic
+mapping of <a href="#dereference" class="auto internal xref">Section 4.3</a> and optional RFC 9727 catalogs.<a href="#appendix-B-3.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-B-3.4">
+          <p id="appendix-B-3.4.1">The agent descriptor's capability fields (<code>skills</code>, <code>transport</code>,
+<code>interactionModel</code>, versioning, content negotiation). Protocol metadata
+documents are linked instead.<a href="#appendix-B-3.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-B-3.5">
+          <p id="appendix-B-3.5.1">DID authorities in agent URIs, replaced by DID anchoring
+(<a href="#did-anchored" class="auto internal xref">Section 6.2</a>).<a href="#appendix-B-3.5.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-B-3.6">
+          <p id="appendix-B-3.6.1">Cross-cutting conventions (tracing, idempotency, rate limits, health) and
+the Interaction Models registry.<a href="#appendix-B-3.6.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-B-3.7">
+          <p id="appendix-B-3.7.1">The monotonic scope narrowing rule, which conflicted with <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>.<a href="#appendix-B-3.7.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="appendix-B-4">Added:<a href="#appendix-B-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="appendix-B-5.1">
+          <p id="appendix-B-5.1.1">Strict URI syntax, normalization, and comparison rules.<a href="#appendix-B-5.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-B-5.2">
+          <p id="appendix-B-5.2.1">The Agent Identity Document and anchoring modes.<a href="#appendix-B-5.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-B-5.3">
+          <p id="appendix-B-5.3.1">Agent Statements, the HTTP Message Signatures profile, and Agent Instance
+Credentials.<a href="#appendix-B-5.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-B-5.4">
+          <p id="appendix-B-5.4.1">OAuth client and delegation bindings.<a href="#appendix-B-5.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-B-5.5">
+          <p id="appendix-B-5.5.1">Security and privacy considerations specific to agent identity.<a href="#appendix-B-5.5.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+</section>
+</div>
+<div id="acknowledgments">
+<section id="appendix-C">
+      <h2 id="name-acknowledgments">
+<a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
+      </h2>
+<p id="appendix-C-1">The authors thank the reviewers of earlier revisions, whose feedback led to
+the change of scope in this revision.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-D">
+      <h2 id="name-authors-addresses">
+<a href="#name-authors-addresses" class="section-name selfRef">Authors' Addresses</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Yaswanth Narvaneni</span></div>
+<div dir="auto" class="left"><span class="org">Independent Researcher</span></div>
+<div dir="auto" class="left"><span class="locality">London</span></div>
+<div dir="auto" class="left"><span class="country-name">United Kingdom</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:yaswanth+ietf@gmail.com" class="email">yaswanth+ietf@gmail.com</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Sai Purnima Ravi</span></div>
+<div dir="auto" class="left"><span class="org">Independent Researcher</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:r.sai.purnima+ietf@gmail.com" class="email">r.sai.purnima+ietf@gmail.com</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>
