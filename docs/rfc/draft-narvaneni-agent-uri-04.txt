@@ -101,9 +101,9 @@ Table of Contents
      8.1.  Signing . . . . . . . . . . . . . . . . . . . . . . . . .  19
      8.2.  Verification  . . . . . . . . . . . . . . . . . . . . . .  20
    9.  Profile: Agent Instances  . . . . . . . . . . . . . . . . . .  21
-   10. Profile: Authorization  . . . . . . . . . . . . . . . . . . .  22
+   10. Profile: Authorization  . . . . . . . . . . . . . . . . . . .  23
      10.1.  The Agent as an OAuth Client . . . . . . . . . . . . . .  23
-     10.2.  Delegation . . . . . . . . . . . . . . . . . . . . . . .  23
+     10.2.  Delegation . . . . . . . . . . . . . . . . . . . . . . .  24
      10.3.  Protected Resources  . . . . . . . . . . . . . . . . . .  24
    11. Discovery . . . . . . . . . . . . . . . . . . . . . . . . . .  24
 
@@ -114,38 +114,38 @@ Narvaneni & Ravi          Expires 23 April 2027                 [Page 2]
 Internet-Draft                  agent-uri                   October 2026
 
 
-   12. Relationship to Other Protocols . . . . . . . . . . . . . . .  24
+   12. Relationship to Other Protocols . . . . . . . . . . . . . . .  25
    13. Security Considerations . . . . . . . . . . . . . . . . . . .  25
-     13.1.  Trust Model  . . . . . . . . . . . . . . . . . . . . . .  25
-     13.2.  Handle Reassignment  . . . . . . . . . . . . . . . . . .  25
+     13.1.  Trust Model  . . . . . . . . . . . . . . . . . . . . . .  26
+     13.2.  Handle Reassignment  . . . . . . . . . . . . . . . . . .  26
      13.3.  Operator Claims  . . . . . . . . . . . . . . . . . . . .  26
      13.4.  Verifier-Initiated Fetches . . . . . . . . . . . . . . .  26
      13.5.  Request Content and Replay . . . . . . . . . . . . . . .  27
-     13.6.  Key Compromise and Key Separation  . . . . . . . . . . .  27
-     13.7.  Cross-Origin Metadata  . . . . . . . . . . . . . . . . .  27
+     13.6.  Key Compromise and Key Separation  . . . . . . . . . . .  28
+     13.7.  Cross-Origin Metadata  . . . . . . . . . . . . . . . . .  28
      13.8.  Confusable Names . . . . . . . . . . . . . . . . . . . .  28
    14. Privacy Considerations  . . . . . . . . . . . . . . . . . . .  28
-   15. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  28
-     15.1.  URI Scheme Registration  . . . . . . . . . . . . . . . .  28
+   15. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  29
+     15.1.  URI Scheme Registration  . . . . . . . . . . . . . . . .  29
      15.2.  Well-Known URI Registration  . . . . . . . . . . . . . .  29
-     15.3.  Media Types  . . . . . . . . . . . . . . . . . . . . . .  29
-     15.4.  Signature-Agent Type . . . . . . . . . . . . . . . . . .  29
+     15.3.  Media Types  . . . . . . . . . . . . . . . . . . . . . .  30
+     15.4.  Signature-Agent Type . . . . . . . . . . . . . . . . . .  30
      15.5.  Link Relations . . . . . . . . . . . . . . . . . . . . .  30
      15.6.  OAuth Client Metadata  . . . . . . . . . . . . . . . . .  30
      15.7.  JSON Web Key Parameters  . . . . . . . . . . . . . . . .  30
-     15.8.  JSON Web Token Claims  . . . . . . . . . . . . . . . . .  30
-   16. References  . . . . . . . . . . . . . . . . . . . . . . . . .  30
-     16.1.  Normative References . . . . . . . . . . . . . . . . . .  30
-     16.2.  Informative References . . . . . . . . . . . . . . . . .  33
-   Appendix A.  Test Vectors: Agent URI Processing . . . . . . . . .  35
-     A.1.  Parsing and Canonicalization  . . . . . . . . . . . . . .  35
-     A.2.  Mapping to AID URLs . . . . . . . . . . . . . . . . . . .  37
-     A.3.  Reverse Mapping of Signature-Agent Values . . . . . . . .  37
-     A.4.  AID Origin Comparison . . . . . . . . . . . . . . . . . .  37
-   Appendix B.  Open Issues  . . . . . . . . . . . . . . . . . . . .  38
-   Appendix C.  Changes from draft-narvaneni-agent-uri-03  . . . . .  39
-   Acknowledgments . . . . . . . . . . . . . . . . . . . . . . . . .  40
-   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  40
+     15.8.  JSON Web Token Claims  . . . . . . . . . . . . . . . . .  31
+   16. References  . . . . . . . . . . . . . . . . . . . . . . . . .  31
+     16.1.  Normative References . . . . . . . . . . . . . . . . . .  31
+     16.2.  Informative References . . . . . . . . . . . . . . . . .  34
+   Appendix A.  Test Vectors: Agent URI Processing . . . . . . . . .  36
+     A.1.  Parsing and Canonicalization  . . . . . . . . . . . . . .  36
+     A.2.  Mapping to AID URLs . . . . . . . . . . . . . . . . . . .  38
+     A.3.  Reverse Mapping of Signature-Agent Values . . . . . . . .  38
+     A.4.  AID Origin Comparison . . . . . . . . . . . . . . . . . .  38
+   Appendix B.  Open Issues  . . . . . . . . . . . . . . . . . . . .  39
+   Appendix C.  Changes from draft-narvaneni-agent-uri-03  . . . . .  40
+   Acknowledgments . . . . . . . . . . . . . . . . . . . . . . . . .  41
+   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  41
 
 1.  Introduction
 
@@ -644,10 +644,14 @@ Internet-Draft                  agent-uri                   October 2026
    member (Section 15.7): an array containing one or both of the strings
    "assertion" and "authentication".  A key is usable only for the
    purposes listed; a key without agent_use is usable for both.
-   Verifiers MUST enforce agent_use and MUST ignore keys whose agent_use
-   contains no recognized value.  Operators SHOULD give every key a
-   single purpose, so that a key held by a running agent for request
-   signing cannot mint Workload Identity Tokens or sign statements
+   Verifiers MUST enforce agent_use.  A key whose agent_use is not an
+   array of strings (for example, a bare string), or contains no
+   recognized value, MUST be ignored; it is never treated as
+   unrestricted.  An AID in which two JWKs have the same Key Identifier
+   MUST be rejected, so that purposes cannot be combined across entries
+   for the same key material.  Operators SHOULD give every key a single
+   purpose, so that a key held by a running agent for request signing
+   cannot mint Workload Identity Tokens or sign statements
    (Section 13.6).
 
 5.4.  Links
@@ -662,10 +666,6 @@ Internet-Draft                  agent-uri                   October 2026
    type:  OPTIONAL.  String.  The media type of the target.
 
    statement:  OPTIONAL.  String.  An Agent Statement (Section 7) about
-      the target.
-
-   Link relations expected to be common include:
-
 
 
 
@@ -673,6 +673,10 @@ Narvaneni & Ravi          Expires 23 April 2027                [Page 12]
 
 Internet-Draft                  agent-uri                   October 2026
 
+
+      the target.
+
+   Link relations expected to be common include:
 
        +=======================+===================================+
        | Relation              | Target                            |
@@ -696,7 +700,9 @@ Internet-Draft                  agent-uri                   October 2026
    if none is present; the result must equal the AID Origin exactly
    (Appendix A.4).  A link to any other origin MUST carry a statement,
    and verifiers MUST ignore cross-origin links without a valid
-   statement (Section 7.1).
+   statement (Section 7.1).  Because verifier-initiated fetches never
+   follow redirects (Section 13.4), a same-origin href cannot acquire
+   the same-origin exemption for content served from another origin.
 
    For DID-anchored agents the same-origin exemption does not apply:
    every link MUST carry a statement signed with a key from the DID
@@ -704,14 +710,8 @@ Internet-Draft                  agent-uri                   October 2026
    one.  Otherwise whoever controls the origin could replace linked
    metadata, such as an OAuth client metadata document containing client
    keys, without holding any key authorized by the DID (Section 13.1).
-   Because verifier-initiated fetches never follow redirects
-   (Section 13.4), a same-origin href cannot acquire the same-origin
-   exemption for content served from another origin.
 
 5.5.  Example
-
-
-
 
 
 
@@ -791,10 +791,10 @@ Internet-Draft                  agent-uri                   October 2026
    4.  Sends an HTTPS GET with Accept: application/agent-id+json,
        validating the server certificate for dns-name.
 
-   5.  Treats any status code other than 200 (OK) [RFC9110], or 304 (Not
-       Modified) in response to a conditional request revalidating a
-       cached copy [RFC9111], as a retrieval failure.  Redirects are
-       always failures.
+   5.  Treats any status code other than 200 (OK) [RFC9110], and other
+       than 304 (Not Modified) received in response to a conditional
+       request revalidating a cached copy [RFC9111], as a retrieval
+       failure.  Redirects are always failures.
 
    6.  Rejects responses larger than 64 KiB, or that are not valid JSON
        objects.  Verifiers MUST NOT reject a response solely because its
@@ -1010,6 +1010,11 @@ Narvaneni & Ravi          Expires 23 April 2027                [Page 18]
 Internet-Draft                  agent-uri                   October 2026
 
 
+   A statement protects only the bytes of the resource it names.  It
+   does not extend to other resources that resource refers to, such as a
+   jwks_uri in OAuth client metadata: each such resource needs its own
+   statement before it can be relied on with the same assurance.
+
    Protocol metadata documents that support extension fields SHOULD
    include a reference back to the agent URI, so that a client starting
    from the metadata can find the identity.  How that reference is
@@ -1053,11 +1058,6 @@ Internet-Draft                  agent-uri                   October 2026
 
    *  include the parameter tag="web-bot-auth".
 
-   A nonce parameter SHOULD be included where the verifier is expected
-   to detect replay.
-
-   Example:
-
 
 
 
@@ -1065,6 +1065,11 @@ Narvaneni & Ravi          Expires 23 April 2027                [Page 19]
 
 Internet-Draft                  agent-uri                   October 2026
 
+
+   A nonce parameter SHOULD be included where the verifier is expected
+   to detect replay.
+
+   Example:
 
    POST /v1/bookings HTTP/1.1
    Host: api.example.net
@@ -1109,11 +1114,6 @@ Internet-Draft                  agent-uri                   October 2026
        Key Identifier equals keyid.  Key lookup is keyed on the pair
        (agent URI, keyid), as required by [WEB-BOT-AUTH].
 
-   6.  Verify the signature as specified in [RFC9421].
-
-   7.  If the request has content, recompute the digest of the received
-       content for a supported algorithm as specified in [RFC9530] and
-       compare it with the covered Content-Digest value.  A request with
 
 
 
@@ -1122,6 +1122,11 @@ Narvaneni & Ravi          Expires 23 April 2027                [Page 20]
 Internet-Draft                  agent-uri                   October 2026
 
 
+   6.  Verify the signature as specified in [RFC9421].
+
+   7.  If the request has content, recompute the digest of the received
+       content for a supported algorithm as specified in [RFC9530] and
+       compare it with the covered Content-Digest value.  A request with
        content and a missing, unsupported, or mismatched Content-Digest
        MUST be rejected.  A valid signature over Content-Digest does not
        by itself authenticate the content (Section 7.2.8 of [RFC9421]).
@@ -1164,11 +1169,6 @@ Internet-Draft                  agent-uri                   October 2026
    reject a WIT whose sub has a port.  A port MUST NOT be removed to
    make a URI fit, since that names a different agent.
 
-   The WIT MUST conform to the format and claim requirements of
-   Section 5.1 of [WIMSE-CREDS] and additionally:
-
-   *  is signed with an Agent Key usable for assertion, with the JWS kid
-      header set to that key's Key Identifier;
 
 
 
@@ -1177,6 +1177,12 @@ Narvaneni & Ravi          Expires 23 April 2027                [Page 21]
 
 Internet-Draft                  agent-uri                   October 2026
 
+
+   The WIT MUST conform to the format and claim requirements of
+   Section 5.1 of [WIMSE-CREDS] and additionally:
+
+   *  is signed with an Agent Key usable for assertion, with the JWS kid
+      header set to that key's Key Identifier;
 
    *  has a cnf claim [RFC7800] containing the instance's public key as
       a jwk, as required by [WIMSE-CREDS];
@@ -1188,9 +1194,9 @@ Internet-Draft                  agent-uri                   October 2026
    *  has a jti claim, which MUST be generated at random and not reused
       (Section 14);
 
-   *  has an iat claim; and
+   *  has an iat claim that is not in the future; and
 
-   *  has an exp no more than one hour after iat.
+   *  has an exp later than iat and no more than one hour after it.
 
    The instance signs requests with its own key as in Section 8.1, with
    keyid set to the Key Identifier of the key in the WIT's cnf.jwk, and
@@ -1200,9 +1206,13 @@ Internet-Draft                  agent-uri                   October 2026
    To validate the WIT, the verifier:
 
    1.  Validates the WIT's format and claims as specified in Section 5.1
-       of [WIMSE-CREDS] and the additional requirements above, rejecting
-       it if iat is missing, if exp is more than one hour after iat, or
-       if sub has a port.
+       of [WIMSE-CREDS] and the additional requirements above.  The
+       verifier MUST reject the WIT if iat is missing; if iat is later
+       than the current time plus the allowed clock skew; unless 0 < exp
+       - iat <= 3600; if exp has passed; if nbf is present and has not
+       yet been reached; or if sub has a port.  These checks MUST be
+       performed explicitly, because [RFC7519] does not require JWT
+       libraries to reject a future iat.
 
    2.  Checks that sub is identical to the agent URI derived from
        Signature-Agent, and retrieves its AID; trust-anchor provisioning
@@ -1215,16 +1225,6 @@ Internet-Draft                  agent-uri                   October 2026
        Identifier of cnf.jwk, and verifies the request signature with
        that key using the algorithm in cnf.jwk.alg.
 
-   This profile does not use the WIMSE HTTP signature profile
-   [WIMSE-HTTPSIG], whose tag and covered components differ; see
-   Appendix B.
-
-10.  Profile: Authorization
-
-   Identity is not authorization.  This section connects agent identity
-   to OAuth 2.0 without defining new token formats.
-
-
 
 
 
@@ -1233,6 +1233,15 @@ Narvaneni & Ravi          Expires 23 April 2027                [Page 22]
 
 Internet-Draft                  agent-uri                   October 2026
 
+
+   This profile does not use the WIMSE HTTP signature profile
+   [WIMSE-HTTPSIG], whose tag and covered components differ; see
+   Appendix B.
+
+10.  Profile: Authorization
+
+   Identity is not authorization.  This section connects agent identity
+   to OAuth 2.0 without defining new token formats.
 
 10.1.  The Agent as an OAuth Client
 
@@ -1259,10 +1268,27 @@ Internet-Draft                  agent-uri                   October 2026
    *  a request signature verified under Section 8 for the same agent
       URI.
 
-   For DID-anchored agents, keys from the client metadata document may
-   be used for this proof only if that document is covered by a valid
-   statement (Section 5.4); otherwise the authorization server MUST
-   require a request signature.
+   For DID-anchored agents, client keys may be used for this proof only
+   if the key material itself is protected by a DID-authorized
+   statement:
+
+   *  keys embedded in the client metadata document's jwks qualify if
+      that document is covered by a valid statement (Section 5.4); and
+
+   *  keys fetched from the document's jwks_uri qualify only if the
+      fetched JWK Set is covered by its own valid statement whose sub is
+      that jwks_uri (Section 7.1).  A statement over the client metadata
+      document alone protects the jwks_uri value, not the keys served
+      there.
+
+   Otherwise the authorization server MUST require a request signature.
+
+
+
+Narvaneni & Ravi          Expires 23 April 2027                [Page 23]
+
+Internet-Draft                  agent-uri                   October 2026
+
 
    Without such proof, the authorization server MUST handle the client
    as it would any client using that client_id, and MUST NOT present it
@@ -1282,14 +1308,6 @@ Internet-Draft                  agent-uri                   October 2026
    Access tokens used by agents SHOULD be sender-constrained, for
    example with DPoP [RFC9449].  The DPoP key SHOULD be an instance key
    (Section 9) or a key dedicated to DPoP.  Agent Keys used for
-
-
-
-Narvaneni & Ravi          Expires 23 April 2027                [Page 23]
-
-Internet-Draft                  agent-uri                   October 2026
-
-
    assertion MUST NOT be used as DPoP keys, both to keep long-term keys
    out of running agents (Section 13.6) and to avoid using one key
    across JWS statements, HTTP message signatures, and DPoP proofs.
@@ -1310,6 +1328,23 @@ Internet-Draft                  agent-uri                   October 2026
    catalog [RFC9727] (a linkset [RFC9264]) at /.well-known/api-catalog,
    using the agent URI as the link context and agent-identity links to
    the AIDs:
+
+
+
+
+
+
+
+
+
+
+
+
+
+Narvaneni & Ravi          Expires 23 April 2027                [Page 24]
+
+Internet-Draft                  agent-uri                   October 2026
+
 
    {
      "linkset": [
@@ -1336,16 +1371,6 @@ Internet-Draft                  agent-uri                   October 2026
       card by checking the agent's statement about it.
 
    MCP:  MCP server metadata describes tools and how to reach them.  The
-
-
-
-
-
-Narvaneni & Ravi          Expires 23 April 2027                [Page 24]
-
-Internet-Draft                  agent-uri                   October 2026
-
-
       AID links to it with rel="mcp-server-card".  MCP clients can
       identify the calling agent to MCP servers using request
       signatures.
@@ -1365,6 +1390,17 @@ Internet-Draft                  agent-uri                   October 2026
       keys.
 
 13.  Security Considerations
+
+
+
+
+
+
+
+Narvaneni & Ravi          Expires 23 April 2027                [Page 25]
+
+Internet-Draft                  agent-uri                   October 2026
+
 
 13.1.  Trust Model
 
@@ -1388,19 +1424,6 @@ Internet-Draft                  agent-uri                   October 2026
    identities for audit or reputation SHOULD record the Key Identifiers
    (and DID, when present) alongside the agent URI, and SHOULD treat a
    change of all keys for an agent as a significant event.
-
-
-
-
-
-
-
-
-
-Narvaneni & Ravi          Expires 23 April 2027                [Page 25]
-
-Internet-Draft                  agent-uri                   October 2026
-
 
 13.3.  Operator Claims
 
@@ -1427,6 +1450,14 @@ Internet-Draft                  agent-uri                   October 2026
 
    *  Only HTTPS URLs are fetched, with certificate validation.
 
+
+
+
+Narvaneni & Ravi          Expires 23 April 2027                [Page 26]
+
+Internet-Draft                  agent-uri                   October 2026
+
+
    *  Destinations whose host is, or resolves to, an address that the
       IANA IPv4 or IPv6 Special-Purpose Address Registries [RFC6890]
       mark as not globally reachable MUST NOT be fetched.  Hosts that
@@ -1440,8 +1471,8 @@ Internet-Draft                  agent-uri                   October 2026
       request after the check.
 
    *  HTTP redirects MUST NOT be followed, as in [WEB-BOT-AUTH].  Any
-      status other than 200, or 304 in response to a conditional
-      revalidation request, is a failure.
+      status other than 200, and other than 304 received in response to
+      a conditional revalidation request, is a failure.
 
    *  Verifiers MUST enforce connection and response timeouts, and MUST
       bound response sizes: 64 KiB for AIDs and a locally configured
@@ -1450,14 +1481,6 @@ Internet-Draft                  agent-uri                   October 2026
    *  Verifiers MUST bound the number of fetches per verification.  A
       limit of 4 (for example, the AID, a DID resolution, and a
       statement subject) is RECOMMENDED.  A DID resolution counts as one
-
-
-
-Narvaneni & Ravi          Expires 23 April 2027                [Page 26]
-
-Internet-Draft                  agent-uri                   October 2026
-
-
       fetch toward this limit; verifiers MUST separately bound the
       requests a DID resolver makes, by configuration for each allowed
       DID method.  Verifiers MUST NOT recursively follow links or
@@ -1483,6 +1506,14 @@ Internet-Draft                  agent-uri                   October 2026
    verifiers for non-idempotent operations SHOULD require and track
    nonce values.
 
+
+
+
+Narvaneni & Ravi          Expires 23 April 2027                [Page 27]
+
+Internet-Draft                  agent-uri                   October 2026
+
+
 13.6.  Key Compromise and Key Separation
 
    Compromise of an Agent Key lets the attacker act as the agent until
@@ -1505,14 +1536,6 @@ Internet-Draft                  agent-uri                   October 2026
    identity or redirecting a valid statement to other content.  A
    statement only proves that the agent published the resource; it does
    not vouch for the truth of the resource's contents.
-
-
-
-
-Narvaneni & Ravi          Expires 23 April 2027                [Page 27]
-
-Internet-Draft                  agent-uri                   October 2026
-
 
 13.8.  Confusable Names
 
@@ -1537,6 +1560,15 @@ Internet-Draft                  agent-uri                   October 2026
       linkable across all services the agent visits.  Such deployments
       SHOULD use a shared agent identity and convey user context only
       through authorization tokens sent to parties entitled to it.
+
+
+
+
+
+Narvaneni & Ravi          Expires 23 April 2027                [Page 28]
+
+Internet-Draft                  agent-uri                   October 2026
+
 
    *  *Enumeration.* API catalogs (Section 11) let anyone list a
       domain's agents.  Domains that do not want their agents to be
@@ -1563,13 +1595,6 @@ Internet-Draft                  agent-uri                   October 2026
 
    *  Contact: The authors.
 
-
-
-Narvaneni & Ravi          Expires 23 April 2027                [Page 28]
-
-Internet-Draft                  agent-uri                   October 2026
-
-
    *  Change controller: IETF.
 
    *  Reference: Section 4 of this document.
@@ -1591,6 +1616,15 @@ Internet-Draft                  agent-uri                   October 2026
    *  Status: permanent
 
    *  Related information: Sub-paths are used; see Section 4.3.
+
+
+
+
+
+Narvaneni & Ravi          Expires 23 April 2027                [Page 29]
+
+Internet-Draft                  agent-uri                   October 2026
+
 
 15.3.  Media Types
 
@@ -1615,17 +1649,6 @@ Internet-Draft                  agent-uri                   October 2026
 
    This document does not register any HTTP field names.
 
-
-
-
-
-
-
-Narvaneni & Ravi          Expires 23 April 2027                [Page 29]
-
-Internet-Draft                  agent-uri                   October 2026
-
-
 15.5.  Link Relations
 
    This document requests registration of agent-identity in the "Link
@@ -1646,6 +1669,18 @@ Internet-Draft                  agent-uri                   October 2026
    Parameters" registry [RFC7517], with description "Purposes for which
    an Agent Key may be used", parameter information class "Public", used
    with all key types, referencing Section 5.3 of this document.
+
+
+
+
+
+
+
+
+Narvaneni & Ravi          Expires 23 April 2027                [Page 30]
+
+Internet-Draft                  agent-uri                   October 2026
+
 
 15.8.  JSON Web Token Claims
 
@@ -1672,16 +1707,6 @@ Internet-Draft                  agent-uri                   October 2026
               DOI 10.17487/RFC2119, March 1997,
               <https://www.rfc-editor.org/rfc/rfc2119>.
 
-
-
-
-
-
-Narvaneni & Ravi          Expires 23 April 2027                [Page 30]
-
-Internet-Draft                  agent-uri                   October 2026
-
-
    [RFC3339]  Klyne, G. and C. Newman, "Date and Time on the Internet:
               Timestamps", RFC 3339, DOI 10.17487/RFC3339, July 2002,
               <https://www.rfc-editor.org/rfc/rfc3339>.
@@ -1706,6 +1731,13 @@ Internet-Draft                  agent-uri                   October 2026
               DOI 10.17487/RFC5891, August 2010,
               <https://www.rfc-editor.org/rfc/rfc5891>.
 
+
+
+Narvaneni & Ravi          Expires 23 April 2027                [Page 31]
+
+Internet-Draft                  agent-uri                   October 2026
+
+
    [RFC6838]  Freed, N., Klensin, J., and T. Hansen, "Media Type
               Specifications and Registration Procedures", BCP 13,
               RFC 6838, DOI 10.17487/RFC6838, January 2013,
@@ -1727,16 +1759,6 @@ Internet-Draft                  agent-uri                   October 2026
    [RFC7519]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web Token
               (JWT)", RFC 7519, DOI 10.17487/RFC7519, May 2015,
               <https://www.rfc-editor.org/rfc/rfc7519>.
-
-
-
-
-
-
-Narvaneni & Ravi          Expires 23 April 2027                [Page 31]
-
-Internet-Draft                  agent-uri                   October 2026
-
 
    [RFC7591]  Richer, J., Ed., Jones, M., Bradley, J., Machulak, M., and
               P. Hunt, "OAuth 2.0 Dynamic Client Registration Protocol",
@@ -1762,6 +1784,16 @@ Internet-Draft                  agent-uri                   October 2026
               (JOSE)", RFC 8037, DOI 10.17487/RFC8037, January 2017,
               <https://www.rfc-editor.org/rfc/rfc8037>.
 
+
+
+
+
+
+Narvaneni & Ravi          Expires 23 April 2027                [Page 32]
+
+Internet-Draft                  agent-uri                   October 2026
+
+
    [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/rfc/rfc8174>.
@@ -1783,16 +1815,6 @@ Internet-Draft                  agent-uri                   October 2026
               and C. Mortimore, "OAuth 2.0 Token Exchange", RFC 8693,
               DOI 10.17487/RFC8693, January 2020,
               <https://www.rfc-editor.org/rfc/rfc8693>.
-
-
-
-
-
-
-Narvaneni & Ravi          Expires 23 April 2027                [Page 32]
-
-Internet-Draft                  agent-uri                   October 2026
-
 
    [RFC8725]  Sheffer, Y., Hardt, D., and M. Jones, "JSON Web Token Best
               Current Practices", BCP 225, RFC 8725,
@@ -1817,6 +1839,16 @@ Internet-Draft                  agent-uri                   October 2026
    [RFC9421]  Backman, A., Ed., Richer, J., Ed., and M. Sporny, "HTTP
               Message Signatures", RFC 9421, DOI 10.17487/RFC9421,
               February 2024, <https://www.rfc-editor.org/rfc/rfc9421>.
+
+
+
+
+
+
+Narvaneni & Ravi          Expires 23 April 2027                [Page 33]
+
+Internet-Draft                  agent-uri                   October 2026
+
 
    [RFC9530]  Polli, R. and L. Pardue, "Digest Fields", RFC 9530,
               DOI 10.17487/RFC9530, February 2024,
@@ -1843,13 +1875,6 @@ Internet-Draft                  agent-uri                   October 2026
 
 16.2.  Informative References
 
-
-
-Narvaneni & Ravi          Expires 23 April 2027                [Page 33]
-
-Internet-Draft                  agent-uri                   October 2026
-
-
    [A2A]      A2A Project, Linux Foundation, "Agent2Agent (A2A) Protocol
               Specification", 2025,
               <https://a2a-protocol.org/latest/specification/>.
@@ -1868,6 +1893,18 @@ Internet-Draft                  agent-uri                   October 2026
               oauth-client-id-metadata-document-02, 6 July 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
               client-id-metadata-document-02>.
+
+
+
+
+
+
+
+
+Narvaneni & Ravi          Expires 23 April 2027                [Page 34]
+
+Internet-Draft                  agent-uri                   October 2026
+
 
    [RFC6973]  Cooper, A., Tschofenig, H., Aboba, B., Peterson, J.,
               Morris, J., Hansen, M., and R. Smith, "Privacy
@@ -1895,17 +1932,6 @@ Internet-Draft                  agent-uri                   October 2026
               DOI 10.17487/RFC9727, June 2025,
               <https://www.rfc-editor.org/rfc/rfc9727>.
 
-
-
-
-
-
-
-Narvaneni & Ravi          Expires 23 April 2027                [Page 34]
-
-Internet-Draft                  agent-uri                   October 2026
-
-
    [RFC9728]  Jones, M.B., Hunt, P., and A. Parecki, "OAuth 2.0
               Protected Resource Metadata", RFC 9728,
               DOI 10.17487/RFC9728, April 2025,
@@ -1923,6 +1949,18 @@ Internet-Draft                  agent-uri                   October 2026
               draft-ietf-oauth-transaction-tokens-11, 30 July 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
               transaction-tokens-11>.
+
+
+
+
+
+
+
+
+Narvaneni & Ravi          Expires 23 April 2027                [Page 35]
+
+Internet-Draft                  agent-uri                   October 2026
+
 
    [WIMSE-HTTPSIG]
               Salowey, J. A. and Y. Sheffer, "WIMSE Workload-to-Workload
@@ -1957,7 +1995,25 @@ A.1.  Parsing and Canonicalization
 
 
 
-Narvaneni & Ravi          Expires 23 April 2027                [Page 35]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Narvaneni & Ravi          Expires 23 April 2027                [Page 36]
 
 Internet-Draft                  agent-uri                   October 2026
 
@@ -2013,7 +2069,7 @@ Internet-Draft                  agent-uri                   October 2026
 
 
 
-Narvaneni & Ravi          Expires 23 April 2027                [Page 36]
+Narvaneni & Ravi          Expires 23 April 2027                [Page 37]
 
 Internet-Draft                  agent-uri                   October 2026
 
@@ -2069,7 +2125,7 @@ A.4.  AID Origin Comparison
 
 
 
-Narvaneni & Ravi          Expires 23 April 2027                [Page 37]
+Narvaneni & Ravi          Expires 23 April 2027                [Page 38]
 
 Internet-Draft                  agent-uri                   October 2026
 
@@ -2125,7 +2181,7 @@ Appendix B.  Open Issues
 
 
 
-Narvaneni & Ravi          Expires 23 April 2027                [Page 38]
+Narvaneni & Ravi          Expires 23 April 2027                [Page 39]
 
 Internet-Draft                  agent-uri                   October 2026
 
@@ -2138,11 +2194,14 @@ Internet-Draft                  agent-uri                   October 2026
    9.  *Cryptographic test vectors.* Appendix A covers URI processing.
        Once an implementation can produce and cross-check them, add
        vectors for: statement iss/sub binding, DID key conversion and
-       per-purpose selection, agent_use enforcement, a preserved DID
-       with substituted same-origin client metadata keys, a WIT whose
-       sub has a port, content tampering with a valid signature, fetches
-       to forbidden destinations, and expired credentials.  Two
-       independent verifiers should reach the same decision for each.
+       per-purpose selection, agent_use enforcement (including duplicate
+       key material and malformed values), a preserved DID with
+       substituted same-origin client metadata keys, a preserved DID and
+       client metadata document with a substituted JWK Set behind its
+       jwks_uri, a WIT whose sub has a port, a WIT with a future iat,
+       content tampering with a valid signature, fetches to forbidden
+       destinations, and expired credentials.  Two independent verifiers
+       should reach the same decision for each.
 
 Appendix C.  Changes from draft-narvaneni-agent-uri-03
 
@@ -2176,15 +2235,15 @@ Appendix C.  Changes from draft-narvaneni-agent-uri-03
 
    Added:
 
-   *  Strict URI syntax, normalization, comparison, and reverse-mapping
-      rules.
 
 
-
-Narvaneni & Ravi          Expires 23 April 2027                [Page 39]
+Narvaneni & Ravi          Expires 23 April 2027                [Page 40]
 
 Internet-Draft                  agent-uri                   October 2026
 
+
+   *  Strict URI syntax, normalization, comparison, and reverse-mapping
+      rules.
 
    *  The Agent Identity Document, a single Key Identifier scheme, key
       purposes (including agent_use for origin-anchored keys), and
@@ -2234,7 +2293,4 @@ Authors' Addresses
 
 
 
-
-
-
-Narvaneni & Ravi          Expires 23 April 2027                [Page 40]
+Narvaneni & Ravi          Expires 23 April 2027                [Page 41]

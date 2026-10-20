@@ -2133,10 +2133,13 @@ authentication only if it is referenced from <code>authentication</code>
 (<a href="#iana-jwk-params" class="auto internal xref">Section 15.7</a>): an array containing one or both of the strings
 <code>"assertion"</code> and <code>"authentication"</code>. A key is usable only for the purposes
 listed; a key without <code>agent_use</code> is usable for both. Verifiers <span class="bcp14">MUST</span> enforce
-<code>agent_use</code> and <span class="bcp14">MUST</span> ignore keys whose <code>agent_use</code> contains no recognized
-value. Operators <span class="bcp14">SHOULD</span> give every key a single purpose, so that a key held by
-a running agent for request signing cannot mint Workload Identity Tokens or
-sign statements (<a href="#sec-key-compromise" class="auto internal xref">Section 13.6</a>).<a href="#section-5.3-4" class="pilcrow">¶</a></p>
+<code>agent_use</code>. A key whose <code>agent_use</code> is not an array of strings (for example,
+a bare string), or contains no recognized value, <span class="bcp14">MUST</span> be ignored; it is never
+treated as unrestricted. An AID in which two JWKs have the same Key Identifier
+<span class="bcp14">MUST</span> be rejected, so that purposes cannot be combined across entries for the
+same key material. Operators <span class="bcp14">SHOULD</span> give every key a single purpose, so that
+a key held by a running agent for request signing cannot mint Workload
+Identity Tokens or sign statements (<a href="#sec-key-compromise" class="auto internal xref">Section 13.6</a>).<a href="#section-5.3-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="aid-links">
@@ -2219,15 +2222,16 @@ the same degree as the AID itself. To compare, the verifier lowercases the
 <code>href</code> host, converts it to A-labels, and uses port 443 if none is present;
 the result must equal the AID Origin exactly (<a href="#tv-origin" class="auto internal xref">Appendix A.4</a>). A link to any
 other origin <span class="bcp14">MUST</span> carry a <code>statement</code>, and verifiers <span class="bcp14">MUST</span> ignore cross-origin
-links without a valid statement (<a href="#statement-verify" class="auto internal xref">Section 7.1</a>).<a href="#section-5.4-5" class="pilcrow">¶</a></p>
+links without a valid statement (<a href="#statement-verify" class="auto internal xref">Section 7.1</a>). Because
+verifier-initiated fetches never follow redirects (<a href="#sec-fetch" class="auto internal xref">Section 13.4</a>), a
+same-origin <code>href</code> cannot acquire the same-origin exemption for content served
+from another origin.<a href="#section-5.4-5" class="pilcrow">¶</a></p>
 <p id="section-5.4-6">For DID-anchored agents the same-origin exemption does not apply: every link
 <span class="bcp14">MUST</span> carry a statement signed with a key from the DID document's
 <code>assertionMethod</code>, and verifiers <span class="bcp14">MUST</span> ignore links without one. Otherwise
 whoever controls the origin could replace linked metadata, such as an OAuth
 client metadata document containing client keys, without holding any key
-authorized by the DID (<a href="#sec-trust-model" class="auto internal xref">Section 13.1</a>). Because verifier-initiated fetches never follow
-redirects (<a href="#sec-fetch" class="auto internal xref">Section 13.4</a>), a same-origin <code>href</code> cannot acquire the same-origin
-exemption for content served from another origin.<a href="#section-5.4-6" class="pilcrow">¶</a></p>
+authorized by the DID (<a href="#sec-trust-model" class="auto internal xref">Section 13.1</a>).<a href="#section-5.4-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="aid-example">
@@ -2306,9 +2310,10 @@ failure.<a href="#section-5.6-2.1.1" class="pilcrow">¶</a></p>
 server certificate for <code>dns-name</code>.<a href="#section-5.6-2.4.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-5.6-2.5">
-            <p id="section-5.6-2.5.1">Treats any status code other than 200 (OK) <span>[<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>, or 304 (Not
-Modified) in response to a conditional request revalidating a cached copy
-<span>[<a href="#RFC9111" class="cite xref">RFC9111</a>]</span>, as a retrieval failure. Redirects are always failures.<a href="#section-5.6-2.5.1" class="pilcrow">¶</a></p>
+            <p id="section-5.6-2.5.1">Treats any status code other than 200 (OK) <span>[<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>, and other than
+304 (Not Modified) received in response to a conditional request
+revalidating a cached copy <span>[<a href="#RFC9111" class="cite xref">RFC9111</a>]</span>, as a retrieval failure. Redirects
+are always failures.<a href="#section-5.6-2.5.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-5.6-2.6">
             <p id="section-5.6-2.6.1">Rejects responses larger than 64 KiB, or that are not valid JSON objects.
@@ -2541,10 +2546,14 @@ digest is computed over the resource canonicalized per <span>[<a href="#RFC8785"
 registry) are verified in the same way, except that step 2 uses the AID
 retrieved for <code>iss</code> and step 3 compares <code>sub</code> with the URL the verifier
 intends to use.<a href="#section-7.1-3" class="pilcrow">¶</a></p>
-<p id="section-7.1-4">Protocol metadata documents that support extension fields <span class="bcp14">SHOULD</span> include a
+<p id="section-7.1-4">A statement protects only the bytes of the resource it names. It does not
+extend to other resources that resource refers to, such as a <code>jwks_uri</code> in
+OAuth client metadata: each such resource needs its own statement before it
+can be relied on with the same assurance.<a href="#section-7.1-4" class="pilcrow">¶</a></p>
+<p id="section-7.1-5">Protocol metadata documents that support extension fields <span class="bcp14">SHOULD</span> include a
 reference back to the agent URI, so that a client starting from the metadata
 can find the identity. How that reference is expressed is defined by each
-protocol (see <a href="#open-issues" class="auto internal xref">Appendix B</a>).<a href="#section-7.1-4" class="pilcrow">¶</a></p>
+protocol (see <a href="#open-issues" class="auto internal xref">Appendix B</a>).<a href="#section-7.1-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -2737,10 +2746,10 @@ set to that key's Key Identifier;<a href="#section-9-6.1.1" class="pilcrow">¶</
 (<a href="#privacy" class="auto internal xref">Section 14</a>);<a href="#section-9-6.5.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-9-6.6">
-          <p id="section-9-6.6.1">has an <code>iat</code> claim; and<a href="#section-9-6.6.1" class="pilcrow">¶</a></p>
+          <p id="section-9-6.6.1">has an <code>iat</code> claim that is not in the future; and<a href="#section-9-6.6.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-9-6.7">
-          <p id="section-9-6.7.1">has an <code>exp</code> no more than one hour after <code>iat</code>.<a href="#section-9-6.7.1" class="pilcrow">¶</a></p>
+          <p id="section-9-6.7.1">has an <code>exp</code> later than <code>iat</code> and no more than one hour after it.<a href="#section-9-6.7.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 <p id="section-9-7">The instance signs requests with its own key as in <a href="#sig-profile" class="auto internal xref">Section 8.1</a>, with
@@ -2751,9 +2760,13 @@ which the signature covers.<a href="#section-9-7" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-9-9">
 <li id="section-9-9.1">
           <p id="section-9-9.1.1">Validates the WIT's format and claims as specified in
-<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-wimse-workload-creds-02#section-5.1" class="relref">Section 5.1</a> of [<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span> and the additional requirements above,
-rejecting it if <code>iat</code> is missing, if <code>exp</code> is more than one hour after
-<code>iat</code>, or if <code>sub</code> has a port.<a href="#section-9-9.1.1" class="pilcrow">¶</a></p>
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-wimse-workload-creds-02#section-5.1" class="relref">Section 5.1</a> of [<a href="#WIMSE-CREDS" class="cite xref">WIMSE-CREDS</a>]</span> and the additional requirements above. The
+verifier <span class="bcp14">MUST</span> reject the WIT if <code>iat</code> is missing; if <code>iat</code> is later than
+the current time plus the allowed clock skew; unless
+<code>0 &lt; exp - iat &lt;= 3600</code>; if <code>exp</code> has passed; if <code>nbf</code> is present and has
+not yet been reached; or if <code>sub</code> has a port. These checks <span class="bcp14">MUST</span> be
+performed explicitly, because <span>[<a href="#RFC7519" class="cite xref">RFC7519</a>]</span> does not require JWT libraries to
+reject a future <code>iat</code>.<a href="#section-9-9.1.1" class="pilcrow">¶</a></p>
 </li>
         <li id="section-9-9.2">
           <p id="section-9-9.2.1">Checks that <code>sub</code> is identical to the agent URI derived from
@@ -2809,15 +2822,26 @@ client metadata document; or<a href="#section-10.1-4.1.1" class="pilcrow">¶</a>
 URI.<a href="#section-10.1-4.2.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-10.1-5">For DID-anchored agents, keys from the client metadata document may be used
-for this proof only if that document is covered by a valid statement
-(<a href="#aid-links" class="auto internal xref">Section 5.4</a>); otherwise the authorization server <span class="bcp14">MUST</span> require a request
-signature.<a href="#section-10.1-5" class="pilcrow">¶</a></p>
-<p id="section-10.1-6">Without such proof, the authorization server <span class="bcp14">MUST</span> handle the client as it
+<p id="section-10.1-5">For DID-anchored agents, client keys may be used for this proof only if the
+key material itself is protected by a DID-authorized statement:<a href="#section-10.1-5" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-10.1-6.1">
+            <p id="section-10.1-6.1.1">keys embedded in the client metadata document's <code>jwks</code> qualify if that
+document is covered by a valid statement (<a href="#aid-links" class="auto internal xref">Section 5.4</a>); and<a href="#section-10.1-6.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-10.1-6.2">
+            <p id="section-10.1-6.2.1">keys fetched from the document's <code>jwks_uri</code> qualify only if the fetched JWK
+Set is covered by its own valid statement whose <code>sub</code> is that <code>jwks_uri</code>
+(<a href="#statement-verify" class="auto internal xref">Section 7.1</a>). A statement over the client metadata document alone
+protects the <code>jwks_uri</code> value, not the keys served there.<a href="#section-10.1-6.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-10.1-7">Otherwise the authorization server <span class="bcp14">MUST</span> require a request signature.<a href="#section-10.1-7" class="pilcrow">¶</a></p>
+<p id="section-10.1-8">Without such proof, the authorization server <span class="bcp14">MUST</span> handle the client as it
 would any client using that <code>client_id</code>, and <span class="bcp14">MUST NOT</span> present it to users as a
 verified agent identity. Consent screens <span class="bcp14">SHOULD</span> display the agent URI or its
 DID and <span class="bcp14">MUST</span> present the operator name as claimed by the agent
-(<a href="#sec-operator" class="auto internal xref">Section 13.3</a>).<a href="#section-10.1-6" class="pilcrow">¶</a></p>
+(<a href="#sec-operator" class="auto internal xref">Section 13.3</a>).<a href="#section-10.1-8" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="delegation">
@@ -3008,8 +3032,8 @@ exceptions for private deployments.<a href="#section-13.4-2.2.1" class="pilcrow"
 </li>
           <li class="normal" id="section-13.4-2.4">
             <p id="section-13.4-2.4.1">HTTP redirects <span class="bcp14">MUST NOT</span> be followed, as in <span>[<a href="#WEB-BOT-AUTH" class="cite xref">WEB-BOT-AUTH</a>]</span>. Any status
-other than 200, or 304 in response to a conditional revalidation request, is
-a failure.<a href="#section-13.4-2.4.1" class="pilcrow">¶</a></p>
+other than 200, and other than 304 received in response to a conditional
+revalidation request, is a failure.<a href="#section-13.4-2.4.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-13.4-2.5">
             <p id="section-13.4-2.5.1">Verifiers <span class="bcp14">MUST</span> enforce connection and response timeouts, and <span class="bcp14">MUST</span> bound
@@ -3021,8 +3045,8 @@ resources.<a href="#section-13.4-2.5.1" class="pilcrow">¶</a></p>
 (for example, the AID, a DID resolution, and a statement subject) is
 <span class="bcp14">RECOMMENDED</span>. A DID resolution counts as one fetch toward this limit;
 verifiers <span class="bcp14">MUST</span> separately bound the requests a DID resolver makes, by
-configuration for each allowed DID method. Verifiers <span class="bcp14">MUST NOT</span> recursively follow links or <code>depends</code>-style
-references from fetched documents.<a href="#section-13.4-2.6.1" class="pilcrow">¶</a></p>
+configuration for each allowed DID method. Verifiers <span class="bcp14">MUST NOT</span> recursively
+follow links or <code>depends</code>-style references from fetched documents.<a href="#section-13.4-2.6.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-13.4-2.7">
             <p id="section-13.4-2.7.1">Verifiers <span class="bcp14">MUST</span> rate-limit fetches per host and cache results, including
@@ -3693,8 +3717,11 @@ and are excluded from the agent-instance profile (<a href="#instances" class="au
           <p id="appendix-B-2.9.1"><strong>Cryptographic test vectors.</strong> <a href="#test-vectors" class="auto internal xref">Appendix A</a> covers URI processing.
 Once an implementation can produce and cross-check them, add vectors for:
 statement <code>iss</code>/<code>sub</code> binding, DID key conversion and per-purpose
-selection, <code>agent_use</code> enforcement, a preserved DID with substituted
-same-origin client metadata keys, a WIT whose <code>sub</code> has a port, content
+selection, <code>agent_use</code> enforcement (including duplicate key material and
+malformed values), a preserved DID with substituted same-origin client
+metadata keys, a preserved DID and client metadata document with a
+substituted JWK Set behind its <code>jwks_uri</code>, a WIT whose <code>sub</code> has a port, a
+WIT with a future <code>iat</code>, content
 tampering with a valid signature, fetches to forbidden destinations, and
 expired credentials. Two independent verifiers should reach the same
 decision for each.<a href="#appendix-B-2.9.1" class="pilcrow">¶</a></p>

@@ -478,10 +478,13 @@ For origin-anchored agents, a JWK in `keys` MAY carry an `agent_use` member
 ({{iana-jwk-params}}): an array containing one or both of the strings
 `"assertion"` and `"authentication"`. A key is usable only for the purposes
 listed; a key without `agent_use` is usable for both. Verifiers MUST enforce
-`agent_use` and MUST ignore keys whose `agent_use` contains no recognized
-value. Operators SHOULD give every key a single purpose, so that a key held by
-a running agent for request signing cannot mint Workload Identity Tokens or
-sign statements ({{sec-key-compromise}}).
+`agent_use`. A key whose `agent_use` is not an array of strings (for example,
+a bare string), or contains no recognized value, MUST be ignored; it is never
+treated as unrestricted. An AID in which two JWKs have the same Key Identifier
+MUST be rejected, so that purposes cannot be combined across entries for the
+same key material. Operators SHOULD give every key a single purpose, so that
+a key held by a running agent for request signing cannot mint Workload
+Identity Tokens or sign statements ({{sec-key-compromise}}).
 
 ## Links {#aid-links}
 
@@ -515,16 +518,17 @@ the same degree as the AID itself. To compare, the verifier lowercases the
 `href` host, converts it to A-labels, and uses port 443 if none is present;
 the result must equal the AID Origin exactly ({{tv-origin}}). A link to any
 other origin MUST carry a `statement`, and verifiers MUST ignore cross-origin
-links without a valid statement ({{statement-verify}}).
+links without a valid statement ({{statement-verify}}). Because
+verifier-initiated fetches never follow redirects ({{sec-fetch}}), a
+same-origin `href` cannot acquire the same-origin exemption for content served
+from another origin.
 
 For DID-anchored agents the same-origin exemption does not apply: every link
 MUST carry a statement signed with a key from the DID document's
 `assertionMethod`, and verifiers MUST ignore links without one. Otherwise
 whoever controls the origin could replace linked metadata, such as an OAuth
 client metadata document containing client keys, without holding any key
-authorized by the DID ({{sec-trust-model}}). Because verifier-initiated fetches never follow
-redirects ({{sec-fetch}}), a same-origin `href` cannot acquire the same-origin
-exemption for content served from another origin.
+authorized by the DID ({{sec-trust-model}}).
 
 ## Example {#aid-example}
 
@@ -579,9 +583,10 @@ To obtain the AID for an agent URI, a verifier:
 3. Applies the fetch policy of {{sec-fetch}}.
 4. Sends an HTTPS GET with `Accept: application/agent-id+json`, validating the
    server certificate for `dns-name`.
-5. Treats any status code other than 200 (OK) {{RFC9110}}, or 304 (Not
-   Modified) in response to a conditional request revalidating a cached copy
-   {{RFC9111}}, as a retrieval failure. Redirects are always failures.
+5. Treats any status code other than 200 (OK) {{RFC9110}}, and other than
+   304 (Not Modified) received in response to a conditional request
+   revalidating a cached copy {{RFC9111}}, as a retrieval failure. Redirects
+   are always failures.
 6. Rejects responses larger than 64 KiB, or that are not valid JSON objects.
    Verifiers MUST NOT reject a response solely because its media type is
    `application/json` (to support static hosting) but MUST reject any other
@@ -740,6 +745,11 @@ registry) are verified in the same way, except that step 2 uses the AID
 retrieved for `iss` and step 3 compares `sub` with the URL the verifier
 intends to use.
 
+A statement protects only the bytes of the resource it names. It does not
+extend to other resources that resource refers to, such as a `jwks_uri` in
+OAuth client metadata: each such resource needs its own statement before it
+can be relied on with the same assurance.
+
 Protocol metadata documents that support extension fields SHOULD include a
 reference back to the agent URI, so that a client starting from the metadata
 can find the identity. How that reference is expressed is defined by each
@@ -876,8 +886,8 @@ The WIT MUST conform to the format and claim requirements of
 - has `iss`, if present, set to the canonical agent URI;
 - has a `jti` claim, which MUST be generated at random and not reused
   ({{privacy}});
-- has an `iat` claim; and
-- has an `exp` no more than one hour after `iat`.
+- has an `iat` claim that is not in the future; and
+- has an `exp` later than `iat` and no more than one hour after it.
 
 The instance signs requests with its own key as in {{sig-profile}}, with
 `keyid` set to the Key Identifier of the key in the WIT's `cnf.jwk`, and sends
@@ -887,9 +897,13 @@ which the signature covers.
 To validate the WIT, the verifier:
 
 1. Validates the WIT's format and claims as specified in
-   {{Section 5.1 of WIMSE-CREDS}} and the additional requirements above,
-   rejecting it if `iat` is missing, if `exp` is more than one hour after
-   `iat`, or if `sub` has a port.
+   {{Section 5.1 of WIMSE-CREDS}} and the additional requirements above. The
+   verifier MUST reject the WIT if `iat` is missing; if `iat` is later than
+   the current time plus the allowed clock skew; unless
+   `0 < exp - iat <= 3600`; if `exp` has passed; if `nbf` is present and has
+   not yet been reached; or if `sub` has a port. These checks MUST be
+   performed explicitly, because {{RFC7519}} does not require JWT libraries to
+   reject a future `iat`.
 2. Checks that `sub` is identical to the agent URI derived from
    `Signature-Agent`, and retrieves its AID; trust-anchor provisioning is
    replaced as described above.
@@ -930,10 +944,17 @@ example:
 - a request signature verified under {{request-signing}} for the same agent
   URI.
 
-For DID-anchored agents, keys from the client metadata document may be used
-for this proof only if that document is covered by a valid statement
-({{aid-links}}); otherwise the authorization server MUST require a request
-signature.
+For DID-anchored agents, client keys may be used for this proof only if the
+key material itself is protected by a DID-authorized statement:
+
+- keys embedded in the client metadata document's `jwks` qualify if that
+  document is covered by a valid statement ({{aid-links}}); and
+- keys fetched from the document's `jwks_uri` qualify only if the fetched JWK
+  Set is covered by its own valid statement whose `sub` is that `jwks_uri`
+  ({{statement-verify}}). A statement over the client metadata document alone
+  protects the `jwks_uri` value, not the keys served there.
+
+Otherwise the authorization server MUST require a request signature.
 
 Without such proof, the authorization server MUST handle the client as it
 would any client using that `client_id`, and MUST NOT present it to users as a
@@ -1071,8 +1092,8 @@ to **every** fetch made in the course of verification:
 - The resolved address MUST be checked and then used for the connection
   (pinned), so that DNS changes cannot redirect the request after the check.
 - HTTP redirects MUST NOT be followed, as in {{WEB-BOT-AUTH}}. Any status
-  other than 200, or 304 in response to a conditional revalidation request, is
-  a failure.
+  other than 200, and other than 304 received in response to a conditional
+  revalidation request, is a failure.
 - Verifiers MUST enforce connection and response timeouts, and MUST bound
   response sizes: 64 KiB for AIDs and a locally configured limit for other
   resources.
@@ -1080,8 +1101,8 @@ to **every** fetch made in the course of verification:
   (for example, the AID, a DID resolution, and a statement subject) is
   RECOMMENDED. A DID resolution counts as one fetch toward this limit;
   verifiers MUST separately bound the requests a DID resolver makes, by
-  configuration for each allowed DID method. Verifiers MUST NOT recursively follow links or `depends`-style
-  references from fetched documents.
+  configuration for each allowed DID method. Verifiers MUST NOT recursively
+  follow links or `depends`-style references from fetched documents.
 - Verifiers MUST rate-limit fetches per host and cache results, including
   failures.
 
@@ -1389,8 +1410,11 @@ This appendix will be removed before publication.
 9. **Cryptographic test vectors.** {{test-vectors}} covers URI processing.
    Once an implementation can produce and cross-check them, add vectors for:
    statement `iss`/`sub` binding, DID key conversion and per-purpose
-   selection, `agent_use` enforcement, a preserved DID with substituted
-   same-origin client metadata keys, a WIT whose `sub` has a port, content
+   selection, `agent_use` enforcement (including duplicate key material and
+   malformed values), a preserved DID with substituted same-origin client
+   metadata keys, a preserved DID and client metadata document with a
+   substituted JWK Set behind its `jwks_uri`, a WIT whose `sub` has a port, a
+   WIT with a future `iat`, content
    tampering with a valid signature, fetches to forbidden destinations, and
    expired credentials. Two independent verifiers should reach the same
    decision for each.
