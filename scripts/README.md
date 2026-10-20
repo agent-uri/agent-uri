@@ -111,6 +111,23 @@ This directory contains automation scripts for the Agent URI project that implem
 - `--skip-tests`: Skip running tests before building
 - `--wheels-only`: Build only wheel distributions
 
+### 📝 build-draft.sh
+**Purpose**: Build an Internet-Draft from its kramdown-rfc Markdown source
+
+**Features**:
+- Converts `docs/rfc/<draft>.md` to xml2rfc v3 XML (the file to submit), using xml2rfc's `--v2v3` converter because kramdown-rfc still emits deprecated v2 elements
+- Strips kramdown-rfc's `<?line?>` processing instructions, which idnits3 flags
+- Renders `.txt`, `.html` and `.pdf` next to the source
+
+**Usage**:
+```bash
+./scripts/build-draft.sh draft-narvaneni-agent-uri-04
+```
+
+**Environment Variables**:
+- `KRAMDOWN_RFC`: Path to `kramdown-rfc` (default: `kramdown-rfc` on `PATH`)
+- `XML2RFC`: Path to `xml2rfc` (default: `xml2rfc` on `PATH`)
+
 ## Integration with Makefile
 
 All scripts are integrated with the project Makefile for convenient access:
