@@ -44,13 +44,11 @@ how can its claims be verified?</em></t>
       <t>This document defines the <tt>agent</tt> URI scheme as a stable, human-readable
 identifier for an agent, a deterministic mapping from that identifier to an
 HTTPS-hosted Agent Identity Document, anchoring of the agent's keys to a web
-origin or a Decentralized Identifier, and signed statements that bind the agent
-to its protocol metadata. It also defines profiles that let an agent prove its
-identity on HTTP requests, building on HTTP Message Signatures for automated
-traffic, and that let short-lived agent instances act under the agent's
-identity using the WIMSE Workload Identity Token format. It deliberately does
-not define how agents communicate, describe their capabilities, or are
-invoked.</t>
+origin or a Decentralized Identifier, signed statements that bind the agent to
+its protocol metadata, and a profile of HTTP Message Signatures for automated
+traffic that lets an agent prove its identity on HTTP requests. It
+deliberately does not define how agents communicate, describe their
+capabilities, or are invoked.</t>
     </abstract>
   </front>
   <middle>
@@ -69,42 +67,31 @@ interaction and an Agent Card; <xref target="MCP"/> defines how agents reach too
 publishes server metadata; OpenAPI describes HTTP APIs. Each of these describes
 <em>how to talk to</em> an endpoint. None of them defines a portable answer to <em>who</em> an
 agent is that works across all of them.</t>
-      <t>This document defines that missing identity layer. Its <strong>core</strong>
-(<xref target="agent-uri"/> to <xref target="statements"/>) is:</t>
+      <t>This document defines that missing identity layer:</t>
       <ol spacing="normal" type="1"><li>
           <t><strong>A name.</strong> The <tt>agent</tt> URI (e.g., <tt>agent://example.com/planner</tt>) is a
 stable, human-readable identifier for an agent (<xref target="agent-uri"/>).</t>
         </li>
         <li>
-          <t><strong>A document.</strong> Every agent URI maps deterministically to an HTTPS URL that
-serves an Agent Identity Document listing the agent's claimed operator,
-public keys, and links to its protocol metadata (<xref target="aid"/>).</t>
+          <t><strong>A document.</strong> Every agent URI maps to an HTTPS URL that serves an Agent
+Identity Document listing the agent's claimed operator, public keys, and
+links to its protocol metadata (<xref target="aid"/>).</t>
         </li>
         <li>
           <t><strong>An anchor.</strong> The agent's keys are trusted because of where the document is
-served (the origin derived from the agent URI) or because of a Decentralized
-Identifier bound to the agent URI (<xref target="anchoring"/>).</t>
+served, or because of a Decentralized Identifier bound to the agent URI
+(<xref target="anchoring"/>).</t>
         </li>
         <li>
           <t><strong>Statements.</strong> The agent signs statements binding itself to specific
-protocol metadata, so that metadata can be hosted, mirrored, or indexed
-anywhere (<xref target="statements"/>).</t>
+protocol metadata, so that metadata can be hosted anywhere
+(<xref target="statements"/>).</t>
+        </li>
+        <li>
+          <t><strong>Proof on requests.</strong> The agent signs the HTTP requests it makes
+(<xref target="request-signing"/>).</t>
         </li>
       </ol>
-      <t>On top of the core, this document defines <strong>profiles</strong> that are deliberately
-separable and are expected to track related IETF work:</t>
-      <ul spacing="normal">
-        <li>
-          <t>a request-signing profile of <xref target="WEB-BOT-AUTH"/> (<xref target="request-signing"/>);</t>
-        </li>
-        <li>
-          <t>an agent-instance profile that reuses the WIMSE Workload Identity Token
-format <xref target="WIMSE-CREDS"/> with AID-based trust (<xref target="instances"/>); and</t>
-        </li>
-        <li>
-          <t>OAuth 2.0 bindings (<xref target="authorization"/>).</t>
-        </li>
-      </ul>
       <section anchor="principles">
         <name>Design Principles</name>
         <ul spacing="normal">
@@ -113,11 +100,15 @@ format <xref target="WIMSE-CREDS"/> with AID-based trust (<xref target="instance
 locator for an endpoint and carries no invocation parameters.</t>
           </li>
           <li>
+            <t><strong>One way to do each thing.</strong> There is one mapping from name to document,
+one key identifier, and one way for an agent to prove its identity on a
+request.</t>
+          </li>
+          <li>
             <t><strong>Reuse before invent.</strong> Every mechanism is a profile of an existing or
 in-progress standard: HTTPS and well-known URIs <xref target="RFC8615"/>, JWK <xref target="RFC7517"/>,
 JWS <xref target="RFC7515"/>, HTTP Message Signatures <xref target="RFC9421"/> as profiled by
-<xref target="WEB-BOT-AUTH"/>, the WIMSE Workload Identity Token format
-<xref target="WIMSE-CREDS"/>, OAuth 2.0, and DIDs <xref target="DID-CORE"/>.</t>
+<xref target="WEB-BOT-AUTH"/>, and DIDs <xref target="DID-CORE"/>.</t>
           </li>
           <li>
             <t><strong>Anchor trust outside the document being verified.</strong> A key is trusted
@@ -125,26 +116,15 @@ because of the origin or DID it is published under, never because a document
 names it about itself.</t>
           </li>
           <li>
-            <t><strong>Separate the name from the long-lived identity when needed.</strong> Domains
-change hands; agents get renamed and sold. The scheme supports a stable
-cryptographic identifier behind the human-readable name, with continuity for
-verifiers that have seen it before (<xref target="did-anchored"/>).</t>
-          </li>
-          <li>
             <t><strong>Authenticate keys, not claims.</strong> Verification establishes control of keys
 anchored to an agent URI. Everything else an agent says about itself,
 including who operates it, remains a claim.</t>
-          </li>
-          <li>
-            <t><strong>Work for agents that live for seconds.</strong> Most agent executions are
-ephemeral. Instances act under the identity of their agent without being
-individually published.</t>
           </li>
         </ul>
       </section>
       <section anchor="non-goals">
         <name>Non-Goals</name>
-        <t>The following are explicitly out of scope:</t>
+        <t>The following are out of scope:</t>
         <ul spacing="normal">
           <li>
             <t>Communication semantics, message formats, task lifecycles, and invocation.
@@ -156,18 +136,16 @@ example, an A2A Agent Card or an MCP server card) remain authoritative for
 these.</t>
           </li>
           <li>
-            <t>Transport bindings.</t>
+            <t>Credentials for short-lived agent instances, and bindings of agent keys to
+OAuth client authentication. These are expected to be specified in
+companion documents.</t>
           </li>
           <li>
             <t>Verification of organizations. This document does not verify that the
 operator an agent claims is real or actually operates it.</t>
           </li>
           <li>
-            <t>Search, ranking, or registry services. This document makes identity
-verifiable so that any registry can index agents without being trusted.</t>
-          </li>
-          <li>
-            <t>Reputation, pricing, payments, and service levels.</t>
+            <t>Search, ranking, registries, reputation, pricing, and payments.</t>
           </li>
           <li>
             <t>Authorization policy. Knowing who an agent is does not grant it anything.</t>
@@ -207,14 +185,11 @@ agent's claimed operator, keys, and links (<xref target="aid"/>).</t>
         </dd>
         <dt>AID URL:</dt>
         <dd>
-          <t>The HTTPS URL that an agent URI maps to (<xref target="dereference"/>), either under
-<tt>/.well-known/agent</tt> on the agent URI's host or at a location delegated
-through DNS (<xref target="dns-delegation"/>).</t>
+          <t>The HTTPS URL that an agent URI maps to (<xref target="dereference"/>).</t>
         </dd>
         <dt>AID Origin:</dt>
         <dd>
-          <t>The tuple ("https", host, 443) for the host of the AID URL. AID URLs never
-contain a port.</t>
+          <t>The tuple ("https", host, 443) for the host of the agent URI.</t>
         </dd>
         <dt>Agent Key:</dt>
         <dd>
@@ -223,11 +198,6 @@ contain a port.</t>
         <dt>Key Identifier:</dt>
         <dd>
           <t>The JWK SHA-256 Thumbprint of an Agent Key (<xref target="key-ids"/>).</t>
-        </dd>
-        <dt>Instance:</dt>
-        <dd>
-          <t>A running, typically short-lived execution of an agent that holds its own
-key pair and acts under the agent's identity (<xref target="instances"/>).</t>
         </dd>
         <dt>Verifier:</dt>
         <dd>
@@ -253,7 +223,7 @@ requests, an authorization server, a registry, or another agent.</t>
                                |                     |
      origin-anchored: trusted via HTTPS        A2A Agent Card,
      DID-anchored: keys from DID document      MCP server card,
-                                               OAuth client metadata
+                                               OpenAPI description
 ]]></artwork>
       </figure>
       <t>A typical verification, for a request received by an API:</t>
@@ -286,9 +256,8 @@ and <tt>DIGIT</tt> from <xref target="RFC5234"/>.</t>
         <figure anchor="fig-abnf">
           <name>ABNF for the agent URI</name>
           <sourcecode type="abnf"><![CDATA[
-agent-uri    = "agent://" agent-host [ name-path ] [ "#" fragment ]
+agent-uri    = "agent://" dns-name [ name-path ] [ "#" fragment ]
 
-agent-host   = dns-name
 dns-name     = label 1*( "." label )
 label        = let-dig [ *61( let-dig / "-" ) let-dig ]
 let-dig      = ALPHA / DIGIT
@@ -301,24 +270,18 @@ lc-let-dig   = %x61-7A / DIGIT        ; a-z, 0-9
         <t>Additional constraints:</t>
         <ul spacing="normal">
           <li>
-            <t><tt>dns-name</tt> <bcp14>MUST</bcp14> contain at least two labels (as required by the ABNF), <bcp14>MUST
-NOT</bcp14> exceed 253 octets, and its final label <bcp14>MUST</bcp14> contain at least one <tt>ALPHA</tt>
-character. This excludes IPv4 addresses in dotted-decimal form and
-single-label names such as <tt>localhost</tt>.</t>
+            <t><tt>dns-name</tt> <bcp14>MUST NOT</bcp14> exceed 253 octets, and its final label <bcp14>MUST</bcp14> contain at
+least one <tt>ALPHA</tt> character. Together with the ABNF, this excludes IPv4
+addresses in dotted-decimal form and single-label names such as
+<tt>localhost</tt>.</t>
           </li>
           <li>
             <t>Internationalized domain names <bcp14>MUST</bcp14> be represented as A-labels
-<xref target="RFC5890"/> <xref target="RFC5891"/>. IP literals and <tt>userinfo</tt> are not permitted.</t>
+<xref target="RFC5890"/> <xref target="RFC5891"/>. IP literals, <tt>userinfo</tt>, ports, and queries are not
+permitted.</t>
           </li>
           <li>
-            <t>An agent URI <bcp14>MUST NOT</bcp14> contain a port, so that an agent's identity depends
-only on its host and name.</t>
-          </li>
-          <li>
-            <t>An agent URI <bcp14>MUST NOT</bcp14> contain a query component.</t>
-          </li>
-          <li>
-            <t>An agent URI with an empty <tt>name-path</tt> (e.g., <tt>agent://planner.example.com</tt>)
+            <t>An agent URI with no <tt>name-path</tt> (e.g., <tt>agent://planner.example.com</tt>)
 identifies the domain's root agent.</t>
           </li>
         </ul>
@@ -349,32 +312,29 @@ identifies the domain's root agent.</t>
             <t>Converting any U-labels to A-labels.</t>
           </li>
           <li>
-            <t>Removing a ":443" port, or a ":" followed by an empty port, after the
-host. Any other port is a deviation that <bcp14>MUST</bcp14> be rejected.</t>
+            <t>Removing a ":443" port, or a ":" with an empty port, after the host.</t>
           </li>
           <li>
             <t>Removing a single trailing "/" if present.</t>
           </li>
         </ol>
         <t>Parsers <bcp14>MAY</bcp14> accept input that differs from the ABNF only by the deviations
-corrected above, and <bcp14>MUST</bcp14> normalize it. Any other deviation (uppercase in
-<tt>name-path</tt>, percent-encoding, dot-segments, a query, a trailing "." on the
-host) <bcp14>MUST</bcp14> be rejected.</t>
+corrected above, and <bcp14>MUST</bcp14> normalize it. Any other deviation (another port,
+uppercase in <tt>name-path</tt>, percent-encoding, dot-segments, a query, a trailing
+"." on the host) <bcp14>MUST</bcp14> be rejected.</t>
         <t>Two agent URIs identify the same agent if and only if their canonical forms,
 with any fragment removed, are identical octet strings. In particular,
 <tt>agent://example.com/planner</tt> and <tt>agent://planner.example.com</tt> are different
 agents, even if the same operator runs both.</t>
-        <t>Agent URIs in AIDs, statements, credentials, and tokens <bcp14>MUST</bcp14> be in canonical
-form and <bcp14>MUST NOT</bcp14> contain a fragment, unless a fragment is explicitly
-permitted.</t>
+        <t>Agent URIs in AIDs, statements, and tokens <bcp14>MUST</bcp14> be in canonical form and <bcp14>MUST
+NOT</bcp14> contain a fragment, unless a fragment is explicitly permitted.</t>
       </section>
       <section anchor="dereference">
         <name>Dereferencing</name>
-        <t>An agent URI is dereferenced by mapping it to its AID URL. Unless the host
-delegates its AID URLs through DNS (<xref target="dns-delegation"/>), the AID URL is:</t>
+        <t>An agent URI is dereferenced by mapping it to its AID URL:</t>
         <artwork><![CDATA[
-https://<agent-host>/.well-known/agent<name-path>      (named agent)
-https://<agent-host>/.well-known/agent/_                (root agent)
+https://<dns-name>/.well-known/agent<name-path>      (named agent)
+https://<dns-name>/.well-known/agent/_                (root agent)
 ]]></artwork>
         <t>For example:</t>
         <table anchor="tab-mapping">
@@ -408,95 +368,12 @@ https://<agent-host>/.well-known/agent/_                (root agent)
         </table>
         <t>The root agent uses the reserved segment <tt>_</tt>, which cannot appear in a
 <tt>name-segment</tt>. This allows the root AID and named AIDs to coexist on static
-file hosting.</t>
-        <t>This mapping is purely syntactic and is reversible: an HTTPS URL is a
-well-known AID URL if and only if it has no query or fragment and applying the
-reverse mapping yields an agent URI that is valid and canonical. No registry or
-index needs to be fetched to dereference an agent URI.</t>
-      </section>
-      <section anchor="dns-delegation">
-        <name>DNS Delegation</name>
-        <t>An operator that cannot serve <tt>/.well-known/agent</tt> from an agent URI's host,
-for example because the domain has no web server, can delegate that host's AID
-URLs to another HTTPS location. It does so by publishing a TXT record
-<xref target="RFC1035"/> at the owner name <tt>_agent.&lt;dns-name&gt;</tt> (<xref target="iana-underscored"/>), in a
-zone signed with DNSSEC <xref target="RFC4033"/> <xref target="RFC4034"/>:</t>
-        <figure anchor="fig-delegation">
-          <name>A delegation record</name>
-          <sourcecode type="dns-rr"><![CDATA[
-_agent.example.com. IN TXT (
-    "v=agent1; base=https://agents.example.net/example-com" )
-]]></sourcecode>
-        </figure>
-        <t>When a TXT record consists of several character-strings, they are
-concatenated without separators before processing. A <strong>delegation record</strong> is
-a TXT record whose value begins with <tt>v=agent1</tt> followed by the end of the
-value, whitespace, or <tt>;</tt>. Its value has the following syntax, where <tt>WSP</tt> is
-from <xref target="RFC5234"/>:</t>
-        <figure anchor="fig-delegation-abnf">
-          <name>ABNF for a delegation record</name>
-          <sourcecode type="abnf"><![CDATA[
-delegation = "v=agent1" *( *WSP ";" *WSP [ param ] )
-param      = pname "=" pvalue
-pname      = 1*( ALPHA / DIGIT / "-" )
-pvalue     = 1*( %x21-3A / %x3C-7E )  ; visible characters except ";"
-]]></sourcecode>
-        </figure>
-        <t>The <tt>base</tt> parameter is <bcp14>REQUIRED</bcp14> and <bcp14>MUST</bcp14> appear only once. Its value <bcp14>MUST</bcp14> be
-an HTTPS URL consisting of <tt>https://</tt>, a lowercase host that meets the
-constraints on <tt>dns-name</tt> in <xref target="uri-syntax"/>, and an optional path. The path
-<bcp14>MUST NOT</bcp14> end with "/" and <bcp14>MUST NOT</bcp14> contain percent-encoded octets, empty
-segments, or dot-segments; the URL <bcp14>MUST NOT</bcp14> contain userinfo, a port, a query,
-or a fragment. Other parameters <bcp14>MUST</bcp14> be ignored.</t>
-        <t>When delegation applies to a host, the AID URLs of its agent URIs are:</t>
-        <artwork><![CDATA[
-<base><name-path>      (named agent)
-<base>/_               (root agent)
-]]></artwork>
-        <t>For example, with the record in <xref target="fig-delegation"/>,
-<tt>agent://example.com/planner</tt> maps to
-<tt>https://agents.example.net/example-com/planner</tt>.</t>
-        <t>A verifier that supports delegation <bcp14>MUST</bcp14> either perform DNSSEC validation
-itself or rely on a validating resolver that it trusts and reaches over a
-channel that protects integrity, such as a resolver on the same host or one
-reached using DNS over TLS <xref target="RFC7858"/>. A validation result reported by an
-untrusted resolver, or over an unprotected network path, <bcp14>MUST NOT</bcp14> be used.
-It processes the agent URI's host as follows:</t>
-        <ol spacing="normal" type="1"><li>
-            <t>It queries TXT records for <tt>_agent.&lt;dns-name&gt;</tt>.</t>
-          </li>
-          <li>
-            <t>If DNSSEC validation <xref target="RFC4035"/> establishes the response as insecure, it
-ignores any delegation record and uses the well-known mapping. If the
-response is bogus or indeterminate, dereferencing fails.</t>
-          </li>
-          <li>
-            <t>If the response is secure and contains no delegation record (including a
-secure denial of existence), it uses the well-known mapping.</t>
-          </li>
-          <li>
-            <t>If the response is secure and contains exactly one delegation record that
-is valid, delegation applies, and the verifier <bcp14>MUST NOT</bcp14> use the well-known
-mapping for that host.</t>
-          </li>
-          <li>
-            <t>If the response is secure and contains more than one delegation record, or
-one that is not valid, dereferencing fails. The verifier <bcp14>MUST NOT</bcp14> fall back
-to the well-known mapping.</t>
-          </li>
-        </ol>
-        <t>Delegation applies only to agent URIs whose <tt>dns-name</tt> is exactly the owner
-name without its <tt>_agent</tt> label; subdomains are not covered. Verifiers <bcp14>SHOULD</bcp14>
-cache delegation results for the TTL of the response, including negative
-results for the negative-caching TTL.</t>
-        <t>Operators that delegate <bcp14>MUST NOT</bcp14> also publish AIDs under <tt>/.well-known/agent</tt>
-on the delegating host (<xref target="sec-dns"/>). Support for delegation is <bcp14>OPTIONAL</bcp14> for
-verifiers. A verifier that does not support it uses the well-known mapping for
-every host, and so cannot verify delegated agents; operators that need every
-verifier to recognize their agents <bcp14>SHOULD</bcp14> use the well-known mapping instead.</t>
-        <t>The AID Origin of a delegated agent is the origin of its delegated AID URL.
-Apart from how the AID URL is formed, retrieval and validation are unchanged
-(<xref target="aid-retrieval"/>).</t>
+file hosting, so an operator needs nothing more than the ability to serve
+static files over HTTPS for the domain.</t>
+        <t>The mapping is purely syntactic and reversible: an HTTPS URL is an AID URL if
+and only if it has no port, query, or fragment and applying the reverse
+mapping yields an agent URI that is valid and canonical. No registry or index
+needs to be fetched to dereference an agent URI.</t>
       </section>
       <section anchor="fragments">
         <name>Fragments</name>
@@ -562,15 +439,15 @@ avoid collision with future versions of this document.</t>
         <t>Every Agent Key is identified by its <strong>Key Identifier</strong>: the base64url-encoded
 JWK SHA-256 Thumbprint <xref target="RFC7638"/> of the key, computed as specified in
 <xref target="RFC7638"/> for EC keys and in <xref section="A.3" sectionFormat="of" target="RFC8037"/> for OKP keys. This is
-the same identifier <xref target="WEB-BOT-AUTH"/> uses for <tt>keyid</tt>.</t>
-        <t>Key Identifiers are used everywhere a key is named in this document: in the
-<tt>kid</tt> of JWKs in an AID, in agent URI fragments, in the JWS <tt>kid</tt> header of
-statements and Workload Identity Tokens, and in the <tt>keyid</tt> signature
-parameter of request signatures.</t>
+the identifier <xref target="WEB-BOT-AUTH"/> uses for <tt>keyid</tt>. It is used everywhere a key
+is named in this document: JWK <tt>kid</tt> values in an AID, agent URI fragments,
+the JWS <tt>kid</tt> header of statements, and the <tt>keyid</tt> parameter of request
+signatures.</t>
         <t>Verifiers <bcp14>MUST</bcp14> compute the thumbprint of each candidate key themselves and
 select keys by comparing it with the presented Key Identifier. They <bcp14>MUST NOT</bcp14>
 rely on an operator-supplied <tt>kid</tt> or DID verification method <tt>id</tt> to select a
-key.</t>
+key. An AID or DID document in which two keys have the same Key Identifier
+<bcp14>MUST</bcp14> be rejected.</t>
         <t>For DID-anchored agents, each verification method is converted to a JWK before
 the thumbprint is computed:</t>
         <ul spacing="normal">
@@ -590,33 +467,20 @@ verifier cannot convert are ignored.</t>
       </section>
       <section anchor="key-purposes">
         <name>Key Purposes</name>
-        <t>Agent Keys are used for two purposes:</t>
-        <dl>
-          <dt>Assertion:</dt>
-          <dd>
-            <t>Signing Agent Statements (<xref target="statements"/>) and Workload Identity Tokens for
-instances (<xref target="instances"/>).</t>
-          </dd>
-          <dt>Authentication:</dt>
-          <dd>
-            <t>Signing HTTP requests directly as the agent (<xref target="request-signing"/>).</t>
-          </dd>
-        </dl>
-        <t>For DID-anchored agents, a key is usable for assertion only if it is
-referenced from the DID document's <tt>assertionMethod</tt> relationship, and for
-authentication only if it is referenced from <tt>authentication</tt>
-          <xref target="DID-CORE"/>. Verifiers <bcp14>MUST</bcp14> enforce these relationships.</t>
-        <t>For origin-anchored agents, a JWK in <tt>keys</tt> <bcp14>MAY</bcp14> carry an <tt>agent_use</tt> member
-(<xref target="iana-jwk-params"/>): an array containing one or both of the strings
-<tt>"assertion"</tt> and <tt>"authentication"</tt>. A key is usable only for the purposes
-listed; a key without <tt>agent_use</tt> is usable for both. Verifiers <bcp14>MUST</bcp14> enforce
-<tt>agent_use</tt>. A key whose <tt>agent_use</tt> is not an array of strings (for example,
-a bare string), or contains no recognized value, <bcp14>MUST</bcp14> be ignored; it is never
-treated as unrestricted. An AID in which two JWKs have the same Key Identifier
-<bcp14>MUST</bcp14> be rejected, so that purposes cannot be combined across entries for the
-same key material. Operators <bcp14>SHOULD</bcp14> give every key a single purpose, so that
-a key held by a running agent for request signing cannot mint Workload
-Identity Tokens or sign statements (<xref target="sec-key-compromise"/>).</t>
+        <t>Agent Keys have two purposes: <strong>assertion</strong> (signing statements,
+<xref target="statements"/>) and <strong>authentication</strong> (signing HTTP requests,
+<xref target="request-signing"/>).</t>
+        <t>For DID-anchored agents, a key is usable for assertion only if the DID
+document's <tt>assertionMethod</tt> relationship references it, and for
+authentication only if <tt>authentication</tt> references it <xref target="DID-CORE"/>.</t>
+        <t>For origin-anchored agents, a JWK <bcp14>MAY</bcp14> carry an <tt>agent_use</tt> member
+(<xref target="iana-jwk-params"/>): an array containing <tt>"assertion"</tt>, <tt>"authentication"</tt>,
+or both. A key without <tt>agent_use</tt> is usable for both purposes. A key whose
+<tt>agent_use</tt> is not an array of strings, or contains no recognized value, <bcp14>MUST</bcp14>
+be ignored.</t>
+        <t>Verifiers <bcp14>MUST</bcp14> enforce key purposes. Operators <bcp14>SHOULD</bcp14> give every key a single
+purpose, so that a key held by a running agent for signing requests cannot
+sign statements (<xref target="sec-key-compromise"/>).</t>
       </section>
       <section anchor="aid-links">
         <name>Links</name>
@@ -665,34 +529,19 @@ Identity Tokens or sign statements (<xref target="sec-key-compromise"/>).</t>
                 <tt>service-desc</tt></td>
               <td align="left">An OpenAPI or other API description <xref target="RFC9727"/></td>
             </tr>
-            <tr>
-              <td align="left">
-                <tt>oauth-client-metadata</tt></td>
-              <td align="left">The agent's OAuth Client ID Metadata Document (<xref target="oauth-client"/>)</td>
-            </tr>
-            <tr>
-              <td align="left">
-                <tt>jwks</tt></td>
-              <td align="left">A JWK Set <xref target="RFC7517"/> referred to by other metadata, such as a <tt>jwks_uri</tt> (<xref target="oauth-client"/>)</td>
-            </tr>
           </tbody>
         </table>
-        <t>A link whose <tt>href</tt> has the <strong>same origin as the AID Origin</strong> is trusted to
-the same degree as the AID itself. To compare, the verifier lowercases the
-<tt>href</tt> host, converts it to A-labels, and uses port 443 if none is present;
-the result must equal the AID Origin exactly (<xref target="tv-origin"/>). No other
-normalization is applied; in particular, a trailing "." is not removed from
-the host. A link to any other origin <bcp14>MUST</bcp14> carry a <tt>statement</tt>, and verifiers
-<bcp14>MUST</bcp14> ignore cross-origin links without a valid statement
-(<xref target="statement-verify"/>). Because verifier-initiated fetches never follow
-redirects (<xref target="sec-fetch"/>), a same-origin <tt>href</tt> cannot acquire the same-origin
-exemption for content served from another origin.</t>
-        <t>For DID-anchored agents the same-origin exemption does not apply: every link
-<bcp14>MUST</bcp14> carry a statement signed with a key from the DID document's
-<tt>assertionMethod</tt>, and verifiers <bcp14>MUST</bcp14> ignore links without one. Otherwise
-whoever controls the origin could replace linked metadata, such as an OAuth
-client metadata document containing client keys, without holding any key
-authorized by the DID (<xref target="sec-trust-model"/>).</t>
+        <t>For origin-anchored agents, a link whose <tt>href</tt> has the same origin as the
+AID Origin is trusted to the same degree as the AID itself. To compare, the
+verifier lowercases the <tt>href</tt> host, converts it to A-labels, and uses port
+443 if none is present; the result must equal the AID Origin exactly
+(<xref target="tv-origin"/>). No other normalization is applied. Every other link <bcp14>MUST</bcp14>
+carry a <tt>statement</tt>, and verifiers <bcp14>MUST</bcp14> ignore links without a valid one
+(<xref target="statement-verify"/>).</t>
+        <t>For DID-anchored agents, every link <bcp14>MUST</bcp14> carry a statement signed with a key
+usable for assertion, and verifiers <bcp14>MUST</bcp14> ignore links without one; otherwise
+whoever controls the origin could replace linked metadata without holding any
+key authorized by the DID.</t>
       </section>
       <section anchor="aid-example">
         <name>Example</name>
@@ -728,10 +577,6 @@ authorized by the DID (<xref target="sec-trust-model"/>).</t>
       "rel": "mcp-server-card",
       "href": "https://cdn.example.net/planner/server.json",
       "statement": "eyJ0eXAiOiJhZ2VudC1zdGF0ZW1lbnQrand0Ii..."
-    },
-    {
-      "rel": "oauth-client-metadata",
-      "href": "https://example.com/planner/oauth-client.json"
     }
   ],
   "updated": "2026-10-20T09:00:00Z"
@@ -747,15 +592,14 @@ authorized by the DID (<xref target="sec-trust-model"/>).</t>
 failure.</t>
           </li>
           <li>
-            <t>Constructs the AID URL (<xref target="dereference"/>), applying delegation if the
-verifier supports it (<xref target="dns-delegation"/>).</t>
+            <t>Constructs the AID URL (<xref target="dereference"/>).</t>
           </li>
           <li>
             <t>Applies the fetch policy of <xref target="sec-fetch"/>.</t>
           </li>
           <li>
             <t>Sends an HTTPS GET with <tt>Accept: application/agent-id+json</tt>, validating the
-server certificate for the host of the AID URL.</t>
+server certificate for <tt>dns-name</tt>.</t>
           </li>
           <li>
             <t>Treats any status code other than 200 (OK) <xref target="RFC9110"/>, and other than
@@ -774,78 +618,54 @@ media type.</t>
 agent URI.</t>
           </li>
           <li>
-            <t>Performs the anchoring checks of <xref target="anchoring"/>, including the DID binding
-and pinning checks of <xref target="did-anchored"/> when applicable.</t>
+            <t>Performs the anchoring checks of <xref target="anchoring"/>.</t>
           </li>
         </ol>
         <t>Verifiers <bcp14>SHOULD</bcp14> cache AIDs according to HTTP caching <xref target="RFC9111"/>. Operators
 <bcp14>SHOULD NOT</bcp14> set a freshness lifetime longer than 24 hours, so that key removal
-takes effect promptly (<xref target="lifecycle"/>). Verifiers <bcp14>SHOULD</bcp14> cache failures for a
-short period to limit repeated fetches.</t>
+takes effect promptly (<xref target="lifecycle"/>).</t>
       </section>
     </section>
     <section anchor="anchoring">
       <name>Anchoring</name>
       <t>An Agent Key is <em>anchored</em> when the verifier has established that whoever
-controls the agent URI published it. This document defines two anchoring
-modes. An AID uses exactly one.</t>
+controls the agent URI published it. An AID uses exactly one of two anchoring
+modes.</t>
       <section anchor="origin-anchored">
         <name>Origin-Anchored Agents</name>
         <t>The AID contains <tt>keys</tt> and no <tt>did</tt>. The keys are anchored by the HTTPS
 retrieval of <xref target="aid-retrieval"/>: control of the AID Origin is control of the
 agent's identity.</t>
-        <t>Each JWK in <tt>keys</tt> <bcp14>MUST</bcp14>:</t>
-        <ul spacing="normal">
-          <li>
-            <t>contain only public key parameters;</t>
-          </li>
-          <li>
-            <t>have a <tt>kid</tt> equal to its Key Identifier (<xref target="key-ids"/>);</t>
-          </li>
-          <li>
-            <t>have an <tt>alg</tt> member; and</t>
-          </li>
-          <li>
-            <t>be usable for signatures (<tt>"use": "sig"</tt>, or a <tt>key_ops</tt> containing
-<tt>"verify"</tt>).</t>
-          </li>
-        </ul>
+        <t>Each JWK in <tt>keys</tt> <bcp14>MUST</bcp14> contain only public key parameters, have a <tt>kid</tt> equal
+to its Key Identifier (<xref target="key-ids"/>), have an <tt>alg</tt> member, and be usable for
+signatures (<tt>"use": "sig"</tt>, or a <tt>key_ops</tt> containing <tt>"verify"</tt>).</t>
         <t>Implementations <bcp14>MUST</bcp14> support <tt>EdDSA</tt> (Ed25519) and <tt>ES256</tt>. Algorithms <bcp14>MUST</bcp14> be
 restricted as described in <xref target="RFC8725"/>; in particular, <tt>none</tt> and symmetric
 algorithms <bcp14>MUST NOT</bcp14> be accepted.</t>
-        <t>This mode needs nothing beyond a web server. Its weakness is that identity is
-exactly as durable as control of the domain (<xref target="sec-handle-reassignment"/>).</t>
+        <t>This mode needs nothing beyond static HTTPS hosting. Its weakness is that
+identity is exactly as durable as control of the domain
+(<xref target="sec-handle-reassignment"/>).</t>
       </section>
       <section anchor="did-anchored">
         <name>DID-Anchored Agents</name>
         <t>The AID contains a <tt>did</tt> member and no <tt>keys</tt>. The agent's keys are the
 verification methods of the DID document, with the purposes defined in
 <xref target="key-purposes"/>.</t>
-        <t>The binding between the agent URI and the DID <bcp14>MUST</bcp14> be bidirectional:</t>
-        <ul spacing="normal">
-          <li>
-            <t>the AID retrieved for the agent URI names the DID in <tt>did</tt>; and</t>
-          </li>
-          <li>
-            <t>the DID document lists the canonical agent URI in its <tt>alsoKnownAs</tt>
-property <xref target="DID-CORE"/>.</t>
-          </li>
-        </ul>
-        <t>Verifiers <bcp14>MUST</bcp14> check both directions and <bcp14>MUST</bcp14> treat the agent as unverified if
-either is missing.</t>
+        <t>The binding between the agent URI and the DID <bcp14>MUST</bcp14> be bidirectional: the AID
+names the DID in <tt>did</tt>, and the DID document lists the canonical agent URI in
+its <tt>alsoKnownAs</tt> property <xref target="DID-CORE"/>. Verifiers <bcp14>MUST</bcp14> check both directions
+and <bcp14>MUST</bcp14> treat the agent as unverified if either is missing.</t>
         <t><strong>Pinning.</strong> A verifier that has previously verified an agent URI as
 DID-anchored and recorded its DID <bcp14>MUST NOT</bcp14> attribute a later AID for that
 agent URI to the same agent unless it names the same DID. An AID that is
 origin-anchored or names a different DID <bcp14>MUST</bcp14> be treated as a different
 identity (for example, by rejecting it, or by treating it as a new agent with
-no history), not as a key rotation. Verifiers that record identities <bcp14>SHOULD</bcp14>
-record the DID.</t>
-        <t><strong>Continuity and its limits.</strong> For a verifier that has pinned the DID,
-DID anchoring preserves identity across a rename or domain move: the operator
+no history), not as a key rotation.</t>
+        <t><strong>Continuity and its limits.</strong> For a verifier that has pinned the DID, DID
+anchoring preserves identity across a rename or domain move: the operator
 publishes an AID under the new agent URI and adds that URI to <tt>alsoKnownAs</tt>.
 For a verifier with no prior state, DID anchoring gives no more assurance than
-origin anchoring, because whoever controls the agent URI's origin can publish
-an origin-anchored AID instead (<xref target="sec-trust-model"/>).</t>
+origin anchoring (<xref target="sec-trust-model"/>).</t>
         <t><strong>DID methods.</strong> A DID whose resolution depends on the same host as the agent
 URI (for example, <tt>did:web</tt> on that host) adds no independence from the
 origin. Operators <bcp14>SHOULD NOT</bcp14> use such a DID for DID anchoring, and verifiers
@@ -853,36 +673,31 @@ origin. Operators <bcp14>SHOULD NOT</bcp14> use such a DID for DID anchoring, an
 that support verifiable key-rotation history (for example, <xref target="DID-WEBVH"/> hosted
 independently of the agent URI's host) are <bcp14>RECOMMENDED</bcp14>. Verifiers <bcp14>MUST</bcp14>
 maintain an allowlist of DID methods they support and <bcp14>MUST</bcp14> reject any other
-method. Network requests made by DID resolvers are subject to <xref target="sec-fetch"/>.</t>
+method.</t>
       </section>
       <section anchor="lifecycle">
         <name>Lifecycle, Rotation, and Revocation</name>
-        <t>Removing a key from the AID (or DID document) revokes it: every statement and
-Workload Identity Token it signed stops verifying once verifiers' cached copies
-expire. Rotation and revocation are therefore the same operation, and
-operators rotate as follows:</t>
+        <t>Removing a key from the AID (or DID document) revokes it: every statement it
+signed stops verifying once verifiers' cached copies expire. Rotation and
+revocation are therefore the same operation, and operators rotate as follows:</t>
         <ol spacing="normal" type="1"><li>
             <t>Publish the new key alongside the old one.</t>
           </li>
           <li>
-            <t>Re-issue all statements and credentials signed by the old key, including
-statements carried in AIDs copied by mirrors and registries.</t>
+            <t>Re-issue all statements signed by the old key, including statements carried
+in AIDs copied by mirrors and registries.</t>
           </li>
           <li>
             <t>Remove the old key once re-issued statements have propagated.</t>
           </li>
         </ol>
-        <t>This document deliberately defines no list of retired keys. Keeping a single
-way to stop trusting a key means verifiers never have to distinguish a planned
-retirement from a compromise.</t>
-        <t>Statements about metadata that changes <bcp14>SHOULD</bcp14> carry an <tt>exp</tt> so that copies
-held by third parties are refreshed regularly.</t>
+        <t>This document deliberately defines no list of retired keys: with a single way
+to stop trusting a key, verifiers never have to distinguish a planned
+retirement from a compromise. Statements about metadata that changes <bcp14>SHOULD</bcp14>
+carry an <tt>exp</tt> so that copies held by third parties are refreshed regularly.</t>
         <t>If <tt>status</tt> is <tt>"suspended"</tt> or <tt>"retired"</tt>, verifiers <bcp14>MUST</bcp14> treat all
-signatures, statements, and credentials from the agent as invalid. A retired
-agent URI <bcp14>SHOULD NOT</bcp14> be reassigned to a different agent.</t>
-        <t>Operators that need auditable key history <bcp14>MAY</bcp14> additionally record their AIDs
-and statements in a transparency service <xref target="RFC9943"/>. This document does not
-require it.</t>
+signatures and statements from the agent as invalid. A retired agent URI
+<bcp14>SHOULD NOT</bcp14> be reassigned to a different agent.</t>
       </section>
     </section>
     <section anchor="statements">
@@ -892,19 +707,9 @@ an Agent Key usable for assertion, that binds the agent to a specific version
 of a resource such as an Agent Card. It allows protocol metadata to be served
 from any origin, mirrored, or included in registries without losing its link to
 the agent.</t>
-      <t>The JWS Protected Header <bcp14>MUST</bcp14> contain:</t>
-      <ul spacing="normal">
-        <li>
-          <t><tt>typ</tt>: <tt>"agent-statement+jwt"</tt>;</t>
-        </li>
-        <li>
-          <t><tt>alg</tt>: the algorithm of the signing key;</t>
-        </li>
-        <li>
-          <t><tt>kid</tt>: the Key Identifier of the signing key (<xref target="key-ids"/>).</t>
-        </li>
-      </ul>
-      <t>The payload is a JWT Claims Set <xref target="RFC7519"/> with:</t>
+      <t>The JWS Protected Header <bcp14>MUST</bcp14> contain <tt>typ</tt> (<tt>"agent-statement+jwt"</tt>), <tt>alg</tt>
+(the algorithm of the signing key), and <tt>kid</tt> (the Key Identifier of the
+signing key). The payload is a JWT Claims Set <xref target="RFC7519"/> with:</t>
       <dl>
         <dt><tt>iss</tt>:</dt>
         <dd>
@@ -930,6 +735,8 @@ digest is computed over the resource canonicalized per <xref target="RFC8785"/>;
           <t><bcp14>OPTIONAL</bcp14>. Expiry time.</t>
         </dd>
       </dl>
+      <t>A statement protects only the bytes of the resource it names, not other
+resources that resource refers to.</t>
       <section anchor="statement-verify">
         <name>Verification</name>
         <t>To verify a statement carried in a link of an AID, a verifier:</t>
@@ -941,8 +748,7 @@ digest is computed over the resource canonicalized per <xref target="RFC8785"/>;
 <tt>status</tt> (<xref target="lifecycle"/>).</t>
           </li>
           <li>
-            <t>Checks that <tt>sub</tt> is identical to the link's <tt>href</tt>. A statement whose
-<tt>sub</tt> differs <bcp14>MUST</bcp14> be rejected, even if it is otherwise valid.</t>
+            <t>Checks that <tt>sub</tt> is identical to the link's <tt>href</tt>.</t>
           </li>
           <li>
             <t>Selects an anchored key usable for assertion whose Key Identifier equals
@@ -961,28 +767,18 @@ digest is computed over the resource canonicalized per <xref target="RFC8785"/>;
 registry) are verified in the same way, except that step 2 uses the AID
 retrieved for <tt>iss</tt> and step 3 compares <tt>sub</tt> with the URL the verifier
 intends to use.</t>
-        <t>A statement protects only the bytes of the resource it names. It does not
-extend to other resources that resource refers to, such as a <tt>jwks_uri</tt> in
-OAuth client metadata: each such resource needs its own statement, carried in
-its own link (for example, a <tt>jwks</tt> link), before it can be relied on with the
-same assurance.</t>
-        <t>Protocol metadata documents that support extension fields <bcp14>SHOULD</bcp14> include a
-reference back to the agent URI, so that a client starting from the metadata
-can find the identity. How that reference is expressed is defined by each
-protocol (see <xref target="open-issues"/>).</t>
       </section>
     </section>
     <section anchor="request-signing">
-      <name>Profile: Request Signing</name>
+      <name>Request Signing</name>
       <section anchor="sig-profile">
         <name>Signing</name>
         <t>An agent proves its identity on an HTTP request by signing it as specified in
 <xref target="WEB-BOT-AUTH"/>, with the additional requirements in this section. A request
-signed this way is a conforming <xref target="WEB-BOT-AUTH"/> request; this profile adds a
-new <tt>Signature-Agent</tt> member <tt>type</tt> and constrains the signature further.</t>
+signed this way is a conforming <xref target="WEB-BOT-AUTH"/> request.</t>
         <t>The request <bcp14>MUST</bcp14> include a <tt>Signature-Agent</tt> Dictionary member, keyed by the
-signature label, whose value is the AID URL derived from the agent's canonical
-agent URI (<xref target="dereference"/>) and which carries the parameter <tt>type=agent-id</tt>:</t>
+signature label, whose value is the agent's AID URL (<xref target="dereference"/>) and which
+carries the parameter <tt>type=agent-id</tt>:</t>
         <figure anchor="fig-sig-agent">
           <name>Signature-Agent member (line break for display only)</name>
           <sourcecode type="http"><![CDATA[
@@ -994,30 +790,22 @@ Signature-Agent: sig1="https://example.com/.well-known/agent/planner"
         <ul spacing="normal">
           <li>
             <t>cover <tt>@method</tt>, <tt>@authority</tt>, <tt>@target-uri</tt>, and
-<tt>"signature-agent";key="&lt;label&gt;"</tt>;</t>
+<tt>"signature-agent";key="&lt;label&gt;"</tt>, and also <tt>content-digest</tt> <xref target="RFC9530"/>
+when the request has content;</t>
           </li>
           <li>
-            <t>cover <tt>content-digest</tt> <xref target="RFC9530"/> when the request has content;</t>
+            <t>include <tt>created</tt> and <tt>expires</tt>, with <tt>expires</tt> no more than 300 seconds
+after <tt>created</tt>;</t>
           </li>
           <li>
-            <t>cover <tt>workload-identity-token</tt> when that field is present
-(<xref target="instances"/>);</t>
+            <t>include a <tt>keyid</tt> equal to the Key Identifier of the signing key; and</t>
           </li>
           <li>
-            <t>include the <tt>created</tt> and <tt>expires</tt> parameters, with <tt>expires</tt> no more than
-300 seconds after <tt>created</tt>;</t>
-          </li>
-          <li>
-            <t>include a <tt>keyid</tt> parameter whose value is the Key Identifier of the signing
-key; and</t>
-          </li>
-          <li>
-            <t>include the parameter <tt>tag="web-bot-auth"</tt>.</t>
+            <t>include <tt>tag="web-bot-auth"</tt>.</t>
           </li>
         </ul>
         <t>A <tt>nonce</tt> parameter <bcp14>SHOULD</bcp14> be included where the verifier is expected to detect
 replay.</t>
-        <t>Example:</t>
         <figure anchor="fig-signed-request">
           <name>A signed request (line breaks for display only)</name>
           <sourcecode type="http"><![CDATA[
@@ -1043,254 +831,72 @@ generic HTTP Message Signatures implementation to enforce them:</t>
         <ol spacing="normal" type="1"><li>
             <t>Select the signature with <tt>tag="web-bot-auth"</tt> whose label has a
 <tt>Signature-Agent</tt> member with <tt>type=agent-id</tt>. If there is none, the
-request does not carry an agent identity under this profile.</t>
+request does not carry an agent identity under this document.</t>
           </li>
           <li>
-            <t>Determine the agent URI from the member value, without normalizing the
-value first:
-            </t>
-            <ul spacing="normal">
-              <li>
-                <t>If the value is a well-known AID URL (<xref target="dereference"/>), derive the agent
-URI by reverse mapping. A verifier that supports delegation <bcp14>MUST</bcp14> also
-confirm that delegation does not apply to that host (<xref target="dns-delegation"/>).</t>
-              </li>
-              <li>
-                <t>Otherwise, a verifier that supports delegation retrieves the document at
-the value as in steps 3 to 6 of <xref target="aid-retrieval"/>, takes its <tt>id</tt> as the
-agent URI, and <bcp14>MUST</bcp14> confirm that dereferencing that agent URI, including
-the delegation lookup, yields an AID URL identical to the value.</t>
-              </li>
-            </ul>
-            <t>
-Any other value is rejected.</t>
+            <t>Check that the member value is exactly an AID URL, without normalizing it,
+and derive the agent URI from it by reverse mapping (<xref target="dereference"/>).</t>
           </li>
           <li>
             <t>Check that the covered components include every component required by
-<xref target="sig-profile"/>, and that <tt>expires</tt> is no more than 300 seconds after
-<tt>created</tt> and the current time is between them, allowing for modest clock
-skew.</t>
+<xref target="sig-profile"/>, that <tt>expires</tt> is no more than 300 seconds after
+<tt>created</tt>, and that the current time is between them, allowing for modest
+clock skew.</t>
           </li>
           <li>
             <t>Retrieve the AID (<xref target="aid-retrieval"/>) and check <tt>status</tt> (<xref target="lifecycle"/>).</t>
           </li>
           <li>
-            <t>If a <tt>Workload-Identity-Token</tt> field is present, validate it as described in
-<xref target="instances"/>; the verification key is then the key in its <tt>cnf</tt> claim, and
-<tt>keyid</tt> <bcp14>MUST</bcp14> equal that key's Key Identifier. Otherwise, select an anchored
-key usable for authentication whose Key Identifier equals <tt>keyid</tt>. Key
-lookup is keyed on the pair (agent URI, <tt>keyid</tt>), as required by
-<xref target="WEB-BOT-AUTH"/>.</t>
+            <t>Select an anchored key usable for authentication whose Key Identifier
+equals <tt>keyid</tt>. Key lookup is keyed on the pair (agent URI, <tt>keyid</tt>), as
+required by <xref target="WEB-BOT-AUTH"/>.</t>
           </li>
           <li>
             <t>Verify the signature as specified in <xref target="RFC9421"/>.</t>
           </li>
           <li>
-            <t>If the request has content, recompute the digest of the received content
-for a supported algorithm as specified in <xref target="RFC9530"/> and compare it with
-the covered <tt>Content-Digest</tt> value. A request with content and a missing,
-unsupported, or mismatched <tt>Content-Digest</tt> <bcp14>MUST</bcp14> be rejected. A valid
-signature over <tt>Content-Digest</tt> does not by itself authenticate the
-content (<xref section="7.2.8" sectionFormat="of" target="RFC9421"/>).</t>
+            <t>If the request has content, recompute its digest as specified in
+<xref target="RFC9530"/> and compare it with the covered <tt>Content-Digest</tt> value. A
+request with content and a missing, unsupported, or mismatched
+<tt>Content-Digest</tt> <bcp14>MUST</bcp14> be rejected, because a valid signature over
+<tt>Content-Digest</tt> does not by itself authenticate the content
+(<xref section="7.2.8" sectionFormat="of" target="RFC9421"/>).</t>
           </li>
         </ol>
         <t>On success, the verifier has established that the request, including its
-content, was made by a holder of a key anchored to the agent URI (directly, or
-through an instance credential). On failure, the verifier <bcp14>MUST NOT</bcp14> treat the
-request as coming from the named agent; it <bcp14>MAY</bcp14> process it as an
-unauthenticated request.</t>
+content, was made by a holder of a key anchored to the agent URI. On failure,
+the verifier <bcp14>MUST NOT</bcp14> treat the request as coming from the named agent; it <bcp14>MAY</bcp14>
+process it as an unauthenticated request.</t>
         <t>A <xref target="WEB-BOT-AUTH"/> verifier that does not support <tt>type=agent-id</tt> ignores the
 member, as that specification requires, and so treats the request as not
 signed by a known agent rather than failing.</t>
       </section>
     </section>
-    <section anchor="instances">
-      <name>Profile: Agent Instances</name>
-      <t>Agents frequently run as many short-lived instances, for example one per task.
-Publishing a key for each instance in the AID does not scale, and placing the
-agent's long-term private keys in every instance is unsafe.</t>
-      <t>Instead, the agent's controlling infrastructure issues each instance a token
-in the WIMSE Workload Identity Token (WIT) format <xref target="WIMSE-CREDS"/> that binds
-the instance's key to the agent.</t>
-      <t>This profile reuses the WIT format and header field but not the WIMSE trust
-model. <xref section="3" sectionFormat="of" target="WIMSE-CREDS"/> requires verifiers to bind each trust
-domain to issuers and trust anchors provisioned out of band. This profile
-replaces that requirement: the only authorized issuers of a WIT whose <tt>sub</tt> is
-an agent URI are the assertion keys anchored to <em>exactly that agent URI</em>
-(<xref target="anchoring"/>), discovered from its AID. Verifiers that also implement WIMSE
-<bcp14>MUST NOT</bcp14> treat these keys as trust anchors for any other workload identifier,
-in the same trust domain or otherwise, and <bcp14>MUST NOT</bcp14> accept such a WIT under
-WIMSE trust-domain configuration alone.</t>
-      <t>The WIT <bcp14>MUST</bcp14> conform to the format and claim requirements of
-<xref section="5.1" sectionFormat="of" target="WIMSE-CREDS"/> and additionally:</t>
-      <ul spacing="normal">
-        <li>
-          <t>is signed with an Agent Key usable for assertion, with the JWS <tt>kid</tt> header
-set to that key's Key Identifier;</t>
-        </li>
-        <li>
-          <t>has a <tt>cnf</tt> claim <xref target="RFC7800"/> containing the instance's public key as a
-<tt>jwk</tt>, as required by <xref target="WIMSE-CREDS"/>;</t>
-        </li>
-        <li>
-          <t>has <tt>sub</tt> set to the canonical agent URI;</t>
-        </li>
-        <li>
-          <t>has <tt>iss</tt>, if present, set to the canonical agent URI;</t>
-        </li>
-        <li>
-          <t>has a <tt>jti</tt> claim, which <bcp14>MUST</bcp14> be generated at random and not reused
-(<xref target="privacy"/>);</t>
-        </li>
-        <li>
-          <t>has an <tt>iat</tt> claim that is not in the future; and</t>
-        </li>
-        <li>
-          <t>has an <tt>exp</tt> later than <tt>iat</tt> and no more than one hour after it.</t>
-        </li>
-      </ul>
-      <t>The instance signs requests with its own key as in <xref target="sig-profile"/>, with
-<tt>keyid</tt> set to the Key Identifier of the key in the WIT's <tt>cnf.jwk</tt>, and sends
-the WIT in the <tt>Workload-Identity-Token</tt> field defined by <xref target="WIMSE-CREDS"/>,
-which the signature covers.</t>
-      <t>To validate the WIT, the verifier:</t>
-      <ol spacing="normal" type="1"><li>
-          <t>Validates the WIT's format and claims as specified in
-<xref section="5.1" sectionFormat="of" target="WIMSE-CREDS"/> and the additional requirements above. The
-verifier <bcp14>MUST</bcp14> reject the WIT if <tt>iat</tt> is missing; if <tt>iat</tt> is later than
-the current time plus the allowed clock skew; unless
-<tt>0 &lt; exp - iat &lt;= 3600</tt>; if <tt>exp</tt> has passed; or if <tt>nbf</tt> is present and
-has not yet been reached. These checks <bcp14>MUST</bcp14> be
-performed explicitly, because <xref target="RFC7519"/> does not require JWT libraries to
-reject a future <tt>iat</tt>.</t>
-        </li>
-        <li>
-          <t>Checks that <tt>sub</tt> is identical to the agent URI derived from
-<tt>Signature-Agent</tt>, and retrieves its AID; trust-anchor provisioning is
-replaced as described above.</t>
-        </li>
-        <li>
-          <t>Selects an anchored key usable for assertion whose Key Identifier equals
-the WIT's <tt>kid</tt>, and verifies the WIT signature.</t>
-        </li>
-        <li>
-          <t>Checks that the request signature's <tt>keyid</tt> equals the Key Identifier of
-<tt>cnf.jwk</tt>, and verifies the request signature with that key using the
-algorithm in <tt>cnf.jwk.alg</tt>.</t>
-        </li>
-      </ol>
-      <t>This profile does not use the WIMSE HTTP signature profile <xref target="WIMSE-HTTPSIG"/>,
-whose <tt>tag</tt> and covered components differ; see <xref target="open-issues"/>.</t>
-    </section>
-    <section anchor="authorization">
-      <name>Profile: Authorization</name>
-      <t>Identity is not authorization. This section connects agent identity to OAuth
-2.0 without defining new token formats.</t>
-      <section anchor="oauth-client">
-        <name>The Agent as an OAuth Client</name>
-        <t>An agent that obtains OAuth tokens <bcp14>SHOULD</bcp14> use a Client ID Metadata Document
-<xref target="OAUTH-CIMD"/> as its client identifier and link to it from its AID with
-<tt>rel="oauth-client-metadata"</tt>. The client metadata document <bcp14>SHOULD</bcp14> include the
-<tt>agent_uri</tt> client metadata parameter (<xref target="iana-client-metadata"/>) containing
-the canonical agent URI.</t>
-        <t>The <tt>agent_uri</tt> value is a claim made by whoever publishes the client
-metadata document. Ordinary client authentication <xref target="OAUTH-CIMD"/> does not
-authenticate it: anyone can publish client metadata that names someone else's
-agent URI and then authenticate correctly as that client.</t>
-        <t><strong>Association check.</strong> The association between a <tt>client_id</tt> and an agent is
-verified by retrieving the AID for the claimed agent URI (<xref target="aid-retrieval"/>),
-including all anchoring and <tt>status</tt> checks, and confirming that the AID has an
-<tt>oauth-client-metadata</tt> link whose <tt>href</tt> is identical to the <tt>client_id</tt>, with
-any statement that link requires (<xref target="aid-links"/>). An authorization server that
-does not attribute agent identity <bcp14>MAY</bcp14> skip this check. On its own, the check
-does not show that the party making the current request controls the agent,
-because a public <tt>client_id</tt> can be used by anyone.</t>
-        <t><strong>Agent attribution.</strong> An authorization server <bcp14>MUST NOT</bcp14> treat the current
-caller as an authenticated agent unless one of the following holds:</t>
-        <ul spacing="normal">
-          <li>
-            <t>the association check succeeds for the exact <tt>client_id</tt>, <strong>and</strong> the
-client authenticates with <tt>private_key_jwt</tt> in the current exchange using
-qualifying client keys (below); or</t>
-          </li>
-          <li>
-            <t>a request signature for the agent URI is verified under <xref target="request-signing"/>
-in the current exchange.</t>
-          </li>
-        </ul>
-        <t>A valid client assertion without a successful association check leaves the
-agent identity unverified.</t>
-        <t><strong>Qualifying client keys.</strong> A statement protects only the bytes it names
-(<xref target="statements"/>), so a statement over the client metadata document protects a
-<tt>jwks_uri</tt> value but not the keys served there. For the <tt>private_key_jwt</tt>
-route, client keys qualify only if they are:</t>
-        <ul spacing="normal">
-          <li>
-            <t>embedded in the client metadata document's <tt>jwks</tt>, where that document is
-served from the AID Origin (origin-anchored agents only) or is covered by a
-valid statement (<xref target="aid-links"/>);</t>
-          </li>
-          <li>
-            <t>served from a <tt>jwks_uri</tt> whose origin, compared as in <xref target="aid-links"/>, equals
-the AID Origin (origin-anchored agents only); or</t>
-          </li>
-          <li>
-            <t>served from a <tt>jwks_uri</tt> for which the AID has a link with <tt>rel="jwks"</tt>
-whose <tt>href</tt> is identical to the <tt>jwks_uri</tt>, and which is trusted under
-<xref target="aid-links"/>: same-origin or carrying a valid statement for origin-anchored
-agents, and carrying a valid statement for DID-anchored agents.</t>
-          </li>
-        </ul>
-        <t>For DID-anchored agents, keys therefore qualify only through a
-statement-covered client metadata document with embedded <tt>jwks</tt>, or through a
-statement-covered <tt>jwks</tt> link; no other <tt>jwks_uri</tt> qualifies, even on the AID
-Origin. Because a statement covers the exact bytes of the JWK Set, any change
-to the set, including key rotation, requires a new statement (<xref target="lifecycle"/>).
-Agents whose client keys do not qualify <bcp14>MUST</bcp14> use request signatures for agent
-attribution.</t>
-        <t><strong>Which agent is attributed.</strong> The attributed agent is the one whose identity
-was verified: for the <tt>private_key_jwt</tt> route, the agent URI that passed the
-association check; for the request-signature route, the agent URI derived from
-<tt>Signature-Agent</tt>. If the client metadata document's <tt>agent_uri</tt> is absent or
-names a different agent, the authorization server <bcp14>MUST NOT</bcp14> display or record
-that value as the agent's identity, and <bcp14>MAY</bcp14> reject the request.</t>
-        <t><strong>Consent.</strong> In flows where the user's browser reaches the authorization
-endpoint through a front-channel redirect, the agent cannot sign that request,
-and the token request happens only after consent. A consent screen can
-therefore show a verified agent identity only if attribution succeeded on a
-back-channel request made for the same authorization request before consent.
-Agents that want verified identity shown at consent <bcp14>SHOULD</bcp14> use Pushed
-Authorization Requests <xref target="RFC9126"/>, with the pushed request either signed
-under <xref target="request-signing"/> or authenticated with <tt>private_key_jwt</tt> satisfying
-the attribution rule above. Authorization servers <bcp14>SHOULD</bcp14> support this.</t>
-        <t>Otherwise, the authorization server <bcp14>MUST</bcp14> handle the client as it would any
-client using that <tt>client_id</tt>, and <bcp14>MUST NOT</bcp14> present it to users as a
-verified agent identity. When a verified identity is shown, consent screens
-<bcp14>SHOULD</bcp14> display the attributed agent URI or its DID and <bcp14>MUST</bcp14> present the
-operator name as claimed by the agent (<xref target="sec-operator"/>).</t>
-      </section>
-      <section anchor="delegation">
-        <name>Delegation</name>
-        <t>When an agent acts on behalf of a user or another agent, the delegation <bcp14>SHOULD</bcp14>
+    <section anchor="oauth">
+      <name>Use with OAuth</name>
+      <t>Identity is not authorization, and this document defines no new OAuth
+mechanisms. It adds one rule: <strong>only a request signature verified under
+<xref target="request-signing"/> establishes agent identity.</strong> OAuth client authentication,
+of any kind, authenticates an OAuth client, not an agent. An authorization
+server <bcp14>MUST NOT</bcp14> present a client to users, or record it, as a verified agent
+unless the request in question carries such a signature, and the agent it
+attributes is always the one derived from that signature.</t>
+      <t>Consent screens are reached through front-channel redirects that an agent
+cannot sign. An authorization server can therefore show a verified agent
+identity at consent only if the agent signed a back-channel request for the
+same authorization request beforehand. Agents that want this <bcp14>SHOULD</bcp14> use Pushed
+Authorization Requests <xref target="RFC9126"/> and sign the pushed request. When a
+verified identity is shown, it <bcp14>MUST</bcp14> be the agent URI or DID, with the operator
+name presented as claimed by the agent (<xref target="sec-operator"/>).</t>
+      <t>When an agent acts on behalf of a user or another agent, the delegation <bcp14>SHOULD</bcp14>
 be expressed with OAuth 2.0 Token Exchange <xref target="RFC8693"/>, with the agent
 identified in the <tt>act</tt> claim by <tt>"sub"</tt> set to its canonical agent URI. As
 required by <xref target="RFC8693"/>, only the current actor is relevant to access-control
-decisions; nested actors are informational.</t>
-        <t>Access tokens used by agents <bcp14>SHOULD</bcp14> be sender-constrained, for example with
-DPoP <xref target="RFC9449"/>. The DPoP key <bcp14>SHOULD</bcp14> be an instance key (<xref target="instances"/>) or a
-key dedicated to DPoP. Agent Keys used for assertion <bcp14>MUST NOT</bcp14> be used as DPoP
-keys, both to keep long-term keys out of running agents (<xref target="sec-key-compromise"/>)
-and to avoid using one key across JWS statements, HTTP message signatures, and
-DPoP proofs. Within a single trust domain, <xref target="TXN-TOKENS"/> can carry the agent
-identity and call context between services.</t>
-      </section>
-      <section anchor="protected-resources">
-        <name>Protected Resources</name>
-        <t>Resource servers advertise their requirements using OAuth 2.0 Protected
-Resource Metadata <xref target="RFC9728"/>. A resource server <bcp14>MAY</bcp14> require a valid agent
-signature (<xref target="request-signing"/>) in addition to an access token, and <bcp14>MAY</bcp14> apply
-policy based on the agent URI or its DID.</t>
-      </section>
+decisions.</t>
+      <t>Access tokens used by agents <bcp14>SHOULD</bcp14> be sender-constrained, for example with
+DPoP <xref target="RFC9449"/>, using a key that is not an Agent Key usable for assertion.
+Resource servers <bcp14>MAY</bcp14> require a valid agent signature in addition to an access
+token.</t>
     </section>
     <section anchor="discovery">
       <name>Discovery</name>
@@ -1318,41 +924,6 @@ agent URI as the link context and <tt>agent-identity</tt> links to the AIDs:</t>
 that index agents <bcp14>SHOULD</bcp14> verify AIDs and statements themselves rather than
 asking clients to trust the index.</t>
     </section>
-    <section anchor="relationships">
-      <name>Relationship to Other Protocols</name>
-      <dl>
-        <dt>A2A:</dt>
-        <dd>
-          <t>An Agent Card describes how to communicate with an agent. The AID links to
-it with <tt>rel="agent-card"</tt>. A2A clients can verify a card by checking the
-agent's statement about it.</t>
-        </dd>
-        <dt>MCP:</dt>
-        <dd>
-          <t>MCP server metadata describes tools and how to reach them. The AID links to
-it with <tt>rel="mcp-server-card"</tt>. MCP clients can identify the calling agent
-to MCP servers using request signatures.</t>
-        </dd>
-        <dt>OpenAPI:</dt>
-        <dd>
-          <t>The AID links to API descriptions with <tt>rel="service-desc"</tt> <xref target="RFC9727"/>.</t>
-        </dd>
-        <dt>Web Bot Auth:</dt>
-        <dd>
-          <t><xref target="WEB-BOT-AUTH"/> lets automated clients sign requests and resolve keys from
-an HTTPS URL. <xref target="request-signing"/> is a profile of it that adds a
-<tt>Signature-Agent</tt> type resolving to an AID, which gives the signer a stable
-agent name, purpose-scoped keys, and an optional DID anchor.</t>
-        </dd>
-        <dt>WIMSE:</dt>
-        <dd>
-          <t><xref target="WIMSE-CREDS"/> defines workload credentials. <xref target="instances"/> reuses the
-WIMSE Workload Identity Token format, with the agent URI as the workload
-identifier and the AID, rather than out-of-band trust anchors, as the source
-of the issuer's keys.</t>
-        </dd>
-      </dl>
-    </section>
     <section anchor="security">
       <name>Security Considerations</name>
       <section anchor="sec-trust-model">
@@ -1367,28 +938,6 @@ legitimate origin-anchored agent from an attacker who has taken over the
 domain and replaced a DID-anchored AID with an origin-anchored one. Even for a
 pinned DID, assurance holds only if verifiers rely solely on DID-authorized
 keys and on metadata covered by statements made with them (<xref target="aid-links"/>).</t>
-      </section>
-      <section anchor="sec-dns">
-        <name>DNS Delegation</name>
-        <t>For a delegated agent (<xref target="dns-delegation"/>), trust rests on the DNSSEC chain for
-the agent URI's host and on the Web PKI and hosting of the delegated location.
-Requiring a secure DNSSEC response prevents an attacker who can spoof or
-intercept DNS from pointing verifiers at documents it controls. Without that
-requirement, delegation would be weaker than the well-known mapping, which TLS
-protects.</t>
-        <t>An attacker who can block or tamper with DNS can make delegated agents
-unverifiable, but cannot cause a different AID to be accepted: an insecure
-response leads only to the well-known mapping, where operators that delegate
-publish nothing.</t>
-        <t>TLS authenticates the delegated host, not the path. Whoever can publish under
-the <tt>base</tt> path controls the identities of all agents of the delegating host,
-so operators <bcp14>SHOULD</bcp14> choose a delegated location they control, or one that
-isolates tenants from each other.</t>
-        <t>Verifiers that do not support delegation use the well-known mapping. If an
-attacker who cannot change DNS can still publish under <tt>/.well-known/agent</tt> on
-a delegating host, such verifiers would accept the attacker's documents.
-Operators that delegate <bcp14>SHOULD</bcp14> therefore ensure that nothing can be published
-at that path on the delegating host.</t>
       </section>
       <section anchor="sec-handle-reassignment">
         <name>Handle Reassignment</name>
@@ -1413,10 +962,10 @@ host (in A-label form) or DID alongside any operator name.</t>
       <section anchor="sec-fetch">
         <name>Verifier-Initiated Fetches</name>
         <t>Verification causes network requests to destinations chosen by untrusted
-parties: AID URLs from <tt>Signature-Agent</tt> values or delegation records,
-statement subjects and link targets, and requests made by DID resolvers. Each of these can be used for
-server-side request forgery or denial of service. The following policy applies
-to <strong>every</strong> fetch made in the course of verification:</t>
+parties: AID URLs from <tt>Signature-Agent</tt> values, statement subjects, and
+requests made by DID resolvers. Each of these can be used for server-side
+request forgery or denial of service. The following policy applies to
+<strong>every</strong> fetch made in the course of verification:</t>
         <ul spacing="normal">
           <li>
             <t>Only HTTPS URLs are fetched, with certificate validation.</t>
@@ -1424,33 +973,28 @@ to <strong>every</strong> fetch made in the course of verification:</t>
           <li>
             <t>Destinations whose host is, or resolves to, an address that the IANA IPv4 or
 IPv6 Special-Purpose Address Registries <xref target="RFC6890"/> mark as not globally
-reachable <bcp14>MUST NOT</bcp14> be fetched. Hosts that are special-use names that do not
-resolve in the global DNS (for example, <tt>localhost</tt> or names under <tt>local</tt>
-or <tt>internal</tt>) <bcp14>MUST NOT</bcp14> be fetched. Administrators <bcp14>MAY</bcp14> configure explicit
-exceptions for private deployments.</t>
+reachable <bcp14>MUST NOT</bcp14> be fetched, nor hosts that are special-use names that do
+not resolve in the global DNS (for example, <tt>localhost</tt> or names under
+<tt>local</tt> or <tt>internal</tt>). Administrators <bcp14>MAY</bcp14> configure explicit exceptions for
+private deployments.</t>
           </li>
           <li>
             <t>The resolved address <bcp14>MUST</bcp14> be checked and then used for the connection
 (pinned), so that DNS changes cannot redirect the request after the check.</t>
           </li>
           <li>
-            <t>HTTP redirects <bcp14>MUST NOT</bcp14> be followed, as in <xref target="WEB-BOT-AUTH"/>. Any status
-other than 200, and other than 304 received in response to a conditional
-revalidation request, is a failure.</t>
+            <t>HTTP redirects <bcp14>MUST NOT</bcp14> be followed, as in <xref target="WEB-BOT-AUTH"/>.</t>
           </li>
           <li>
-            <t>Verifiers <bcp14>MUST</bcp14> enforce connection and response timeouts, and <bcp14>MUST</bcp14> bound
-response sizes: 64 KiB for AIDs and a locally configured limit for other
-resources.</t>
+            <t>Verifiers <bcp14>MUST</bcp14> enforce timeouts and bound response sizes: 64 KiB for AIDs
+and a locally configured limit for other resources.</t>
           </li>
           <li>
-            <t>Verifiers <bcp14>MUST</bcp14> bound the number of fetches per verification. A limit of 4
+            <t>Verifiers <bcp14>MUST</bcp14> bound the number of fetches per verification; a limit of 4
 (for example, the AID, a DID resolution, and a statement subject) is
-<bcp14>RECOMMENDED</bcp14>. A delegation lookup (<xref target="dns-delegation"/>) and a DID resolution
-each count as one fetch toward this limit;
-verifiers <bcp14>MUST</bcp14> separately bound the requests a DID resolver makes, by
-configuration for each allowed DID method. Verifiers <bcp14>MUST NOT</bcp14> recursively
-follow links or <tt>depends</tt>-style references from fetched documents.</t>
+<bcp14>RECOMMENDED</bcp14>, with a DID resolution counting as one fetch and the requests a
+DID resolver makes bounded separately. Verifiers <bcp14>MUST NOT</bcp14> recursively follow
+links from fetched documents.</t>
           </li>
           <li>
             <t>Verifiers <bcp14>MUST</bcp14> rate-limit fetches per host and cache results, including
@@ -1473,32 +1017,27 @@ limits replay against the same resource; verifiers for non-idempotent
 operations <bcp14>SHOULD</bcp14> require and track <tt>nonce</tt> values.</t>
       </section>
       <section anchor="sec-key-compromise">
-        <name>Key Compromise and Key Separation</name>
+        <name>Key Compromise</name>
         <t>Compromise of an Agent Key lets the attacker act as the agent until the key is
 removed and caches expire. Operators <bcp14>SHOULD</bcp14> keep Agent Keys in hardware or a
-key management service and use instance credentials (<xref target="instances"/>) so that
-long-term keys are never present in running agents. Workload Identity Tokens
-<bcp14>SHOULD</bcp14> be short-lived, because they cannot be individually revoked.</t>
-        <t>Operators <bcp14>SHOULD</bcp14> use different keys for assertion and authentication, using
-<tt>agent_use</tt> for origin-anchored keys and DID verification relationships for
-DID-anchored keys (<xref target="key-purposes"/>), and <bcp14>MUST NOT</bcp14> use Agent Keys as DPoP keys
-(<xref target="delegation"/>).</t>
+key management service, and <bcp14>SHOULD</bcp14> use separate keys for assertion and
+authentication (<xref target="key-purposes"/>), so that compromise of a running agent does
+not let the attacker sign statements.</t>
       </section>
       <section anchor="sec-cross-origin">
         <name>Cross-Origin Metadata</name>
-        <t>Requiring statements bound to the exact <tt>href</tt> for cross-origin links
-(<xref target="aid-links"/>, <xref target="statement-verify"/>) prevents a compromised or malicious
-third-party host, mirror, or registry from attaching metadata to an agent's
-identity or redirecting a valid statement to other content. A statement only
-proves that the agent published the resource; it does not vouch for the
-truth of the resource's contents.</t>
+        <t>Requiring statements bound to the exact <tt>href</tt> for links outside the AID
+Origin (<xref target="aid-links"/>, <xref target="statement-verify"/>) prevents a compromised or
+malicious third-party host, mirror, or registry from attaching metadata to an
+agent's identity. A statement only proves that the agent published the
+resource; it does not vouch for the truth of the resource's contents.</t>
       </section>
       <section anchor="sec-confusables">
         <name>Confusable Names</name>
         <t>Agent URIs can be visually similar (e.g., <tt>agent://examp1e.example/planner</tt>
 and <tt>agent://example.example/planner</tt>). User interfaces that display agent
-identities <bcp14>SHOULD</bcp14> display the A-label form of the host, and
-<bcp14>SHOULD</bcp14> warn when an agent URI or DID is new to the user.</t>
+identities <bcp14>SHOULD</bcp14> display the A-label form of the host, and <bcp14>SHOULD</bcp14> warn when an
+agent URI or DID is new to the user.</t>
       </section>
     </section>
     <section anchor="privacy">
@@ -1508,9 +1047,8 @@ identities <bcp14>SHOULD</bcp14> display the A-label form of the host, and
         <li>
           <t><strong>Linkability is the point, for agents.</strong> Request signatures make an agent's
 traffic attributable and linkable across services. That is intended for the
-agent; it must not extend to the people it acts for. Agent URIs, WIT <tt>jti</tt>
-values, and <tt>Signature-Agent</tt> values <bcp14>MUST NOT</bcp14> encode user identifiers. WIT
-<tt>jti</tt> values <bcp14>MUST</bcp14> be random and not reused across users.</t>
+agent; it must not extend to the people it acts for. Agent URIs and
+<tt>Signature-Agent</tt> values <bcp14>MUST NOT</bcp14> encode user identifiers.</t>
         </li>
         <li>
           <t><strong>Per-user agents.</strong> Deployments that create one agent per end user (e.g.,
@@ -1527,9 +1065,7 @@ know the agent URI.</t>
         </li>
         <li>
           <t><strong>Verifier fetches.</strong> Fetching an AID reveals to the operator that a
-verifier has seen the agent, and delegation lookups reveal the same to DNS
-resolvers and to the operator of the delegated location. Caching reduces
-this signal.</t>
+verifier has seen the agent. Caching reduces this signal.</t>
         </li>
       </ul>
     </section>
@@ -1551,7 +1087,7 @@ Identifier (URI) Schemes" registry, using the template of <xref target="RFC7595"
           <dt>Applications/protocols that use this scheme name:</dt>
           <dd>
             <t>Identification of software agents. An agent URI is dereferenced to an Agent
-Identity Document as described in <xref target="dereference"/> and <xref target="dns-delegation"/>.</t>
+Identity Document as described in <xref target="dereference"/>.</t>
           </dd>
           <dt>Contact:</dt>
           <dd>
@@ -1570,8 +1106,6 @@ Identity Document as described in <xref target="dereference"/> and <xref target=
             <t>The <tt>agent</tt> well-known URI (<xref target="iana-well-known"/>)</t>
           </dd>
         </dl>
-        <t>This document does not define or request registration of <tt>agent+&lt;suffix&gt;</tt>
-schemes.</t>
       </section>
       <section anchor="iana-well-known">
         <name>Well-Known URI Registration</name>
@@ -1598,25 +1132,6 @@ schemes.</t>
           <dd>
             <t>Sub-paths are used: <tt>/.well-known/agent/&lt;name-path&gt;</tt> for named agents and
 <tt>/.well-known/agent/_</tt> for a host's root agent.</t>
-          </dd>
-        </dl>
-      </section>
-      <section anchor="iana-underscored">
-        <name>Underscored DNS Node Name</name>
-        <t>IANA is requested to register the following in the "Underscored and Globally
-Scoped DNS Node Names" registry <xref target="RFC8552"/>:</t>
-        <dl>
-          <dt>RR Type:</dt>
-          <dd>
-            <t>TXT</t>
-          </dd>
-          <dt>_NODE NAME:</dt>
-          <dd>
-            <t>_agent</t>
-          </dd>
-          <dt>Reference:</dt>
-          <dd>
-            <t><xref target="dns-delegation"/> of this document</t>
           </dd>
         </dl>
       </section>
@@ -1777,75 +1292,30 @@ extension(s): N/A; Macintosh file type code(s): N/A</t>
 type values. This document asks that such a registry be created and that
 <tt>agent-id</tt> be registered in it, referencing <xref target="request-signing"/> of this
 document (see <xref target="open-issues"/>).</t>
-        <t>This document does not register any HTTP field names.</t>
       </section>
       <section anchor="iana-link-relations">
-        <name>Link Relations</name>
+        <name>Link Relation</name>
         <t>IANA is requested to register the following in the "Link Relation Types"
-registry <xref target="RFC8288"/>.</t>
-        <section anchor="agent-identity">
-          <name>agent-identity</name>
-          <dl>
-            <dt>Relation Name:</dt>
-            <dd>
-              <t>agent-identity</t>
-            </dd>
-            <dt>Description:</dt>
-            <dd>
-              <t>Refers to the Agent Identity Document of the link context.</t>
-            </dd>
-            <dt>Reference:</dt>
-            <dd>
-              <t><xref target="discovery"/> of this document</t>
-            </dd>
-          </dl>
-        </section>
-        <section anchor="jwks">
-          <name>jwks</name>
-          <dl>
-            <dt>Relation Name:</dt>
-            <dd>
-              <t>jwks</t>
-            </dd>
-            <dt>Description:</dt>
-            <dd>
-              <t>Refers to a JSON Web Key Set (JWK Set) <xref target="RFC7517"/> associated with the
-link context.</t>
-            </dd>
-            <dt>Reference:</dt>
-            <dd>
-              <t><xref target="aid-links"/> and <xref target="oauth-client"/> of this document</t>
-            </dd>
-          </dl>
-          <t>Registration of <tt>agent-card</tt>, <tt>mcp-server-card</tt>, and <tt>oauth-client-metadata</tt>
-is an open issue (<xref target="open-issues"/>).</t>
-        </section>
-      </section>
-      <section anchor="iana-client-metadata">
-        <name>OAuth Client Metadata</name>
-        <t>IANA is requested to register the following in the "OAuth Dynamic Client
-Registration Metadata" registry <xref target="RFC7591"/>:</t>
+registry <xref target="RFC8288"/>:</t>
         <dl>
-          <dt>Client Metadata Name:</dt>
+          <dt>Relation Name:</dt>
           <dd>
-            <t>agent_uri</t>
+            <t>agent-identity</t>
           </dd>
-          <dt>Client Metadata Description:</dt>
+          <dt>Description:</dt>
           <dd>
-            <t>Canonical agent URI of the agent that the client claims to be</t>
+            <t>Refers to the Agent Identity Document of the link context.</t>
           </dd>
-          <dt>Change Controller:</dt>
+          <dt>Reference:</dt>
           <dd>
-            <t>IETF</t>
-          </dd>
-          <dt>Specification Document(s):</dt>
-          <dd>
-            <t><xref target="oauth-client"/> of this document</t>
+            <t><xref target="discovery"/> of this document</t>
           </dd>
         </dl>
+        <t>Registration of <tt>agent-card</tt> and <tt>mcp-server-card</tt> is an open issue
+(<xref target="open-issues"/>).</t>
       </section>
       <section anchor="iana-jwk-params">
-        <name>JSON Web Key Parameters</name>
+        <name>JSON Web Key Parameter</name>
         <t>IANA is requested to register the following in the "JSON Web Key Parameters"
 registry <xref target="RFC7517"/>:</t>
         <dl>
@@ -1876,7 +1346,7 @@ registry <xref target="RFC7517"/>:</t>
         </dl>
       </section>
       <section anchor="iana-jwt-claims">
-        <name>JSON Web Token Claims</name>
+        <name>JSON Web Token Claim</name>
         <t>IANA is requested to register the following in the "JSON Web Token Claims"
 registry <xref target="RFC7519"/>:</t>
         <dl>
@@ -1905,19 +1375,6 @@ registry <xref target="RFC7519"/>:</t>
       <name>References</name>
       <references anchor="sec-normative-references">
         <name>Normative References</name>
-        <reference anchor="RFC1035">
-          <front>
-            <title>Domain names - implementation and specification</title>
-            <author fullname="P. Mockapetris" initials="P." surname="Mockapetris"/>
-            <date month="November" year="1987"/>
-            <abstract>
-              <t>This RFC is the revised specification of the protocol and format used in the implementation of the Domain Name System. It obsoletes RFC-883. This memo documents the details of the domain name client - server communication.</t>
-            </abstract>
-          </front>
-          <seriesInfo name="STD" value="13"/>
-          <seriesInfo name="RFC" value="1035"/>
-          <seriesInfo name="DOI" value="10.17487/RFC1035"/>
-        </reference>
         <reference anchor="RFC3339">
           <front>
             <title>Date and Time on the Internet: Timestamps</title>
@@ -1945,56 +1402,6 @@ registry <xref target="RFC7519"/>:</t>
           <seriesInfo name="STD" value="66"/>
           <seriesInfo name="RFC" value="3986"/>
           <seriesInfo name="DOI" value="10.17487/RFC3986"/>
-        </reference>
-        <reference anchor="RFC4033">
-          <front>
-            <title>DNS Security Introduction and Requirements</title>
-            <author fullname="R. Arends" initials="R." surname="Arends"/>
-            <author fullname="R. Austein" initials="R." surname="Austein"/>
-            <author fullname="M. Larson" initials="M." surname="Larson"/>
-            <author fullname="D. Massey" initials="D." surname="Massey"/>
-            <author fullname="S. Rose" initials="S." surname="Rose"/>
-            <date month="March" year="2005"/>
-            <abstract>
-              <t>The Domain Name System Security Extensions (DNSSEC) add data origin authentication and data integrity to the Domain Name System. This document introduces these extensions and describes their capabilities and limitations. This document also discusses the services that the DNS security extensions do and do not provide. Last, this document describes the interrelationships between the documents that collectively describe DNSSEC. [STANDARDS-TRACK]</t>
-            </abstract>
-          </front>
-          <seriesInfo name="RFC" value="4033"/>
-          <seriesInfo name="DOI" value="10.17487/RFC4033"/>
-        </reference>
-        <reference anchor="RFC4034">
-          <front>
-            <title>Resource Records for the DNS Security Extensions</title>
-            <author fullname="R. Arends" initials="R." surname="Arends"/>
-            <author fullname="R. Austein" initials="R." surname="Austein"/>
-            <author fullname="M. Larson" initials="M." surname="Larson"/>
-            <author fullname="D. Massey" initials="D." surname="Massey"/>
-            <author fullname="S. Rose" initials="S." surname="Rose"/>
-            <date month="March" year="2005"/>
-            <abstract>
-              <t>This document is part of a family of documents that describe the DNS Security Extensions (DNSSEC). The DNS Security Extensions are a collection of resource records and protocol modifications that provide source authentication for the DNS. This document defines the public key (DNSKEY), delegation signer (DS), resource record digital signature (RRSIG), and authenticated denial of existence (NSEC) resource records. The purpose and format of each resource record is described in detail, and an example of each resource record is given.</t>
-              <t>This document obsoletes RFC 2535 and incorporates changes from all updates to RFC 2535. [STANDARDS-TRACK]</t>
-            </abstract>
-          </front>
-          <seriesInfo name="RFC" value="4034"/>
-          <seriesInfo name="DOI" value="10.17487/RFC4034"/>
-        </reference>
-        <reference anchor="RFC4035">
-          <front>
-            <title>Protocol Modifications for the DNS Security Extensions</title>
-            <author fullname="R. Arends" initials="R." surname="Arends"/>
-            <author fullname="R. Austein" initials="R." surname="Austein"/>
-            <author fullname="M. Larson" initials="M." surname="Larson"/>
-            <author fullname="D. Massey" initials="D." surname="Massey"/>
-            <author fullname="S. Rose" initials="S." surname="Rose"/>
-            <date month="March" year="2005"/>
-            <abstract>
-              <t>This document is part of a family of documents that describe the DNS Security Extensions (DNSSEC). The DNS Security Extensions are a collection of new resource records and protocol modifications that add data origin authentication and data integrity to the DNS. This document describes the DNSSEC protocol modifications. This document defines the concept of a signed zone, along with the requirements for serving and resolving by using DNSSEC. These techniques allow a security-aware resolver to authenticate both DNS resource records and authoritative DNS error indications.</t>
-              <t>This document obsoletes RFC 2535 and incorporates changes from all updates to RFC 2535. [STANDARDS-TRACK]</t>
-            </abstract>
-          </front>
-          <seriesInfo name="RFC" value="4035"/>
-          <seriesInfo name="DOI" value="10.17487/RFC4035"/>
         </reference>
         <reference anchor="RFC5234">
           <front>
@@ -2105,22 +1512,6 @@ registry <xref target="RFC7519"/>:</t>
           <seriesInfo name="RFC" value="7519"/>
           <seriesInfo name="DOI" value="10.17487/RFC7519"/>
         </reference>
-        <reference anchor="RFC7591">
-          <front>
-            <title>OAuth 2.0 Dynamic Client Registration Protocol</title>
-            <author fullname="J. Richer" initials="J." role="editor" surname="Richer"/>
-            <author fullname="M. Jones" initials="M." surname="Jones"/>
-            <author fullname="J. Bradley" initials="J." surname="Bradley"/>
-            <author fullname="M. Machulak" initials="M." surname="Machulak"/>
-            <author fullname="P. Hunt" initials="P." surname="Hunt"/>
-            <date month="July" year="2015"/>
-            <abstract>
-              <t>This specification defines mechanisms for dynamically registering OAuth 2.0 clients with authorization servers. Registration requests send a set of desired client metadata values to the authorization server. The resulting registration responses return a client identifier to use at the authorization server and the client metadata values registered for the client. The client can then use this registration information to communicate with the authorization server using the OAuth 2.0 protocol. This specification also defines a set of common client metadata fields and values for clients to use during registration.</t>
-            </abstract>
-          </front>
-          <seriesInfo name="RFC" value="7591"/>
-          <seriesInfo name="DOI" value="10.17487/RFC7591"/>
-        </reference>
         <reference anchor="RFC7595">
           <front>
             <title>Guidelines and Registration Procedures for URI Schemes</title>
@@ -2148,20 +1539,6 @@ registry <xref target="RFC7519"/>:</t>
           </front>
           <seriesInfo name="RFC" value="7638"/>
           <seriesInfo name="DOI" value="10.17487/RFC7638"/>
-        </reference>
-        <reference anchor="RFC7800">
-          <front>
-            <title>Proof-of-Possession Key Semantics for JSON Web Tokens (JWTs)</title>
-            <author fullname="M. Jones" initials="M." surname="Jones"/>
-            <author fullname="J. Bradley" initials="J." surname="Bradley"/>
-            <author fullname="H. Tschofenig" initials="H." surname="Tschofenig"/>
-            <date month="April" year="2016"/>
-            <abstract>
-              <t>This specification describes how to declare in a JSON Web Token (JWT) that the presenter of the JWT possesses a particular proof-of- possession key and how the recipient can cryptographically confirm proof of possession of the key by the presenter. Being able to prove possession of a key is also sometimes described as the presenter being a holder-of-key.</t>
-            </abstract>
-          </front>
-          <seriesInfo name="RFC" value="7800"/>
-          <seriesInfo name="DOI" value="10.17487/RFC7800"/>
         </reference>
         <reference anchor="RFC8037">
           <front>
@@ -2201,19 +1578,6 @@ registry <xref target="RFC7519"/>:</t>
           </front>
           <seriesInfo name="RFC" value="8288"/>
           <seriesInfo name="DOI" value="10.17487/RFC8288"/>
-        </reference>
-        <reference anchor="RFC8552">
-          <front>
-            <title>Scoped Interpretation of DNS Resource Records through "Underscored" Naming of Attribute Leaves</title>
-            <author fullname="D. Crocker" initials="D." surname="Crocker"/>
-            <date month="March" year="2019"/>
-            <abstract>
-              <t>Formally, any DNS Resource Record (RR) may occur under any domain name. However, some services use an operational convention for defining specific interpretations of an RRset by locating the records in a DNS branch under the parent domain to which the RRset actually applies. The top of this subordinate branch is defined by a naming convention that uses a reserved node name, which begins with the underscore character (e.g., "_name"). The underscored naming construct defines a semantic scope for DNS record types that are associated with the parent domain above the underscored branch. This specification explores the nature of this DNS usage and defines the "Underscored and Globally Scoped DNS Node Names" registry with IANA. The purpose of this registry is to avoid collisions resulting from the use of the same underscored name for different services.</t>
-            </abstract>
-          </front>
-          <seriesInfo name="BCP" value="222"/>
-          <seriesInfo name="RFC" value="8552"/>
-          <seriesInfo name="DOI" value="10.17487/RFC8552"/>
         </reference>
         <reference anchor="RFC8615">
           <front>
@@ -2373,44 +1737,6 @@ registry <xref target="RFC7519"/>:</t>
           </front>
           <seriesInfo name="Internet-Draft" value="draft-ietf-webbotauth-httpsig-protocol-00"/>
         </reference>
-        <reference anchor="WIMSE-CREDS">
-          <front>
-            <title>WIMSE Workload Credentials</title>
-            <author fullname="Brian Campbell" initials="B." surname="Campbell">
-              <organization>Ping Identity</organization>
-            </author>
-            <author fullname="Joseph A. Salowey" initials="J. A." surname="Salowey">
-              <organization>CyberArk</organization>
-            </author>
-            <author fullname="Arndt Schwenkschuster" initials="A." surname="Schwenkschuster">
-              <organization>Defakto Security</organization>
-            </author>
-            <author fullname="Yaron Sheffer" initials="Y." surname="Sheffer">
-              <organization>Intuit</organization>
-            </author>
-            <author fullname="Yaroslav Rosomakho" initials="Y." surname="Rosomakho">
-              <organization>Zscaler</organization>
-            </author>
-            <date day="2" month="July" year="2026"/>
-            <abstract>
-              <t>   The WIMSE architecture defines authentication and authorization for
-   software workloads in a variety of runtime environments, from the
-   most basic ones up to complex multi-service, multi-cloud, multi-
-   tenant deployments.
-
-   This document defines the credentials that workloads use to represent
-   their identity.  They can be used in various protocols to
-   authenticate workloads to each other.  To use these credentials,
-   workloads must provide proof of possession of the associated private
-   key material, which is covered in other documents.  This document
-   focuses on the credentials alone, independent of the proof-of-
-   possession mechanism.
-
-              </t>
-            </abstract>
-          </front>
-          <seriesInfo name="Internet-Draft" value="draft-ietf-wimse-workload-creds-02"/>
-        </reference>
         <reference anchor="DID-CORE" target="https://www.w3.org/TR/did-core/">
           <front>
             <title>Decentralized Identifiers (DIDs) v1.0</title>
@@ -2491,24 +1817,6 @@ registry <xref target="RFC7519"/>:</t>
           <seriesInfo name="RFC" value="6839"/>
           <seriesInfo name="DOI" value="10.17487/RFC6839"/>
         </reference>
-        <reference anchor="RFC7858">
-          <front>
-            <title>Specification for DNS over Transport Layer Security (TLS)</title>
-            <author fullname="Z. Hu" initials="Z." surname="Hu"/>
-            <author fullname="L. Zhu" initials="L." surname="Zhu"/>
-            <author fullname="J. Heidemann" initials="J." surname="Heidemann"/>
-            <author fullname="A. Mankin" initials="A." surname="Mankin"/>
-            <author fullname="D. Wessels" initials="D." surname="Wessels"/>
-            <author fullname="P. Hoffman" initials="P." surname="Hoffman"/>
-            <date month="May" year="2016"/>
-            <abstract>
-              <t>This document describes the use of Transport Layer Security (TLS) to provide privacy for DNS. Encryption provided by TLS eliminates opportunities for eavesdropping and on-path tampering with DNS queries in the network, such as discussed in RFC 7626. In addition, this document specifies two usage profiles for DNS over TLS and provides advice on performance considerations to minimize overhead from using TCP and TLS with DNS.</t>
-              <t>This document focuses on securing stub-to-recursive traffic, as per the charter of the DPRIVE Working Group. It does not prevent future applications of the protocol to recursive-to-authoritative traffic.</t>
-            </abstract>
-          </front>
-          <seriesInfo name="RFC" value="7858"/>
-          <seriesInfo name="DOI" value="10.17487/RFC7858"/>
-        </reference>
         <reference anchor="RFC6973">
           <front>
             <title>Privacy Considerations for Internet Protocols</title>
@@ -2541,6 +1849,22 @@ registry <xref target="RFC7519"/>:</t>
           </front>
           <seriesInfo name="RFC" value="8417"/>
           <seriesInfo name="DOI" value="10.17487/RFC8417"/>
+        </reference>
+        <reference anchor="RFC9126">
+          <front>
+            <title>OAuth 2.0 Pushed Authorization Requests</title>
+            <author fullname="T. Lodderstedt" initials="T." surname="Lodderstedt"/>
+            <author fullname="B. Campbell" initials="B." surname="Campbell"/>
+            <author fullname="N. Sakimura" initials="N." surname="Sakimura"/>
+            <author fullname="D. Tonge" initials="D." surname="Tonge"/>
+            <author fullname="F. Skokan" initials="F." surname="Skokan"/>
+            <date month="September" year="2021"/>
+            <abstract>
+              <t>This document defines the pushed authorization request (PAR) endpoint, which allows clients to push the payload of an OAuth 2.0 authorization request to the authorization server via a direct request and provides them with a request URI that is used as reference to the data in a subsequent call to the authorization endpoint.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="9126"/>
+          <seriesInfo name="DOI" value="10.17487/RFC9126"/>
         </reference>
         <reference anchor="RFC9264">
           <front>
@@ -2584,129 +1908,6 @@ registry <xref target="RFC7519"/>:</t>
           <seriesInfo name="RFC" value="9727"/>
           <seriesInfo name="DOI" value="10.17487/RFC9727"/>
         </reference>
-        <reference anchor="RFC9728">
-          <front>
-            <title>OAuth 2.0 Protected Resource Metadata</title>
-            <author fullname="M.B. Jones" initials="M.B." surname="Jones"/>
-            <author fullname="P. Hunt" initials="P." surname="Hunt"/>
-            <author fullname="A. Parecki" initials="A." surname="Parecki"/>
-            <date month="April" year="2025"/>
-            <abstract>
-              <t>This specification defines a metadata format that an OAuth 2.0 client or authorization server can use to obtain the information needed to interact with an OAuth 2.0 protected resource.</t>
-            </abstract>
-          </front>
-          <seriesInfo name="RFC" value="9728"/>
-          <seriesInfo name="DOI" value="10.17487/RFC9728"/>
-        </reference>
-        <reference anchor="RFC9126">
-          <front>
-            <title>OAuth 2.0 Pushed Authorization Requests</title>
-            <author fullname="T. Lodderstedt" initials="T." surname="Lodderstedt"/>
-            <author fullname="B. Campbell" initials="B." surname="Campbell"/>
-            <author fullname="N. Sakimura" initials="N." surname="Sakimura"/>
-            <author fullname="D. Tonge" initials="D." surname="Tonge"/>
-            <author fullname="F. Skokan" initials="F." surname="Skokan"/>
-            <date month="September" year="2021"/>
-            <abstract>
-              <t>This document defines the pushed authorization request (PAR) endpoint, which allows clients to push the payload of an OAuth 2.0 authorization request to the authorization server via a direct request and provides them with a request URI that is used as reference to the data in a subsequent call to the authorization endpoint.</t>
-            </abstract>
-          </front>
-          <seriesInfo name="RFC" value="9126"/>
-          <seriesInfo name="DOI" value="10.17487/RFC9126"/>
-        </reference>
-        <reference anchor="RFC9943">
-          <front>
-            <title>An Architecture for Trustworthy and Transparent Digital Supply Chains</title>
-            <author fullname="H. Birkholz" initials="H." surname="Birkholz"/>
-            <author fullname="A. Delignat-Lavaud" initials="A." surname="Delignat-Lavaud"/>
-            <author fullname="C. Fournet" initials="C." surname="Fournet"/>
-            <author fullname="Y. Deshpande" initials="Y." surname="Deshpande"/>
-            <author fullname="S. Lasker" initials="S." surname="Lasker"/>
-            <date month="June" year="2026"/>
-            <abstract>
-              <t>Traceability in supply chains is a growing security concern. While Verifiable Data Structures (VDSs) have addressed specific issues, such as equivocation over digital certificates, they lack a universal architecture for all supply chains. This document defines such an architecture for single-issuer signed statement transparency. It ensures extensibility and interoperability between different transparency services as well as compliance with various auditing procedures and regulatory requirements.</t>
-            </abstract>
-          </front>
-          <seriesInfo name="RFC" value="9943"/>
-          <seriesInfo name="DOI" value="10.17487/RFC9943"/>
-        </reference>
-        <reference anchor="OAUTH-CIMD">
-          <front>
-            <title>OAuth Client ID Metadata Document</title>
-            <author fullname="Aaron Parecki" initials="A." surname="Parecki">
-              <organization>Okta</organization>
-            </author>
-            <author fullname="Emelia Smith" initials="E." surname="Smith">
-         </author>
-            <date day="6" month="July" year="2026"/>
-            <abstract>
-              <t>   This specification defines a mechanism through which an OAuth client
-   can identify itself to authorization servers, without prior dynamic
-   client registration or other existing registration.  This is through
-   the usage of a URL as a client_id in an OAuth flow, where the URL
-   refers to a document containing the necessary client metadata,
-   enabling the authorization server to fetch the metadata about the
-   client as needed.
-
-              </t>
-            </abstract>
-          </front>
-          <seriesInfo name="Internet-Draft" value="draft-ietf-oauth-client-id-metadata-document-02"/>
-        </reference>
-        <reference anchor="WIMSE-HTTPSIG">
-          <front>
-            <title>WIMSE Workload-to-Workload Authentication with HTTP Signatures</title>
-            <author fullname="Joseph A. Salowey" initials="J. A." surname="Salowey">
-              <organization>Palo Alto Networks</organization>
-            </author>
-            <author fullname="Yaron Sheffer" initials="Y." surname="Sheffer">
-              <organization>Independent</organization>
-            </author>
-            <date day="20" month="October" year="2026"/>
-            <abstract>
-              <t>   The WIMSE architecture defines authentication and authorization for
-   software workloads in a variety of runtime environments, from the
-   most basic ones to complex multi-service, multi-cloud, multi-tenant
-   deployments.  This document defines one of the mechanisms to provide
-   workload authentication, using HTTP Signatures.  While only
-   applicable to HTTP traffic, the protocol provides end-to-end
-   protection of requests (and optionally, responses), even when service
-   traffic is not end-to-end encrypted, that is, when TLS proxies and
-   load balancers are used.  Authentication is based on the Workload
-   Identity Token (WIT).
-
-              </t>
-            </abstract>
-          </front>
-          <seriesInfo name="Internet-Draft" value="draft-ietf-wimse-http-signature-08"/>
-        </reference>
-        <reference anchor="TXN-TOKENS">
-          <front>
-            <title>Transaction Tokens</title>
-            <author fullname="Atul Tulshibagwale" initials="A." surname="Tulshibagwale">
-              <organization>CrowdStrike</organization>
-            </author>
-            <author fullname="George Fletcher" initials="G." surname="Fletcher">
-              <organization>Practical Identity LLC</organization>
-            </author>
-            <author fullname="Pieter Kasselman" initials="P." surname="Kasselman">
-              <organization>Defakto Security</organization>
-            </author>
-            <date day="30" month="July" year="2026"/>
-            <abstract>
-              <t>   Transaction Tokens (Txn-Tokens) are designed to maintain and
-   propagate user identity, workload identity and authorization context
-   throughout the Call Chain within a trusted domain during the
-   processing of external requests (e.g. such as API calls) or requests
-   initiated internally within the Trust Domain.  Txn-Tokens ensure that
-   this context is preserved throughout the Call Chain thereby enhancing
-   security and consistency in complex, multi-service architectures.
-
-              </t>
-            </abstract>
-          </front>
-          <seriesInfo name="Internet-Draft" value="draft-ietf-oauth-transaction-tokens-11"/>
-        </reference>
         <reference anchor="DID-WEBVH" target="https://identity.foundation/didwebvh/">
           <front>
             <title>The did:webvh DID Method</title>
@@ -2740,11 +1941,8 @@ registry <xref target="RFC7519"/>:</t>
 <section anchor="test-vectors">
       <name>Test Vectors: Agent URI Processing</name>
       <t>This appendix is informative. It gives expected results for the syntactic
-processing defined in <xref target="agent-uri"/> and <xref target="aid-links"/>, including delegation
-records (<xref target="dns-delegation"/>), so that independent implementations can check
-that they agree. Vectors for statements, request
-signatures, and Workload Identity Tokens will be added once an implementation
-can produce and cross-check them (<xref target="open-issues"/>).</t>
+processing defined in <xref target="agent-uri"/> and <xref target="aid-links"/>, so that independent
+implementations can check that they agree.</t>
       <section anchor="tv-parsing">
         <name>Parsing and Canonicalization</name>
         <t>Each vector shows an input, then its result. "valid" inputs are canonical.
@@ -2815,59 +2013,10 @@ agent://xn--bcher-kva.example/planner
     https://xn--bcher-kva.example/.well-known/agent/planner
 ]]></artwork>
         </figure>
-        <t>With a valid, DNSSEC-secure delegation record for <tt>example.com</tt> whose <tt>base</tt>
-is <tt>https://agents.example.net/example-com</tt>:</t>
-        <figure anchor="fig-tv-mapping-delegated">
-          <name>Delegated mapping vectors</name>
-          <artwork><![CDATA[
-agent://example.com/planner
-    https://agents.example.net/example-com/planner
-agent://example.com
-    https://agents.example.net/example-com/_
-agent://example.com/acme/billing-assistant
-    https://agents.example.net/example-com/acme/billing-assistant
-]]></artwork>
-        </figure>
-      </section>
-      <section anchor="tv-delegation">
-        <name>Delegation Records</name>
-        <t>Each vector shows a TXT record value after concatenation, then its result.
-"not a delegation record" values are ignored (<xref target="dns-delegation"/>, step 3).
-"invalid" values make dereferencing fail, with no fallback to the well-known
-mapping (step 5).</t>
-        <figure anchor="fig-tv-delegation">
-          <name>Delegation record vectors</name>
-          <artwork><![CDATA[
-v=agent1; base=https://agents.example.net/example-com
-    valid     base https://agents.example.net/example-com
-v=agent1;base=https://agents.example.net/example-com;x=1
-    valid     unknown parameter ignored
-v=agent1; base=https://ids.example.net
-    valid     base with an empty path
-base=https://agents.example.net/ex; v=agent1
-    not a delegation record ("v=agent1" is not first)
-v=agent10; base=https://agents.example.net/ex
-    not a delegation record (version token differs)
-v=agent1
-    invalid   no base
-v=agent1; base=https://agents.example.net/example-com/
-    invalid   trailing "/"
-v=agent1; base=http://agents.example.net/example-com
-    invalid   not HTTPS
-v=agent1; base=https://agents.example.net:8443/ex
-    invalid   port
-v=agent1; base=https://agents.example.net/ex?x=1
-    invalid   query
-v=agent1; base=https://a.example.net/x; base=https://b.example.net/y
-    invalid   duplicate base
-]]></artwork>
-        </figure>
       </section>
       <section anchor="tv-reverse">
         <name>Reverse Mapping of Signature-Agent Values</name>
-        <t>Values are compared exactly, without normalization (<xref target="sig-verify"/>). These
-vectors cover well-known AID URLs; a delegated AID URL is accepted only after
-the forward check of <xref target="sig-verify"/>, step 2.</t>
+        <t>Values are compared exactly, without normalization (<xref target="sig-verify"/>).</t>
         <figure anchor="fig-tv-reverse">
           <name>Reverse mapping vectors</name>
           <artwork><![CDATA[
@@ -2930,709 +2079,476 @@ statement cannot make it valid (<xref target="aid-links"/>).</t>
 <xref target="WEB-BOT-AUTH"/> ignore agent identities.</t>
         </li>
         <li>
-          <t><strong>WIMSE alignment.</strong> Discuss with the WIMSE WG whether agent URIs are
-acceptable workload identifiers (their authority fits the trust domain
-shape of WIMSE identifiers), whether AID-based issuer discovery can become
-a recognized alternative to out-of-band trust-anchor provisioning, and
-whether instances should also be able to use the WIMSE HTTP signature
-profile <xref target="WIMSE-HTTPSIG"/>.</t>
-        </li>
-        <li>
           <t><strong>Back-references from protocol metadata.</strong> Agree with the A2A and MCP
 projects on how an Agent Card or MCP server card names its agent URI, and
 who registers the <tt>agent-card</tt> and <tt>mcp-server-card</tt> link relations.</t>
         </li>
         <li>
-          <t><strong>Cryptographic test vectors.</strong> <xref target="test-vectors"/> covers URI processing and
-delegation records. Once an implementation can produce and cross-check
-them, add vectors for: statement <tt>iss</tt>/<tt>sub</tt> binding; DID key conversion
-and per-purpose selection; <tt>agent_use</tt> enforcement, including duplicate key
-material and malformed values; a preserved DID with substituted same-origin
-client metadata keys; a DID-anchored client using <tt>jwks_uri</tt> with
-<tt>private_key_jwt</tt>, with and without a statement-covered <tt>jwks</tt> link; an
-origin-anchored client whose statement-covered metadata points to a
-<tt>jwks_uri</tt> off the AID Origin (not attributed); an attacker-owned client
-metadata document claiming an unrelated origin-anchored agent's
-<tt>agent_uri</tt>, both with only a client assertion (not attributed) and with a
-request signed by the attacker's own agent (attributed to the attacker's
-agent, never the claimed one); a WIT with a future <tt>iat</tt>; an insecure
-delegation record (ignored); a delegated <tt>Signature-Agent</tt> value whose
-forward mapping differs (rejected); content tampering with a valid
-signature; fetches to forbidden destinations; and expired credentials. Two
-independent verifiers should reach the same decision for each.</t>
+          <t><strong>Companion documents.</strong> Credentials for short-lived agent instances
+(in -04, a profile of the WIMSE Workload Identity Token) and bindings of
+agent keys to OAuth client authentication (in -04, <tt>private_key_jwt</tt>
+attribution) are to be specified separately, in coordination with the
+WIMSE and OAuth working groups.</t>
+        </li>
+        <li>
+          <t><strong>Cryptographic test vectors.</strong> <xref target="test-vectors"/> covers URI processing.
+Once an implementation can produce and cross-check them, add vectors for
+statement <tt>iss</tt>/<tt>sub</tt> binding, DID key conversion and per-purpose
+selection, <tt>agent_use</tt> enforcement, content tampering with a valid
+signature, fetches to forbidden destinations, and expired statements.</t>
         </li>
       </ol>
     </section>
-    <section anchor="changes-04">
-      <name>Changes from draft-narvaneni-agent-uri-04</name>
-      <ul spacing="normal">
-        <li>
-          <t>Removed ports from agent URIs, so that an agent's identity depends only on
-its host and name. The agent-instance profile no longer needs a port
-restriction.</t>
-        </li>
-        <li>
-          <t>Added DNS delegation of AID URLs through DNSSEC-validated <tt>_agent</tt> TXT
-records (<xref target="dns-delegation"/>), with matching request-signing, security,
-privacy, and IANA text.</t>
-        </li>
-        <li>
-          <t>Added the <tt>jwks</tt> link relation, so that OAuth client keys behind a
-<tt>jwks_uri</tt> can be protected by a statement, including for DID-anchored
-agents.</t>
-        </li>
-        <li>
-          <t>Completed the IANA registration templates.</t>
-        </li>
-        <li>
-          <t>Closed open issues: retired keys (the re-issue model is kept, giving a
-single way to stop trusting a key), the reserved root segment and name-path
-rules (kept as specified), DNS-based verification (now specified), and
-ports (removed).</t>
-        </li>
-        <li>
-          <t>Updated the test vectors for port removal and added delegation-record
-vectors.</t>
-        </li>
-      </ul>
-    </section>
     <section anchor="changes">
-      <name>Changes from draft-narvaneni-agent-uri-03</name>
-      <t>This revision changes the scope of the document from "addressing and
-discovery" to "identity".</t>
-      <t>Removed:</t>
+      <name>Changes from draft-narvaneni-agent-uri-04</name>
+      <t>This revision simplifies the document so that each task has one mechanism.</t>
+      <t>Removed or moved out:</t>
       <ul spacing="normal">
         <li>
-          <t><tt>agent+&lt;protocol&gt;</tt> transport-binding schemes and the Transport Bindings
-registry.</t>
+          <t><strong>Ports.</strong> Agent URIs no longer contain ports, so an agent's identity
+depends only on its host and name.</t>
         </li>
         <li>
-          <t>Invocation semantics (GET/POST rules, fallback behaviour), query
-parameters in agent URIs, and conformance levels.</t>
+          <t><strong>Instance credentials.</strong> The profile of the WIMSE Workload Identity Token
+moves to a companion document (<xref target="open-issues"/>).</t>
         </li>
         <li>
-          <t>The <tt>/.well-known/agents.json</tt> registry, replaced by the deterministic
-mapping of <xref target="dereference"/> and optional RFC 9727 catalogs.</t>
+          <t><strong>OAuth client-authentication attribution.</strong> The association check,
+qualifying-key rules, and the <tt>agent_uri</tt> client metadata parameter are
+removed. Only a verified request signature establishes agent identity
+(<xref target="oauth"/>).</t>
         </li>
         <li>
-          <t>The agent descriptor's capability fields (<tt>skills</tt>, <tt>transport</tt>,
-<tt>interactionModel</tt>, versioning, content negotiation). Protocol metadata
-documents are linked instead.</t>
-        </li>
-        <li>
-          <t>DID authorities in agent URIs, replaced by DID anchoring
-(<xref target="did-anchored"/>).</t>
-        </li>
-        <li>
-          <t>Cross-cutting conventions (tracing, idempotency, rate limits, health) and
-the Interaction Models registry.</t>
-        </li>
-        <li>
-          <t>The monotonic scope narrowing rule, which conflicted with <xref target="RFC8693"/>.</t>
+          <t>The appendix listing changes from draft-narvaneni-agent-uri-03.</t>
         </li>
       </ul>
-      <t>Added:</t>
+      <t>Added or completed:</t>
       <ul spacing="normal">
         <li>
-          <t>Strict URI syntax, normalization, comparison, and reverse-mapping rules.</t>
+          <t>Full IANA registration templates.</t>
         </li>
         <li>
-          <t>The Agent Identity Document, a single Key Identifier scheme, key purposes
-(including <tt>agent_use</tt> for origin-anchored keys), and origin and DID
-anchoring with DID pinning.</t>
+          <t>"One way to do each thing" as a design principle.</t>
+        </li>
+      </ul>
+      <t>Closed open issues:</t>
+      <ul spacing="normal">
+        <li>
+          <t><strong>Retired keys:</strong> the re-issue model is kept, giving a single way to stop
+trusting a key (<xref target="lifecycle"/>).</t>
         </li>
         <li>
-          <t>Agent Statements bound to the links that carry them.</t>
+          <t><strong>DNS-based verification:</strong> not adopted. Any operator that can obtain a TLS
+certificate for a domain can serve AIDs from static hosting, and a DNS
+alternative would need DNSSEC and a second verification path.</t>
         </li>
         <li>
-          <t>A request-signing profile of <xref target="WEB-BOT-AUTH"/>, and an agent-instance
-profile reusing the WIMSE Workload Identity Token format with AID-based
-trust.</t>
+          <t><strong>Reserved root segment and name-path rules:</strong> kept as specified.</t>
         </li>
         <li>
-          <t>OAuth bindings that separate metadata association from agent attribution,
-define which client keys qualify, and describe verified identity at consent
-using Pushed Authorization Requests.</t>
-        </li>
-        <li>
-          <t>Security and privacy considerations specific to agent identity, including a
-fetch policy covering every verifier-initiated request.</t>
-        </li>
-        <li>
-          <t>Test vectors for URI processing (<xref target="test-vectors"/>).</t>
+          <t><strong>Ports:</strong> removed.</t>
         </li>
       </ul>
     </section>
     <section numbered="false" anchor="acknowledgments">
       <name>Acknowledgments</name>
-      <t>The authors thank the reviewers of earlier revisions, whose feedback led to
-the change of scope in this revision.</t>
+      <t>The authors thank the reviewers of earlier revisions, whose feedback shaped
+this document.</t>
     </section>
   </back>
   <!-- ##markdown-source:
-H4sIAAAAAAAAA+296XYbV5Iu+j+fIi+0uk2yAIikZtJyFU3KNssa2CJtV3Wt
-WkYCSJBZApBoZIIUrVI/y3mW82Qnvhj2kEhQkqvPuvfH1eoug0DmHmPHjuGL
-iF6vl9RFPc0P0s7FVZ5ml/m8Tn96e5qej67yGX0xH6c/58tiUmTDaZ4e8e+n
-Y/rfor7tJNlwuMyv6WV+sbdaFp1klNX5Zbm8PUirepyMy9HrbEbtj5fZpO7N
-s+V1Ns/nRc+90dt9lBSL5UFaL1dVvb+7+2x3P8mWeXaQHi0W04LaK8p5xUN5
-m2fT3kUxy5N3+e1NuRwfJGnak2Hzp0KHxn9gHhXPg//84eLiLJ3lVUWPp1Vx
-Oc/q1TKvkmo1nBVVRZ1c3C5opKcvLr5LxjSLg3R/d/9xb2+3t7+bJDTNB0lV
-0zB+zablnH69pZcXxUH6t7ocddOqXNbLfFLRp9sZPvw9SbJVfVUuaZA9GkGa
-FvPqIP1rP31tq8Dfznl9/ppVN9m8vmr8WC4vs3nxG68BDW0+zhf5HJOktajy
-bEnTW/KD+SwrpjQmbeYPRV5P/nSJL/ujcsaPjGhhDtKX5XxczuWLcjWvsVM/
-zYs6H6c/FvPLMR4OhnveT8/66dvsOhzseVakZ6vlvJhl/qcvHeqyX2VFfyHN
-NMebzMvljJq6zrHFb7873tt98Eg/Pnjw4Jl9fPb0sX58uPvggf/40H+01x7t
-u28fPX226z/u6cfHTx88dR/dA08e7T3yH5/4j8/cR9cCfXTPPnaNPXm6a409
-3X1gLTzdf/TMfXxqzz599GjfPj52HT99/Mzm9vTJvvv2yVP7+Gxvb9d/tOE8
-e7jvPj564B54/Ii//eXFt71v31z0jn66+IH2q3fSxx70bvLhsKxBub2rul7Q
-QektliWReDnFS6evzl/0jt++ODkP3ylmVd6jA/luWmbj3miZjyt6+OT0pHf8
-5u2LA952YzQn+YiIYplNi9+I5oSZTIp8WaVb9EK1nV7v9Xc7/Io7P/yvJxT5
-qp+eL8rl/Db++qQP0r6c5rfrj2fDbJxPp+XaG2/zfBx/+YYer/N8msdfH/fT
-o+k0l3PjmMN+b/cJf1MRj8yrYj4pbbC/PDg+oOaJlmd0CvhQyCpky8u8Pkh5
-bQ/u37+5uenfPOjT4bl/8fb+uKDVK5f5fXr2+PQkXrjjkpatpFHEq/b7lou+
-/jNxsSqe0CNw4//JCY1oQjS++0mCtuIjTefNnaGnj9zRe/bE0fpDd96e7T9+
-6Kj6ob327Mn+E//xqTsB+8YUnj17yI29AZH3jk9fnQRUWzKRj6YFbiIa5yyv
-M5pY1qNLazWTK0XoHVfH+en3axSPOffcVUKPX/zlde/izY8vXp+v9UMUP6+y
-EdatV5fv8rmdEDqHP/8Q7zTuYiKFAzqL11d4KH2V09aO79jmtlNV36bfEYsP
-NstvdOve2fXZn7jXQJI8DJDk0f5RPFAWCPZFLNiiX7fTM+UVRHT5iChUru87
-Bk5v4aV/5KO6m74s5qv3XzjobD9zHIrJbkrPV/X9KhwARv/q+Cwe/auSuEKK
-Y5W/r7985Bte18l8ztBnaGEkDbgpFGVz6EmvR0LOsKLtpXaT83JS35CEJHJP
-RYMhhpvRYb2c3qb0RFrO05oo6JTaXc5z/nuYX2XTSVpO0kVeLqYs2SXhjU3z
-oXdu01E2naZHZ6ckxwyX5U2Vp7T7FYkH9AVEMBpwfkmzSsHt07pMyxr3ugyl
-71ahSqvV6CrNKt5fvEirTy9PinmeXpU3Nnawk9UcM82pw1WNQdBJKqp0XtLE
-aALlIl+y8HmT3aI/OkU3+TLN0sWyKJfpf61or1ni2Lm5KtAlEyM1UF8VMuYE
-/Y2yeVqgw2lGR5fWI71muTYf/3EnSS7o2dSOvQ6z4kUccHuDQJjEpDISbjGo
-bnq1mmXzHq3/GH8nhWPMKbE76l3GQ+OgVmk2s2Je0HhH6SxbLGjH0smynFFH
-WZ0Gr/I0E+Y6vauygmwWi97piY4VExwRaaIp2tzahPivqpRE5Ipbwg7SXheX
-xTzFmFp5BfqVHQY/o69pgnU+403i4Q0L+s21n1DDWE6j2tSYZz89rdNsWpVu
-FemRSTHNtZkp0aOtCn66ztFOYpwHtMqC+jLnnQUZrorpmOenP71SGf7cyfCy
-1qu6pPuFLnSa2oROj0zH9VrRMtW9Kd0/YyOSOeT5Eb2PU0M8B0vvV9APaoXD
-xT/xfZD+opKO348LcPRUbjheAjonxZAot87pUI5LumjnZf2pAzDOq9GSXkNX
-xZJodpENi2lRFzh9mCKOxvya+hr3hSvMivGYyC65h9O+LMcrvmDSD/eK4M+P
-SXIkvYFrzKnzSbGsarr6sornXpIY0WAaJO+kzFJymj3WJave8SEaZfR34raQ
-6IBZxrj8ja400CCYB688cwadZzfNMzqc9LOc0jkJXkydY+J04zy5ucr5afqG
-ervmFTAa6NPqjnH46Sjk/HOBPcNgqpx2K714eZ7KNY4tT0/Pkmw8JrKgXol5
-XGULjIdkAGLiNFt6Fz1jv0jtWxE1UKc7VTnLd4JWiEaSwU/UWe9IGABxXyGC
-DAR8S7ITj4C2/DKnEQrvnGOTl7T1xAxowCRzpgFXAlvDYlE7vJ1u0jTXtYNE
-xyLNxsSk6qKi2d4Q1yEuM6VmF6vhtKiuiNCHt9RGmdND6UiEQ7oNaiKNY0dV
-oIaFY8rZFJzqNs3fF1jXDx+IO3/86I6qKOV12dPhghZEZJEVmSsbOs6W40N6
-m3h68HZA1Uve7brkPokD25Ar2d2lm+Vh+oa0RCIZR/uVHHJQUT99oURDK0Rb
-7x5JdtAXbVudTXEJ7WBoJJUuShoy6dfYHHlr5ueWkhTMTNuuEGw7LR9eToJb
-g/YXdxsOxrLE+aBN1Mb6m28KeoutCEQijm1Ms9t8CW5QpTs7EOt3dpKtDx+c
-6YPWjsbw4YNntR8/btMgDpJkr0+vHLG63d/ZAXlFN9FW3r/sd/UrEiTy99mM
-bnWozvcXUyLDfDlAS0TEEOZb76p0w12VxkPc7if7MhibNQb0gjbxNrAXzXDI
-ohuOSZUvMt7Qc3rsJa9TIurFdV55glq719IpGlGmazca3910XlkkIKbVRVNM
-WiO+7eTc0vF6x6yl9X7i2RVjntcDntdcr1Bb5+j+BMNkwxR1O8yZ9wkTy5fC
-oxwpFJWb2Djdwk965dKtwneO3vSBlW0bTCBotXEzoz1/OadDSMVM9JGlDvMx
-EYBn9RCzOnckFU2LL/cqvNtxrTPR1lVOAiL4rwqfvLjN5YOdS6ndFhRccIg7
-DYvUpVOwXBKpj5nDUeP5e5kJ8UxZta0GwdOhekN3T7kwAQYnpcvi2/pB29kx
-cYKmJbx4mUeXbVLli2yp53zMP+fvaUq1MHrI0O/AoiEpsK2PTzsdORKx7cZh
-nQ6rop1hZB8+hAYTOro0j8bjNJlDNKMHqWfyhWuGB7zMV5UKl3dKE7RoIk+g
-a292oZ5vCrrIjkh1HGYVZgX6xHCcPIOBMN/t6a2339+1na6YYlifUdFf9uDe
-PaI+TIRkeNIoigVEtg/3Fu6Pj1iinR2lyFuSVsoU150IJCCzo3lAl2BdlVsL
-lolYqq+ZJ03LEU6wMR7j3bxlo2wJ44NoANelXWK0qTMwmKrP43iLZSTCoxZy
-PBcxplk+uiLVppoxDwy3EZ29V95Swh5ZzKE9XkJcSNm8S3fbgbIsjOaGLvHe
-OxKa5pgWLckHtc19/NhN//zLj/IFTIP0BbX351/O3Vf8zCaZlR+CiY52NHNi
-MrEZWGqa1Nb9bOlTXg7ppeuJQDgkzGz0kJnnPn6UFT1iNqLkVK7qii6ImMcN
-cyybKU685WCTfG8Kk6TeA4YWcEFqGHaMgqnASTAidHdJHIRQYG9maWCBETqC
-MEQMsFY+JQM+55NeyyDxnOex03J+qbK+u46J/cxZ8JShn5C2ULAVBrRCe0P/
-O64OTYQhRZ2OKlodi1pUTscs55kaWK0WkCi8MoiWlreLmogpW5DUF16wpH+b
-/tS4hdFDV440ZLhivsJYJ0ybutJLFTCusmvIvxBca6N8OswwGsoVkMu9xptJ
-O47eoVjo5YizJ+ovpi9uHT1cOc9AJDSVJLF/eC9JU2tcr3N3xvty2ohTE1Xk
-U+yc/VpluDyDHevyURtNV3zbkNiltzjvbZdWmjeD1pJHKHMAoQuHuPR6KDaV
-v6xyGumY5/KK7h7tmK6b0Uo9RmySyxfYLbpSiQVt0Pe88jlRzUvawqZgBkz2
-PP5xcV2MV7EULryTZM7e9yUpvsQz5/T5Ep8/Ql7EaKfT8gbz1tuIBJaipjbQ
-OPVZjWgt+AaK5faKFgVbSHtnfis54/QF62PTYpKPbkdTM854dtmHMZKF5mGO
-s4CtI1m/CzNM12TungnUY7X4iPo/K6bZ0isN2Itj00SJ7VfviumUb3fI9yqU
-L7hTbwRz0oGdZLp2hKZVVGVNDbYhr1GkchfAUKRaAt0E422lDbXBFTWbkPWA
-sF6AAV7Auorj6K45fBvROC10ZPDCYY5EjDKX+4lP3a1QG3VA3ZjA6elbzUiF
-KGU88lEthBHQNcZwzq4vovBs/s4Uv2V+SVcQ3VOmzDbHMsveoQHvzbz2TlgT
-wEig8g2xeQvClp2ViHaNO2M8b/PFquYV6MKENuIxLbLbmajpTAIyqnRKXFn2
-/yiUF0iRIgK+7ac/zoWqcZrdyvA0dCWJEeIbHitzCZwVWExxWzuv7gUrDeW0
-vLylw1P7v/T44IaBs7dKO69+Or/odOW/6es3/Pnti//46ZRuOnw+/+Ho5Uv3
-IdEnzn9489PLE//Jv3n85tWrF69P5GX6No2+Sjqvjv7akTXpvDm7OH3z+uhl
-h9a5IZyyklBCCGaNebHMIVtmVeLPF73z7fHZ//5few/p4v1/6OLf39t7Rhe/
-/PF078lDyHXEsaW3cj691T9hlU2yxYLICK1AGx1lCzoGU+xWBbMWiSaQrGlx
-d/6Glfn7Qfr1cLTYe/iNfoEJR1/amkVf8pqtf7P2sixiy1ct3bjVjL5vrHQ8
-3qO/Rn/bugdffv3HKaxovb2nf/wmaarkTrgGIRHJ/Pn8zeu0HMIkj02e5TPS
-FGxTxajTYbkhEclu/9EziEz880nBxo9seYtXT0lnsRfPgxdVknv8aA+SlJja
-DpIDGNDMUl/d0vFTOy8xioqNlfNyVq4qcAxcZrOiF35JG3+7UC2a/SDegp/B
-qlWVLFOFHA2KlDIqdI+j0/6g8Y81XpaNGBLAbAZXLNuSjuy65znNIztEVqlm
-xhQe2Q1EVmoRdkQKh1jBioF1sG4C2CIVZ1sWkjdx7GzedMBIQ7hmYRn6dT6h
-/5+P+IYN5JOuSQwVCw+59dlmSlgzIAR2goQGAvOFrWpsz4i6FEMIMQPIZW5g
-OTXTTfOCrX0sd9BQBvf7Xre4r4uqVljX3lcVK9Z8wVBPojdhC80PM+ZbcFmu
-Lq/Sk9fn3O+86unPTrvDDN6wJG6TqFdwA2112BdFZI1uuunDhw+2eetZUuWe
-RYzXJejbh0pkdsi8JC/y/cwGNrefP+a3snfeQNMuSK4ZMBJ6NTB82IChaxFD
-6u0/ekx/r2ZDqKa16nSuTzRHXfWKsdoWTOiTwSxX8znfeP50hX4BJz1qs2rj
-ZuGb5P+KbUq0XTRtzGeRQVaElQFnes2B4AXLhnJOw/pZRXs5VGhqWavMQerF
-6J1XnYN2DsSZA3ccKAJm02U+ykkoZfnU+0wyJy79ZqIkBKoumzhEZBCHwjww
-0vPl/OYal39+QzdxqR/pGv7v//5v9X3G/+6wPwZPbeHYb7c2EPz75ycfaHeh
-feq1a3nAfK7hUNcOYHPwW0rtXzT4P/Ra/rV+2ftD8No/2+d8R29OLN1idrbN
-X7LZcosPS15v2xvK05Y5Se5XxJY+PaE7O2ZO4pTOA2civS4y5Y76L5bwu/I6
-DA/+XR4w36MwELh7nP81dIHup0bd/CeGD/HqOJ2EqfnDQXpvUlz2jMgFFPC8
-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
-WpFcTeyQ86n/hUVwUEZwy/aT/wNKrtoA4S8BAA==
+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
+Ng9PN1J+Fuk0agU+/W9ZMtlDnMsAAA==
 
 -->
 
