@@ -2220,7 +2220,9 @@ Identity Tokens or sign statements (<a href="#sec-key-compromise" class="auto in
 <p id="section-5.4-5">A link whose <code>href</code> has the <strong>same origin as the AID Origin</strong> is trusted to
 the same degree as the AID itself. To compare, the verifier lowercases the
 <code>href</code> host, converts it to A-labels, and uses port 443 if none is present;
-the result must equal the AID Origin exactly (<a href="#tv-origin" class="auto internal xref">Appendix A.4</a>). A link to any
+the result must equal the AID Origin exactly (<a href="#tv-origin" class="auto internal xref">Appendix A.4</a>). No other
+normalization is applied; in particular, a trailing "." is not removed from
+the host. A link to any
 other origin <span class="bcp14">MUST</span> carry a <code>statement</code>, and verifiers <span class="bcp14">MUST</span> ignore cross-origin
 links without a valid statement (<a href="#statement-verify" class="auto internal xref">Section 7.1</a>). Because
 verifier-initiated fetches never follow redirects (<a href="#sec-fetch" class="auto internal xref">Section 13.4</a>), a
@@ -2804,41 +2806,43 @@ whose <code>tag</code> and covered components differ; see <a href="#open-issues"
 <code>rel="oauth-client-metadata"</code>. The client metadata document <span class="bcp14">SHOULD</span> include the
 <code>agent_uri</code> client metadata parameter (<a href="#iana-client-metadata" class="auto internal xref">Section 15.6</a>) containing
 the canonical agent URI.<a href="#section-10.1-1" class="pilcrow">¶</a></p>
-<p id="section-10.1-2">An authorization server that sees <code>agent_uri</code> <span class="bcp14">MAY</span> check it by retrieving the
-AID and confirming that it links to the same <code>client_id</code>. This check
-establishes only a <strong>metadata association</strong> between the client identifier and
-the agent. It does not show that the party making the current request controls
-the agent, because a public <code>client_id</code> can be used by anyone.<a href="#section-10.1-2" class="pilcrow">¶</a></p>
-<p id="section-10.1-3">Before an authorization server treats the current caller as an authenticated
-agent, it <span class="bcp14">MUST</span> require proof of possession bound to the current exchange, for
-example:<a href="#section-10.1-3" class="pilcrow">¶</a></p>
+<p id="section-10.1-2">The <code>agent_uri</code> value is a claim made by whoever publishes the client
+metadata document. Ordinary client authentication <span>[<a href="#OAUTH-CIMD" class="cite xref">OAUTH-CIMD</a>]</span> does not
+authenticate it: anyone can publish client metadata that names someone else's
+agent URI and then authenticate correctly as that client.<a href="#section-10.1-2" class="pilcrow">¶</a></p>
+<p id="section-10.1-3"><strong>Association check.</strong> The association between a <code>client_id</code> and an agent is
+verified by retrieving the AID for the claimed agent URI (<a href="#aid-retrieval" class="auto internal xref">Section 5.6</a>),
+including all anchoring and <code>status</code> checks, and confirming that the AID has an
+<code>oauth-client-metadata</code> link whose <code>href</code> is identical to the <code>client_id</code>, with
+any statement that link requires (<a href="#aid-links" class="auto internal xref">Section 5.4</a>). An authorization server that
+does not attribute agent identity <span class="bcp14">MAY</span> skip this check. On its own, the check
+does not show that the party making the current request controls the agent,
+because a public <code>client_id</code> can be used by anyone.<a href="#section-10.1-3" class="pilcrow">¶</a></p>
+<p id="section-10.1-4"><strong>Agent attribution.</strong> An authorization server <span class="bcp14">MUST NOT</span> treat the current
+caller as an authenticated agent unless one of the following holds:<a href="#section-10.1-4" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-10.1-4.1">
-            <p id="section-10.1-4.1.1">client authentication with <code>private_key_jwt</code> using keys authorized by the
-client metadata document; or<a href="#section-10.1-4.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="section-10.1-5.1">
+            <p id="section-10.1-5.1.1">the association check succeeds for the exact <code>client_id</code>, <strong>and</strong> the
+client authenticates with <code>private_key_jwt</code> in the current exchange using
+keys authorized by the client metadata document; or<a href="#section-10.1-5.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-10.1-4.2">
-            <p id="section-10.1-4.2.1">a request signature verified under <a href="#request-signing" class="auto internal xref">Section 8</a> for the same agent
-URI.<a href="#section-10.1-4.2.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-10.1-5.2">
+            <p id="section-10.1-5.2.1">a request signature for the agent URI is verified under <a href="#request-signing" class="auto internal xref">Section 8</a>
+in the current exchange.<a href="#section-10.1-5.2.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-10.1-5">For DID-anchored agents, client keys may be used for this proof only if the
-key material itself is protected by a DID-authorized statement:<a href="#section-10.1-5" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-10.1-6.1">
-            <p id="section-10.1-6.1.1">keys embedded in the client metadata document's <code>jwks</code> qualify if that
-document is covered by a valid statement (<a href="#aid-links" class="auto internal xref">Section 5.4</a>); and<a href="#section-10.1-6.1.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-10.1-6.2">
-            <p id="section-10.1-6.2.1">keys fetched from the document's <code>jwks_uri</code> qualify only if the fetched JWK
-Set is covered by its own valid statement whose <code>sub</code> is that <code>jwks_uri</code>
-(<a href="#statement-verify" class="auto internal xref">Section 7.1</a>). A statement over the client metadata document alone
-protects the <code>jwks_uri</code> value, not the keys served there.<a href="#section-10.1-6.2.1" class="pilcrow">¶</a></p>
-</li>
-        </ul>
-<p id="section-10.1-7">Otherwise the authorization server <span class="bcp14">MUST</span> require a request signature.<a href="#section-10.1-7" class="pilcrow">¶</a></p>
-<p id="section-10.1-8">Without such proof, the authorization server <span class="bcp14">MUST</span> handle the client as it
-would any client using that <code>client_id</code>, and <span class="bcp14">MUST NOT</span> present it to users as a
+<p id="section-10.1-6">A valid client assertion without a successful association check leaves the
+agent identity unverified.<a href="#section-10.1-6" class="pilcrow">¶</a></p>
+<p id="section-10.1-7">For DID-anchored agents, the <code>private_key_jwt</code> route additionally requires the
+client keys to be protected by a DID-authorized statement. Only keys embedded
+in the client metadata document's <code>jwks</code> qualify, and only if that document
+is covered by a valid statement (<a href="#aid-links" class="auto internal xref">Section 5.4</a>). Keys obtained through
+<code>jwks_uri</code> do not qualify, because a statement over the client metadata
+document protects the <code>jwks_uri</code> value, not the keys served there
+(<a href="#statements" class="auto internal xref">Section 7</a>). DID-anchored agents that use <code>jwks_uri</code> <span class="bcp14">MUST</span> use request
+signatures for agent attribution.<a href="#section-10.1-7" class="pilcrow">¶</a></p>
+<p id="section-10.1-8">Otherwise, the authorization server <span class="bcp14">MUST</span> handle the client as it would any
+client using that <code>client_id</code>, and <span class="bcp14">MUST NOT</span> present it to users as a
 verified agent identity. Consent screens <span class="bcp14">SHOULD</span> display the agent URI or its
 DID and <span class="bcp14">MUST</span> present the operator name as claimed by the agent
 (<a href="#sec-operator" class="auto internal xref">Section 13.3</a>).<a href="#section-10.1-8" class="pilcrow">¶</a></p>
@@ -3628,6 +3632,10 @@ https://example.com/.well-known/agent/_/planner
     reject  reserved segment inside a name-path
 https://example.com/.well-known/agent/Planner
     reject  invalid name-path
+https://example.com/.well-known/agent/planner#k
+    reject  fragment
+https://b&lt;U+00FC&gt;cher.example/.well-known/agent/planner
+    reject  not canonical (U-label host)
 </pre>
 </div>
 <figcaption><a href="#figure-9" class="selfRef">Figure 9</a>:
@@ -3652,13 +3660,16 @@ https://example.com:443/planner/agent-card.json     same origin
 https://EXAMPLE.com/planner/agent-card.json         same origin
 https://planner.example.com/agent-card.json         different host
 https://example.com:8443/planner/agent-card.json    different port
-http://example.com/planner/agent-card.json          different scheme
+https://example.com./planner/agent-card.json        different host
+http://example.com/planner/agent-card.json          invalid href
 </pre>
 </div>
 <figcaption><a href="#figure-10" class="selfRef">Figure 10</a>:
 <a href="#name-aid-origin-comparison-vecto" class="selfRef">AID Origin comparison vectors</a>
           </figcaption></figure>
 </div>
+<p id="appendix-A.4-3">A link whose <code>href</code> is not an HTTPS URL is invalid regardless of origin, and a
+statement cannot make it valid (<a href="#aid-links" class="auto internal xref">Section 5.4</a>).<a href="#appendix-A.4-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -3719,8 +3730,10 @@ Once an implementation can produce and cross-check them, add vectors for:
 statement <code>iss</code>/<code>sub</code> binding, DID key conversion and per-purpose
 selection, <code>agent_use</code> enforcement (including duplicate key material and
 malformed values), a preserved DID with substituted same-origin client
-metadata keys, a preserved DID and client metadata document with a
-substituted JWK Set behind its <code>jwks_uri</code>, a WIT whose <code>sub</code> has a port, a
+metadata keys, a DID-anchored client using <code>jwks_uri</code> with
+<code>private_key_jwt</code> (not attributed), an attacker-owned client metadata
+document claiming an unrelated origin-anchored agent's <code>agent_uri</code> (not
+attributed), a WIT whose <code>sub</code> has a port, a
 WIT with a future <code>iat</code>, content
 tampering with a valid signature, fetches to forbidden destinations, and
 expired credentials. Two independent verifiers should reach the same

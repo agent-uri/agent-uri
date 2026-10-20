@@ -516,7 +516,9 @@ Link relations expected to be common include:
 A link whose `href` has the **same origin as the AID Origin** is trusted to
 the same degree as the AID itself. To compare, the verifier lowercases the
 `href` host, converts it to A-labels, and uses port 443 if none is present;
-the result must equal the AID Origin exactly ({{tv-origin}}). A link to any
+the result must equal the AID Origin exactly ({{tv-origin}}). No other
+normalization is applied; in particular, a trailing "." is not removed from
+the host. A link to any
 other origin MUST carry a `statement`, and verifiers MUST ignore cross-origin
 links without a valid statement ({{statement-verify}}). Because
 verifier-initiated fetches never follow redirects ({{sec-fetch}}), a
@@ -929,35 +931,43 @@ An agent that obtains OAuth tokens SHOULD use a Client ID Metadata Document
 `agent_uri` client metadata parameter ({{iana-client-metadata}}) containing
 the canonical agent URI.
 
-An authorization server that sees `agent_uri` MAY check it by retrieving the
-AID and confirming that it links to the same `client_id`. This check
-establishes only a **metadata association** between the client identifier and
-the agent. It does not show that the party making the current request controls
-the agent, because a public `client_id` can be used by anyone.
+The `agent_uri` value is a claim made by whoever publishes the client
+metadata document. Ordinary client authentication {{OAUTH-CIMD}} does not
+authenticate it: anyone can publish client metadata that names someone else's
+agent URI and then authenticate correctly as that client.
 
-Before an authorization server treats the current caller as an authenticated
-agent, it MUST require proof of possession bound to the current exchange, for
-example:
+**Association check.** The association between a `client_id` and an agent is
+verified by retrieving the AID for the claimed agent URI ({{aid-retrieval}}),
+including all anchoring and `status` checks, and confirming that the AID has an
+`oauth-client-metadata` link whose `href` is identical to the `client_id`, with
+any statement that link requires ({{aid-links}}). An authorization server that
+does not attribute agent identity MAY skip this check. On its own, the check
+does not show that the party making the current request controls the agent,
+because a public `client_id` can be used by anyone.
 
-- client authentication with `private_key_jwt` using keys authorized by the
-  client metadata document; or
-- a request signature verified under {{request-signing}} for the same agent
-  URI.
+**Agent attribution.** An authorization server MUST NOT treat the current
+caller as an authenticated agent unless one of the following holds:
 
-For DID-anchored agents, client keys may be used for this proof only if the
-key material itself is protected by a DID-authorized statement:
+- the association check succeeds for the exact `client_id`, **and** the
+  client authenticates with `private_key_jwt` in the current exchange using
+  keys authorized by the client metadata document; or
+- a request signature for the agent URI is verified under {{request-signing}}
+  in the current exchange.
 
-- keys embedded in the client metadata document's `jwks` qualify if that
-  document is covered by a valid statement ({{aid-links}}); and
-- keys fetched from the document's `jwks_uri` qualify only if the fetched JWK
-  Set is covered by its own valid statement whose `sub` is that `jwks_uri`
-  ({{statement-verify}}). A statement over the client metadata document alone
-  protects the `jwks_uri` value, not the keys served there.
+A valid client assertion without a successful association check leaves the
+agent identity unverified.
 
-Otherwise the authorization server MUST require a request signature.
+For DID-anchored agents, the `private_key_jwt` route additionally requires the
+client keys to be protected by a DID-authorized statement. Only keys embedded
+in the client metadata document's `jwks` qualify, and only if that document
+is covered by a valid statement ({{aid-links}}). Keys obtained through
+`jwks_uri` do not qualify, because a statement over the client metadata
+document protects the `jwks_uri` value, not the keys served there
+({{statements}}). DID-anchored agents that use `jwks_uri` MUST use request
+signatures for agent attribution.
 
-Without such proof, the authorization server MUST handle the client as it
-would any client using that `client_id`, and MUST NOT present it to users as a
+Otherwise, the authorization server MUST handle the client as it would any
+client using that `client_id`, and MUST NOT present it to users as a
 verified agent identity. Consent screens SHOULD display the agent URI or its
 DID and MUST present the operator name as claimed by the agent
 ({{sec-operator}}).
@@ -1358,6 +1368,10 @@ https://example.com/.well-known/agent/_/planner
     reject  reserved segment inside a name-path
 https://example.com/.well-known/agent/Planner
     reject  invalid name-path
+https://example.com/.well-known/agent/planner#k
+    reject  fragment
+https://b<U+00FC>cher.example/.well-known/agent/planner
+    reject  not canonical (U-label host)
 ~~~
 {: #fig-tv-reverse title="Reverse mapping vectors"}
 
@@ -1372,9 +1386,13 @@ https://example.com:443/planner/agent-card.json     same origin
 https://EXAMPLE.com/planner/agent-card.json         same origin
 https://planner.example.com/agent-card.json         different host
 https://example.com:8443/planner/agent-card.json    different port
-http://example.com/planner/agent-card.json          different scheme
+https://example.com./planner/agent-card.json        different host
+http://example.com/planner/agent-card.json          invalid href
 ~~~
 {: #fig-tv-origin title="AID Origin comparison vectors"}
+
+A link whose `href` is not an HTTPS URL is invalid regardless of origin, and a
+statement cannot make it valid ({{aid-links}}).
 
 # Open Issues {#open-issues}
 
@@ -1412,8 +1430,10 @@ This appendix will be removed before publication.
    statement `iss`/`sub` binding, DID key conversion and per-purpose
    selection, `agent_use` enforcement (including duplicate key material and
    malformed values), a preserved DID with substituted same-origin client
-   metadata keys, a preserved DID and client metadata document with a
-   substituted JWK Set behind its `jwks_uri`, a WIT whose `sub` has a port, a
+   metadata keys, a DID-anchored client using `jwks_uri` with
+   `private_key_jwt` (not attributed), an attacker-owned client metadata
+   document claiming an unrelated origin-anchored agent's `agent_uri` (not
+   attributed), a WIT whose `sub` has a port, a
    WIT with a future `iat`, content
    tampering with a valid signature, fetches to forbidden destinations, and
    expired credentials. Two independent verifiers should reach the same

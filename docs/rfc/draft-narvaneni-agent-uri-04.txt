@@ -141,7 +141,7 @@ Internet-Draft                  agent-uri                   October 2026
      A.1.  Parsing and Canonicalization  . . . . . . . . . . . . . .  36
      A.2.  Mapping to AID URLs . . . . . . . . . . . . . . . . . . .  38
      A.3.  Reverse Mapping of Signature-Agent Values . . . . . . . .  38
-     A.4.  AID Origin Comparison . . . . . . . . . . . . . . . . . .  38
+     A.4.  AID Origin Comparison . . . . . . . . . . . . . . . . . .  39
    Appendix B.  Open Issues  . . . . . . . . . . . . . . . . . . . .  39
    Appendix C.  Changes from draft-narvaneni-agent-uri-03  . . . . .  40
    Acknowledgments . . . . . . . . . . . . . . . . . . . . . . . . .  41
@@ -698,11 +698,13 @@ Internet-Draft                  agent-uri                   October 2026
    to the same degree as the AID itself.  To compare, the verifier
    lowercases the href host, converts it to A-labels, and uses port 443
    if none is present; the result must equal the AID Origin exactly
-   (Appendix A.4).  A link to any other origin MUST carry a statement,
-   and verifiers MUST ignore cross-origin links without a valid
-   statement (Section 7.1).  Because verifier-initiated fetches never
-   follow redirects (Section 13.4), a same-origin href cannot acquire
-   the same-origin exemption for content served from another origin.
+   (Appendix A.4).  No other normalization is applied; in particular, a
+   trailing "." is not removed from the host.  A link to any other
+   origin MUST carry a statement, and verifiers MUST ignore cross-origin
+   links without a valid statement (Section 7.1).  Because verifier-
+   initiated fetches never follow redirects (Section 13.4), a same-
+   origin href cannot acquire the same-origin exemption for content
+   served from another origin.
 
    For DID-anchored agents the same-origin exemption does not apply:
    every link MUST carry a statement signed with a key from the DID
@@ -712,8 +714,6 @@ Internet-Draft                  agent-uri                   October 2026
    keys, without holding any key authorized by the DID (Section 13.1).
 
 5.5.  Example
-
-
 
 
 
@@ -1251,37 +1251,37 @@ Internet-Draft                  agent-uri                   October 2026
    document SHOULD include the agent_uri client metadata parameter
    (Section 15.6) containing the canonical agent URI.
 
-   An authorization server that sees agent_uri MAY check it by
-   retrieving the AID and confirming that it links to the same
-   client_id.  This check establishes only a *metadata association*
-   between the client identifier and the agent.  It does not show that
-   the party making the current request controls the agent, because a
-   public client_id can be used by anyone.
+   The agent_uri value is a claim made by whoever publishes the client
+   metadata document.  Ordinary client authentication [OAUTH-CIMD] does
+   not authenticate it: anyone can publish client metadata that names
+   someone else's agent URI and then authenticate correctly as that
+   client.
 
-   Before an authorization server treats the current caller as an
-   authenticated agent, it MUST require proof of possession bound to the
-   current exchange, for example:
+   *Association check.* The association between a client_id and an agent
+   is verified by retrieving the AID for the claimed agent URI
+   (Section 5.6), including all anchoring and status checks, and
+   confirming that the AID has an oauth-client-metadata link whose href
+   is identical to the client_id, with any statement that link requires
+   (Section 5.4).  An authorization server that does not attribute agent
+   identity MAY skip this check.  On its own, the check does not show
+   that the party making the current request controls the agent, because
+   a public client_id can be used by anyone.
 
-   *  client authentication with private_key_jwt using keys authorized
-      by the client metadata document; or
+   *Agent attribution.* An authorization server MUST NOT treat the
+   current caller as an authenticated agent unless one of the following
+   holds:
 
-   *  a request signature verified under Section 8 for the same agent
-      URI.
+   *  the association check succeeds for the exact client_id, *and* the
+      client authenticates with private_key_jwt in the current exchange
+      using keys authorized by the client metadata document; or
 
-   For DID-anchored agents, client keys may be used for this proof only
-   if the key material itself is protected by a DID-authorized
-   statement:
+   *  a request signature for the agent URI is verified under Section 8
+      in the current exchange.
 
-   *  keys embedded in the client metadata document's jwks qualify if
-      that document is covered by a valid statement (Section 5.4); and
+   A valid client assertion without a successful association check
+   leaves the agent identity unverified.
 
-   *  keys fetched from the document's jwks_uri qualify only if the
-      fetched JWK Set is covered by its own valid statement whose sub is
-      that jwks_uri (Section 7.1).  A statement over the client metadata
-      document alone protects the jwks_uri value, not the keys served
-      there.
 
-   Otherwise the authorization server MUST require a request signature.
 
 
 
@@ -1290,11 +1290,21 @@ Narvaneni & Ravi          Expires 23 April 2027                [Page 23]
 Internet-Draft                  agent-uri                   October 2026
 
 
-   Without such proof, the authorization server MUST handle the client
-   as it would any client using that client_id, and MUST NOT present it
-   to users as a verified agent identity.  Consent screens SHOULD
-   display the agent URI or its DID and MUST present the operator name
-   as claimed by the agent (Section 13.3).
+   For DID-anchored agents, the private_key_jwt route additionally
+   requires the client keys to be protected by a DID-authorized
+   statement.  Only keys embedded in the client metadata document's jwks
+   qualify, and only if that document is covered by a valid statement
+   (Section 5.4).  Keys obtained through jwks_uri do not qualify,
+   because a statement over the client metadata document protects the
+   jwks_uri value, not the keys served there (Section 7).  DID-anchored
+   agents that use jwks_uri MUST use request signatures for agent
+   attribution.
+
+   Otherwise, the authorization server MUST handle the client as it
+   would any client using that client_id, and MUST NOT present it to
+   users as a verified agent identity.  Consent screens SHOULD display
+   the agent URI or its DID and MUST present the operator name as
+   claimed by the agent (Section 13.3).
 
 10.2.  Delegation
 
@@ -1328,16 +1338,6 @@ Internet-Draft                  agent-uri                   October 2026
    catalog [RFC9727] (a linkset [RFC9264]) at /.well-known/api-catalog,
    using the agent URI as the link context and agent-identity links to
    the AIDs:
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2115,13 +2115,13 @@ A.3.  Reverse Mapping of Signature-Agent Values
        reject  reserved segment inside a name-path
    https://example.com/.well-known/agent/Planner
        reject  invalid name-path
+   https://example.com/.well-known/agent/planner#k
+       reject  fragment
+   https://b<U+00FC>cher.example/.well-known/agent/planner
+       reject  not canonical (U-label host)
 
                      Figure 9: Reverse mapping vectors
 
-A.4.  AID Origin Comparison
-
-   For agent://example.com/planner, the AID Origin is ("https",
-   "example.com", 443).  Link targets compare as follows (Section 5.4):
 
 
 
@@ -2130,14 +2130,23 @@ Narvaneni & Ravi          Expires 23 April 2027                [Page 38]
 Internet-Draft                  agent-uri                   October 2026
 
 
+A.4.  AID Origin Comparison
+
+   For agent://example.com/planner, the AID Origin is ("https",
+   "example.com", 443).  Link targets compare as follows (Section 5.4):
+
    https://example.com/planner/agent-card.json         same origin
    https://example.com:443/planner/agent-card.json     same origin
    https://EXAMPLE.com/planner/agent-card.json         same origin
    https://planner.example.com/agent-card.json         different host
    https://example.com:8443/planner/agent-card.json    different port
-   http://example.com/planner/agent-card.json          different scheme
+   https://example.com./planner/agent-card.json        different host
+   http://example.com/planner/agent-card.json          invalid href
 
                   Figure 10: AID Origin comparison vectors
+
+   A link whose href is not an HTTPS URL is invalid regardless of
+   origin, and a statement cannot make it valid (Section 5.4).
 
 Appendix B.  Open Issues
 
@@ -2170,6 +2179,13 @@ Appendix B.  Open Issues
        on static hosting.  Alternatives (a separate well-known suffix
        for the root agent) should be evaluated.
 
+
+
+Narvaneni & Ravi          Expires 23 April 2027                [Page 39]
+
+Internet-Draft                  agent-uri                   October 2026
+
+
    6.  *Name path depth and character set.* Lowercase LDH segments, at
        most 8, are chosen for unambiguous comparison.  Confirm this is
        sufficient for multi-tenant platforms.
@@ -2177,14 +2193,6 @@ Appendix B.  Open Issues
    7.  *DNS-based verification.* Consider an alternative proof of
        control via a DNS TXT record, for operators that cannot serve
        well-known paths.
-
-
-
-
-Narvaneni & Ravi          Expires 23 April 2027                [Page 39]
-
-Internet-Draft                  agent-uri                   October 2026
-
 
    8.  *Port.* Confirm that non-default ports should be permitted in
        agent identities at all, given they complicate certificate and
@@ -2196,12 +2204,14 @@ Internet-Draft                  agent-uri                   October 2026
        vectors for: statement iss/sub binding, DID key conversion and
        per-purpose selection, agent_use enforcement (including duplicate
        key material and malformed values), a preserved DID with
-       substituted same-origin client metadata keys, a preserved DID and
-       client metadata document with a substituted JWK Set behind its
-       jwks_uri, a WIT whose sub has a port, a WIT with a future iat,
-       content tampering with a valid signature, fetches to forbidden
-       destinations, and expired credentials.  Two independent verifiers
-       should reach the same decision for each.
+       substituted same-origin client metadata keys, a DID-anchored
+       client using jwks_uri with private_key_jwt (not attributed), an
+       attacker-owned client metadata document claiming an unrelated
+       origin-anchored agent's agent_uri (not attributed), a WIT whose
+       sub has a port, a WIT with a future iat, content tampering with a
+       valid signature, fetches to forbidden destinations, and expired
+       credentials.  Two independent verifiers should reach the same
+       decision for each.
 
 Appendix C.  Changes from draft-narvaneni-agent-uri-03
 
@@ -2224,6 +2234,14 @@ Appendix C.  Changes from draft-narvaneni-agent-uri-03
       interactionModel, versioning, content negotiation).  Protocol
       metadata documents are linked instead.
 
+
+
+
+Narvaneni & Ravi          Expires 23 April 2027                [Page 40]
+
+Internet-Draft                  agent-uri                   October 2026
+
+
    *  DID authorities in agent URIs, replaced by DID anchoring
       (Section 6.2).
 
@@ -2234,13 +2252,6 @@ Appendix C.  Changes from draft-narvaneni-agent-uri-03
       [RFC8693].
 
    Added:
-
-
-
-Narvaneni & Ravi          Expires 23 April 2027                [Page 40]
-
-Internet-Draft                  agent-uri                   October 2026
-
 
    *  Strict URI syntax, normalization, comparison, and reverse-mapping
       rules.
@@ -2277,17 +2288,6 @@ Authors' Addresses
    Sai Purnima Ravi
    Independent Researcher
    Email: r.sai.purnima+ietf@gmail.com
-
-
-
-
-
-
-
-
-
-
-
 
 
 
