@@ -16,7 +16,7 @@ from ..resolver import AgentResolver
 SAMPLE_DESCRIPTOR = {
     "name": "test-agent",
     "version": "1.0.0",
-    "capabilities": [{"name": "test-capability"}],
+    "skills": [{"id": "echo", "name": "echo", "description": "Echo skill"}],
 }
 
 

@@ -1,8 +1,9 @@
 """
 Agent server implementations for the agent:// protocol.
 
-This module provides abstract and concrete agent server implementations
-that conform to the agent:// protocol.
+Aligned with draft-narvaneni-agent-uri-03. Servers register ``Skill``
+runtime objects and expose them over HTTPS (and optionally WebSocket)
+with an auto-generated ``agent.json`` descriptor.
 """
 
 import abc
@@ -11,7 +12,6 @@ import json
 import logging
 from typing import Any, Callable, Dict, List, Optional, Union
 
-# Runtime imports
 try:
     from fastapi import FastAPI, HTTPException, Request, WebSocket
     from fastapi.middleware.cors import CORSMiddleware
@@ -22,7 +22,6 @@ try:
 except ImportError:
     FASTAPI_AVAILABLE = False
 
-    # Runtime placeholders
     FastAPI = None  # type: ignore
     APIRouter = None  # type: ignore
     HTTPException = None  # type: ignore
@@ -33,27 +32,24 @@ except ImportError:
     StreamingResponse = None  # type: ignore
 
 
-from .capability import Capability
 from .descriptor import AgentDescriptorGenerator
 from .exceptions import (
+    AgentGoneError,
     AuthenticationError,
-    CapabilityNotFoundError,
     ConfigurationError,
+    ContentNegotiationError,
     HandlerError,
     InvalidInputError,
+    SkillNotFoundError,
 )
 from .handler import BaseHandler, HTTPHandler, WebSocketHandler
+from .skill import Skill
 
 logger = logging.getLogger(__name__)
 
 
 class AgentServer(abc.ABC):
-    """
-    Abstract base class for agent servers.
-
-    This class defines the interface for agent servers that conform to the
-    agent:// protocol, providing capability registration and request handling.
-    """
+    """Abstract base class for agent servers."""
 
     def __init__(
         self,
@@ -62,30 +58,35 @@ class AgentServer(abc.ABC):
         description: str = "",
         provider: Optional[Dict[str, Any]] = None,
         documentation_url: Optional[str] = None,
-        interaction_model: Optional[str] = None,
-        auth_schemes: Optional[List[str]] = None,
-        skills: Optional[List[Dict[str, str]]] = None,
+        interaction_model: Optional[List[str]] = None,
+        auth: Optional[Dict[str, Any]] = None,
+        transport: Optional[Dict[str, Any]] = None,
+        conformance_level: Optional[int] = 2,
+        environment: Optional[str] = None,
+        status: Optional[str] = None,
         server_url: Optional[str] = None,
     ):
-        """
-        Initialize an agent server.
+        """Initialize an agent server.
 
         Args:
-            name: The agent name
-            version: The agent version (semver)
-            description: A human-readable description
-            provider: Optional provider information
-            documentation_url: Optional documentation URL
-            interaction_model: Optional interaction model
-            auth_schemes: Optional list of authentication schemes
-            skills: Optional list of agent skills
-            server_url: Optional server URL for generating endpoints
+            name: Agent name.
+            version: SemVer agent version.
+            description: Human-readable description.
+            provider: ``{"organization": str, "url": str}``.
+            documentation_url: Human-readable documentation URL.
+            interaction_model: Registered interaction models, e.g. ``["agent2agent"]``.
+            auth: Authentication descriptor object (schemes, authorizationServer, ...).
+            transport: Transport object; or omit to derive from ``server_url``.
+            conformance_level: Self-declared conformance level (0-3). Defaults to 2.
+            environment: Deployment environment hint.
+            status: "active" | "deprecated" | "experimental".
+            server_url: Convenience — if set and ``transport`` is absent, used
+                as the HTTPS endpoint.
         """
         self.name = name
         self.version = version
         self.description = description
 
-        # Create descriptor generator
         self.descriptor_generator = AgentDescriptorGenerator(
             name=name,
             version=version,
@@ -93,135 +94,85 @@ class AgentServer(abc.ABC):
             provider=provider,
             documentation_url=documentation_url,
             interaction_model=interaction_model,
-            auth_schemes=auth_schemes,
-            skills=skills,
+            auth=auth,
+            transport=transport,
+            conformance_level=conformance_level,
+            environment=environment,
+            status=status,
             server_url=server_url,
         )
 
-        # Request handlers by type
         self._handlers: Dict[str, BaseHandler] = {
             "http": HTTPHandler(),
             "websocket": WebSocketHandler(),
         }
 
-        # Store registered capabilities
-        self._capabilities: Dict[str, Capability] = {}
-
-        # Authenticator function
+        self._skills: Dict[str, Skill] = {}
         self._authenticator: Optional[Callable] = None
 
-    def register_capability(self, path: str, capability: Capability) -> None:
-        """
-        Register a capability.
+    # ------------------------------------------------------------------
+    # Skill registration
+    # ------------------------------------------------------------------
 
-        Args:
-            path: The URI path to register the capability at
-            capability: The capability to register
-        """
-        # Store capability
-        self._capabilities[path] = capability
-
-        # Register with descriptor generator
-        self.descriptor_generator.register_capability(capability)
-
-        # Register with handlers
+    def register_skill(self, path: str, skill: Skill) -> None:
+        """Register a Skill at a URI path."""
+        self._skills[path] = skill
+        self.descriptor_generator.register_skill(skill)
         for handler in self._handlers.values():
-            handler.register_capability(path, capability)
+            handler.register_skill(path, skill)
+        logger.info("Registered skill '%s' at path '%s'", skill.metadata.name, path)
 
-        logger.info(
-            f"Registered capability '{capability.metadata.name}' at path '{path}'"
-        )
-
-    def register_capabilities_from_module(self, module) -> int:
-        """
-        Register all capabilities from a module.
-
-        Args:
-            module: The module to scan for capabilities
-
-        Returns:
-            The number of capabilities registered
-        """
+    def register_skills_from_module(self, module: Any) -> int:
+        """Register all ``@skill``-decorated callables on a module."""
         count = 0
-
-        # Find all functions with _capability attribute
         for attr_name in dir(module):
             if attr_name.startswith("_"):
                 continue
-
             attr = getattr(module, attr_name)
-            if hasattr(attr, "_capability") and isinstance(
-                attr._capability, Capability
-            ):
-                # Register at default path
-                path = attr.__name__
-                self.register_capability(path, attr._capability)
+            maybe = getattr(attr, "_skill", None)
+            if isinstance(maybe, Skill):
+                self.register_skill(attr.__name__, maybe)
                 count += 1
-
         return count
 
-    def register_capabilities_from_object(self, obj) -> int:
-        """
-        Register all capabilities from an object.
-
-        Args:
-            obj: The object to scan for capabilities
-
-        Returns:
-            The number of capabilities registered
-        """
+    def register_skills_from_object(self, obj: Any) -> int:
+        """Register all ``@skill``-decorated methods on an object."""
         count = 0
-
-        # Find all methods with _capability attribute
         for attr_name in dir(obj):
             if attr_name.startswith("_"):
                 continue
-
             attr = getattr(obj, attr_name)
-            if hasattr(attr, "_capability") and isinstance(
-                attr._capability, Capability
-            ):
-                # Register at default path
-                path = attr.__name__
-                self.register_capability(path, attr._capability)
+            maybe = getattr(attr, "_skill", None)
+            if isinstance(maybe, Skill):
+                self.register_skill(attr.__name__, maybe)
                 count += 1
-
         return count
 
     def register_authenticator(
-        self, authenticator: Callable[[Dict[str, Any]], Union[bool, Dict[str, Any]]]
+        self,
+        authenticator: Callable[[Dict[str, Any]], Union[bool, Dict[str, Any]]],
     ) -> None:
-        """
-        Register an authenticator function.
-
-        Args:
-            authenticator: Function to authenticate requests
-        """
+        """Register a global authenticator function."""
         self._authenticator = authenticator
-
-        # Register with all handlers
         for handler in self._handlers.values():
             handler.register_authenticator(authenticator)
+        logger.info("Registered authenticator")
 
-        logger.info("Registered authenticator function")
+    # ------------------------------------------------------------------
+    # Descriptor
+    # ------------------------------------------------------------------
 
     def get_agent_descriptor(self) -> Dict[str, Any]:
-        """
-        Get the agent descriptor.
-
-        Returns:
-            The agent descriptor as a dictionary
-        """
+        """Return the current agent descriptor as a dict."""
         return self.descriptor_generator.generate_descriptor()
 
     def save_agent_descriptor(self, path: str) -> None:
-        """
-        Save the agent descriptor to a file.
-
-        Args:
-            path: The file path to save to
-        """
+        """Save the descriptor to disk."""
         self.descriptor_generator.save(path)
+
+    # ------------------------------------------------------------------
+    # Abstract transport hooks
+    # ------------------------------------------------------------------
 
     @abc.abstractmethod
     async def handle_http_request(
@@ -229,25 +180,9 @@ class AgentServer(abc.ABC):
         path: str,
         params: Dict[str, Any],
         headers: Optional[Dict[str, str]] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Any:
-        """
-        Handle an HTTP request.
-
-        Args:
-            path: The request path
-            params: The request parameters
-            headers: Optional request headers
-            **kwargs: Additional request-specific parameters
-
-        Returns:
-            The response
-
-        Raises:
-            CapabilityNotFoundError: If no capability is found for the path
-            HandlerError: If there is an error handling the request
-        """
-        pass
+        raise NotImplementedError
 
     @abc.abstractmethod
     async def handle_websocket_request(
@@ -255,36 +190,37 @@ class AgentServer(abc.ABC):
         path: str,
         params: Dict[str, Any],
         headers: Optional[Dict[str, str]] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Any:
-        """
-        Handle a WebSocket request.
-
-        Args:
-            path: The request path
-            params: The request parameters
-            headers: Optional request headers
-            **kwargs: Additional request-specific parameters
-
-        Returns:
-            An async generator yielding response chunks
-
-        Raises:
-            CapabilityNotFoundError: If no capability is found for the path
-            HandlerError: If there is an error handling the request
-        """
-        pass
+        raise NotImplementedError
 
 
 if FASTAPI_AVAILABLE:
 
-    class FastAPIAgentServer(AgentServer):
-        """
-        FastAPI implementation of an agent server.
+    def _problem_response(
+        status: int,
+        title: str,
+        detail: str,
+        type_uri: str = "about:blank",
+        error_code: Optional[str] = None,
+    ) -> JSONResponse:
+        """Build an RFC 9457 problem-details response."""
+        body: Dict[str, Any] = {
+            "type": type_uri,
+            "title": title,
+            "status": status,
+            "detail": detail,
+        }
+        if error_code:
+            body["errorCode"] = error_code
+        return JSONResponse(
+            status_code=status,
+            content=body,
+            media_type="application/problem+json",
+        )
 
-        This class provides a FastAPI-based implementation of an agent server,
-        making it easy to deploy agents as web services.
-        """
+    class FastAPIAgentServer(AgentServer):
+        """FastAPI implementation of an agent server."""
 
         def __init__(
             self,
@@ -293,37 +229,20 @@ if FASTAPI_AVAILABLE:
             description: str = "",
             provider: Optional[Dict[str, Any]] = None,
             documentation_url: Optional[str] = None,
-            interaction_model: Optional[str] = None,
-            auth_schemes: Optional[List[str]] = None,
-            skills: Optional[List[Dict[str, str]]] = None,
+            interaction_model: Optional[List[str]] = None,
+            auth: Optional[Dict[str, Any]] = None,
+            transport: Optional[Dict[str, Any]] = None,
+            conformance_level: Optional[int] = 2,
+            environment: Optional[str] = None,
+            status: Optional[str] = None,
             server_url: Optional[str] = None,
             prefix: str = "",
-            app: Optional[FastAPI] = None,
+            app: Optional["FastAPI"] = None,
             enable_cors: bool = True,
             cors_origins: Optional[List[str]] = None,
             enable_docs: bool = True,
             enable_agent_json: bool = True,
         ):
-            """
-            Initialize a FastAPI agent server.
-
-            Args:
-                name: The agent name
-                version: The agent version (semver)
-                description: A human-readable description
-                provider: Optional provider information
-                documentation_url: Optional documentation URL
-                interaction_model: Optional interaction model
-                auth_schemes: Optional list of authentication schemes
-                skills: Optional list of agent skills
-                server_url: Optional server URL for generating endpoints
-                prefix: Optional URL prefix for all routes
-                app: Optional existing FastAPI app to add routes to
-                enable_cors: Whether to enable CORS
-                cors_origins: CORS origins to allow
-                enable_docs: Whether to enable API docs
-                enable_agent_json: Whether to enable agent.json endpoint
-            """
             super().__init__(
                 name=name,
                 version=version,
@@ -331,19 +250,20 @@ if FASTAPI_AVAILABLE:
                 provider=provider,
                 documentation_url=documentation_url,
                 interaction_model=interaction_model,
-                auth_schemes=auth_schemes,
-                skills=skills,
+                auth=auth,
+                transport=transport,
+                conformance_level=conformance_level,
+                environment=environment,
+                status=status,
                 server_url=server_url,
             )
 
-            # Store settings
             self.prefix = prefix
             self.enable_cors = enable_cors
             self.cors_origins = cors_origins or ["*"]
             self.enable_docs = enable_docs
             self.enable_agent_json = enable_agent_json
 
-            # Create or use FastAPI app
             self.app = app or FastAPI(
                 title=name,
                 description=description,
@@ -352,10 +272,8 @@ if FASTAPI_AVAILABLE:
                 redoc_url="/redoc" if enable_docs else None,
             )
 
-            # Set up router
             self.router = APIRouter(prefix=prefix)
 
-            # Add CORS middleware if enabled
             if enable_cors:
                 self.app.add_middleware(
                     CORSMiddleware,
@@ -365,15 +283,12 @@ if FASTAPI_AVAILABLE:
                     allow_headers=["*"],
                 )
 
-            # Set up routes
             self._setup_routes()
-
-            # Register router with app
             self.app.include_router(self.router)
 
+        # --------------------------------------------------------------
+
         def _setup_routes(self) -> None:
-            """Set up FastAPI routes."""
-            # Set up agent.json endpoint if enabled
             if self.enable_agent_json:
                 self.router.add_api_route(
                     "/agent.json",
@@ -381,36 +296,26 @@ if FASTAPI_AVAILABLE:
                     methods=["GET"],
                     response_model=None,
                     summary="Get agent descriptor",
-                    description="Returns the agent.json descriptor for this agent.",
                 )
-
-                # Add .well-known/agent.json endpoint for A2A compatibility
                 if not self.prefix:
+                    # Spec: /.well-known/agents.json (plural).
                     self.app.add_api_route(
-                        "/.well-known/agent.json",
-                        self._get_agent_json,
+                        "/.well-known/agents.json",
+                        self._get_agents_json,
                         methods=["GET"],
                         response_model=None,
-                        summary="Get agent descriptor (A2A compatible)",
-                        description=(
-                            "Returns the agent.json descriptor for this agent "
-                            "(A2A compatible path)."
-                        ),
+                        summary="Well-known agents index",
                     )
 
-            # Dynamic routes for capabilities
             self.router.add_api_route(
                 "/{path:path}",
                 self._handle_http_request,
                 methods=["GET", "POST"],
                 response_model=None,
-                summary="Invoke a capability",
-                description="Invokes an agent capability.",
+                summary="Invoke a skill",
             )
 
-            # WebSocket route for streaming
             async def websocket_wrapper(websocket: "WebSocket") -> None:
-                # Extract path from the websocket path_info
                 path = websocket.url.path.lstrip("/")
                 await self._handle_websocket_connection(websocket, path)
 
@@ -421,125 +326,131 @@ if FASTAPI_AVAILABLE:
             )
 
         async def _get_agent_json(self) -> JSONResponse:
-            """
-            Get the agent.json descriptor.
+            return JSONResponse(
+                content=self.get_agent_descriptor(),
+                media_type="application/agent+json",
+            )
 
-            Returns:
-                JSON response with the agent descriptor
-            """
-            descriptor = self.get_agent_descriptor()
-            return JSONResponse(content=descriptor, media_type="application/json")
+        async def _get_agents_json(self) -> JSONResponse:
+            """Well-known agents index: one entry per registered agent name."""
+            return JSONResponse(
+                content={
+                    "agents": {
+                        self.name: {
+                            "descriptor": (
+                                f"{self.prefix}/agent.json"
+                                if self.prefix
+                                else "/agent.json"
+                            )
+                        }
+                    }
+                },
+                media_type="application/json",
+            )
+
+        # --------------------------------------------------------------
 
         async def _handle_http_request(
-            self, request: Request, path: str
+            self, request: "Request", path: str
         ) -> Union[JSONResponse, StreamingResponse]:
-            """
-            Handle an HTTP request for a capability.
-
-            Args:
-                request: The FastAPI request
-                path: The requested path
-
-            Returns:
-                JSON response with the capability result
-
-            Raises:
-                HTTPException: If the request cannot be handled
-            """
             try:
-                # Parse parameters from query or body
-                params = {}
+                params: Dict[str, Any] = dict(request.query_params)
 
-                # Get query parameters
-                for key, value in request.query_params.items():
-                    params[key] = value
-
-                # Get body parameters for POST
                 if request.method == "POST":
                     body = await request.body()
                     if body:
                         try:
-                            # Try to parse as JSON
                             body_data = json.loads(body)
                             if isinstance(body_data, dict):
                                 params.update(body_data)
                         except json.JSONDecodeError:
-                            # If not JSON, add as raw body
                             params["body"] = body.decode("utf-8")
 
-                # Get headers
-                headers = {}
-                for key, value in request.headers.items():
-                    headers[key] = value
+                headers = dict(request.headers)
 
-                # Get session ID from header if present and store in dedicated
-                # metadata field
-                # instead of using both kwargs and explicit parameter
-                session_metadata = {}
-                if headers.get("X-Session-ID"):
+                # W3C Baggage / Trace Context propagate as-is in headers; the
+                # skill receives them via handler kwargs if it opts in.
+                session_metadata: Dict[str, Any] = {}
+                # Spec-aligned correlation: prefer Baggage session.id, fall
+                # back to legacy X-Session-ID for transitional compatibility.
+                baggage = headers.get("baggage") or headers.get("Baggage")
+                if baggage:
+                    for entry in baggage.split(","):
+                        entry = entry.strip()
+                        if entry.startswith("session.id="):
+                            session_metadata["session_id"] = entry.split("=", 1)[1]
+                            break
+                if "session_id" not in session_metadata and headers.get("X-Session-ID"):
                     session_metadata["session_id"] = headers.get("X-Session-ID")
 
-                # Handle request
                 result = await self.handle_http_request(
                     path=path,
                     params=params,
                     headers=headers,
-                    session_metadata=session_metadata,  # Pass as dedicated metadata
+                    session_metadata=session_metadata,
                 )
 
-                # Return JSON response
-                return JSONResponse(content=result, media_type="application/json")
+                return JSONResponse(
+                    content=result,
+                    media_type="application/json",
+                )
 
-            except CapabilityNotFoundError as e:
-                raise HTTPException(status_code=404, detail=str(e))
+            except SkillNotFoundError as e:
+                return _problem_response(
+                    404, "Skill Not Found", str(e), error_code=e.error_code.value
+                )
             except AuthenticationError as e:
-                raise HTTPException(status_code=401, detail=str(e))
+                return _problem_response(
+                    401,
+                    "Authentication Required",
+                    str(e),
+                    error_code=e.error_code.value,
+                )
             except InvalidInputError as e:
-                raise HTTPException(status_code=400, detail=str(e))
+                return _problem_response(
+                    400, "Invalid Input", str(e), error_code=e.error_code.value
+                )
+            except ContentNegotiationError as e:
+                return _problem_response(
+                    406, "Not Acceptable", str(e), error_code=e.error_code.value
+                )
+            except AgentGoneError as e:
+                return _problem_response(
+                    410, "Gone", str(e), error_code=e.error_code.value
+                )
             except HandlerError as e:
-                raise HTTPException(status_code=500, detail=str(e))
+                return _problem_response(
+                    500, "Handler Error", str(e), error_code=e.error_code.value
+                )
             except Exception as e:
                 logger.exception("Unexpected error handling HTTP request")
-                raise HTTPException(
-                    status_code=500, detail=f"Internal server error: {str(e)}"
-                )
+                return _problem_response(500, "Internal Server Error", str(e))
+
+        # --------------------------------------------------------------
 
         async def _handle_websocket_connection(
-            self, websocket: WebSocket, path: str
+            self, websocket: "WebSocket", path: str
         ) -> None:
-            """
-            Handle a WebSocket connection.
-
-            Args:
-                websocket: The FastAPI WebSocket
-                path: The requested path
-            """
             await websocket.accept()
 
             try:
-                # Get the first message (parameters)
                 params_raw = await websocket.receive_text()
                 params = json.loads(params_raw)
 
-                # Get session ID from parameters if present and store in
-                # dedicated metadata
-                session_metadata = {}
+                session_metadata: Dict[str, Any] = {}
                 if params.get("session_id"):
                     session_metadata["session_id"] = params.get("session_id")
 
-                # Extract headers
                 headers: Dict[str, str] = {}
-                # WebSocket doesn't give us headers directly, so use what we can
 
-                # Handle request and stream response
                 async for chunk in self.handle_websocket_request(
                     path=path,
                     params=params,
                     headers=headers,
                     session_metadata=session_metadata,
                 ):
-                    # Format and send chunk
                     if isinstance(chunk, (dict, list)):
+                        # NDJSON framing: one JSON value per line.
                         await websocket.send_text(json.dumps(chunk))
                     elif isinstance(chunk, str):
                         await websocket.send_text(chunk)
@@ -548,21 +459,45 @@ if FASTAPI_AVAILABLE:
                     else:
                         await websocket.send_text(str(chunk))
 
-            except CapabilityNotFoundError as e:
+            except SkillNotFoundError as e:
                 await websocket.send_text(
-                    json.dumps({"error": "CapabilityNotFound", "message": str(e)})
+                    json.dumps(
+                        {
+                            "error": "SkillNotFound",
+                            "errorCode": e.error_code.value,
+                            "message": str(e),
+                        }
+                    )
                 )
             except AuthenticationError as e:
                 await websocket.send_text(
-                    json.dumps({"error": "AuthenticationError", "message": str(e)})
+                    json.dumps(
+                        {
+                            "error": "AuthenticationError",
+                            "errorCode": e.error_code.value,
+                            "message": str(e),
+                        }
+                    )
                 )
             except InvalidInputError as e:
                 await websocket.send_text(
-                    json.dumps({"error": "InvalidInput", "message": str(e)})
+                    json.dumps(
+                        {
+                            "error": "InvalidInput",
+                            "errorCode": e.error_code.value,
+                            "message": str(e),
+                        }
+                    )
                 )
             except HandlerError as e:
                 await websocket.send_text(
-                    json.dumps({"error": "HandlerError", "message": str(e)})
+                    json.dumps(
+                        {
+                            "error": "HandlerError",
+                            "errorCode": e.error_code.value,
+                            "message": str(e),
+                        }
+                    )
                 )
             except Exception as e:
                 logger.exception("Unexpected error handling WebSocket request")
@@ -570,101 +505,59 @@ if FASTAPI_AVAILABLE:
                     json.dumps({"error": "InternalServerError", "message": str(e)})
                 )
             finally:
-                # Close WebSocket
                 await websocket.close()
+
+        # --------------------------------------------------------------
 
         async def handle_http_request(
             self,
             path: str,
             params: Dict[str, Any],
             headers: Optional[Dict[str, str]] = None,
-            **kwargs,
+            **kwargs: Any,
         ) -> Any:
-            """
-            Handle an HTTP request.
-
-            Args:
-                path: The request path
-                params: The request parameters
-                headers: Optional request headers
-                **kwargs: Additional request-specific parameters
-
-            Returns:
-                The response
-
-            Raises:
-                CapabilityNotFoundError: If no capability is found for the path
-                HandlerError: If there is an error handling the request
-            """
-            # Get HTTP handler
             handler = self._handlers.get("http")
             if not handler:
                 raise ConfigurationError("No HTTP handler registered")
-
-            # Handle request - HTTP handlers return Coroutines
             result = handler.handle_request(
                 path=path, params=params, headers=headers, **kwargs
             )
-            # Type check: HTTP handlers should return Coroutines
             if asyncio.iscoroutine(result):
                 return await result
-            else:
-                raise ConfigurationError("HTTP handler returned unexpected result type")
+            raise ConfigurationError("HTTP handler returned unexpected result type")
 
         async def handle_websocket_request(
             self,
             path: str,
             params: Dict[str, Any],
             headers: Optional[Dict[str, str]] = None,
-            **kwargs,
+            **kwargs: Any,
         ) -> Any:
-            """
-            Handle a WebSocket request.
-
-            Args:
-                path: The request path
-                params: The request parameters
-                headers: Optional request headers
-                **kwargs: Additional request-specific parameters
-
-            Returns:
-                An async generator yielding response chunks
-
-            Raises:
-                CapabilityNotFoundError: If no capability is found for the path
-                HandlerError: If there is an error handling the request
-            """
-            # Get WebSocket handler
             handler = self._handlers.get("websocket")
             if not handler:
                 raise ConfigurationError("No WebSocket handler registered")
-
-            # Handle request
             result = handler.handle_request(
                 path=path, params=params, headers=headers, **kwargs
             )
-            # Check if result is async iterable
             if hasattr(result, "__aiter__"):
-                async for chunk in result:  # type: ignore
+                async for chunk in result:  # type: ignore[union-attr]
                     yield chunk
             else:
-                # If not async iterable, treat as single result
-                response = await result  # type: ignore
-                yield response
+                yield await result  # type: ignore[misc]
 
 else:
-    # Define a placeholder if FastAPI is not available
-    class FastAPIAgentServer(AgentServer):  # type: ignore[no-redef]
-        """Placeholder for FastAPIAgentServer when FastAPI is not installed."""
 
-        def __init__(self, *args, **kwargs):
+    class FastAPIAgentServer(AgentServer):  # type: ignore[no-redef]
+        """Placeholder when FastAPI is not installed."""
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
             raise ImportError(
-                "FastAPI is not installed. Install it with: "
-                "pip install fastapi uvicorn"
+                "FastAPI is not installed. Install it with: pip install "
+                "'agent-uri[server]' or pip install fastapi uvicorn"
             )
 
-        async def handle_http_request(self, *args, **kwargs):
+        async def handle_http_request(self, *args: Any, **kwargs: Any) -> Any:
             pass
 
-        async def handle_websocket_request(self, *args, **kwargs):
+        async def handle_websocket_request(self, *args: Any, **kwargs: Any) -> Any:
             pass

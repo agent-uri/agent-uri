@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9, 3.10.x, 3.11, 3.12]
+        python-version: ['3.10', '3.11', '3.12', '3.13']
 
     steps:
     - uses: actions/checkout@v4
@@ -94,13 +94,38 @@ jobs:
     - name: Run security checks
       run: |
         poetry run bandit -r agent_uri/ -x "*/tests/*,*/test_*.py"
-        poetry run safety check --ignore=67599
+        # Ignored vulns (safety 2.x takes one --ignore flag per ID):
+        # 67599 — safety CLI false positive on our dep set
+        # 85681, 79883 — pip PATH / script-name issues in the runner's pip
+        # 84961 — wheel zip-bomb advisory in the runner's wheel
+        # The last three are in the GitHub runner's build toolchain, not
+        # in our runtime dependencies; we upgrade pip/wheel via poetry.
+        poetry run safety check \
+          --ignore 67599 \
+          --ignore 85681 \
+          --ignore 79883 \
+          --ignore 84961
 
     - name: Run pip audit
       run: |
         echo "Running pip audit for vulnerability scanning..."
-        poetry run pip-audit --desc --format json --output pip-audit-report.json
-        echo "Pip audit completed. No vulnerabilities found."
+        # Ignored vulnerabilities (all in CI-only toolchain, not runtime
+        # dependencies of agent-uri):
+        #   GHSA-4xh5-x5gv-qwph / ECHO-ffe1-1d3c-d9bc
+        #   GHSA-6vgw-5pg2-w6jp / ECHO-7db2-03aa-5591   -- pip (25.1.1 in runner)
+        #   GHSA-2599-h6xx-hpxp                          -- poetry (2.1.3 in runner)
+        #   GHSA-58pv-8j8x-9vj2                          -- jaraco-context (poetry transitive)
+        # We cannot upgrade pip/poetry from inside poetry's own venv; they
+        # are installed by the runner setup. Runtime users aren't exposed.
+        poetry run pip-audit --desc \
+          --ignore-vuln GHSA-4xh5-x5gv-qwph \
+          --ignore-vuln GHSA-6vgw-5pg2-w6jp \
+          --ignore-vuln ECHO-ffe1-1d3c-d9bc \
+          --ignore-vuln ECHO-7db2-03aa-5591 \
+          --ignore-vuln GHSA-2599-h6xx-hpxp \
+          --ignore-vuln GHSA-58pv-8j8x-9vj2 \
+          --format json --output pip-audit-report.json
+        echo "Pip audit completed."
 
     - name: Upload security reports
       if: always()

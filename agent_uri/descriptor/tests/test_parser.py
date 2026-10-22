@@ -1,4 +1,4 @@
-"""Tests for the parser module."""
+"""Tests for the descriptor parser (draft-narvaneni-agent-uri-03)."""
 
 import json
 import os
@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from ..models import AgentDescriptor, Capability, Provider, Skill
+from ..models import AgentDescriptor, Provider, Skill
 from ..parser import (
     descriptor_to_dict,
     load_descriptor,
@@ -16,207 +16,151 @@ from ..parser import (
 )
 
 
-def test_parse_minimal_descriptor():
-    """Test parsing a minimal valid descriptor."""
-    descriptor_data = {
+def _minimal() -> dict:
+    return {
         "name": "test-agent",
         "version": "1.0.0",
-        "capabilities": [{"name": "test-capability"}],
+        "skills": [
+            {"id": "echo", "name": "echo", "description": "Echo skill"},
+        ],
     }
 
-    descriptor = parse_descriptor(descriptor_data)
 
+def test_parse_minimal_descriptor():
+    descriptor = parse_descriptor(_minimal())
     assert descriptor.name == "test-agent"
     assert descriptor.version == "1.0.0"
-    assert len(descriptor.capabilities) == 1
-    assert descriptor.capabilities[0].name == "test-capability"
+    assert len(descriptor.skills) == 1
+    assert descriptor.skills[0].id == "echo"
+    assert descriptor.skills[0].name == "echo"
+    assert descriptor.skills[0].description == "Echo skill"
 
 
 def test_parse_full_descriptor():
-    """Test parsing a complete descriptor with all fields."""
-    descriptor_data = {
+    data = {
         "name": "full-agent",
         "version": "2.1.0",
         "description": "A test agent with all fields",
         "url": "agent://full-agent/",
         "provider": {"organization": "Test Org", "url": "https://example.com"},
         "documentationUrl": "https://docs.example.com",
-        "interactionModel": "agent2agent",
-        "orchestration": "delegation",
-        "envelopeSchemas": ["fipa-acl", "json-rpc"],
+        "interactionModel": ["agent2agent"],
         "supportedVersions": {"1.0.0": "/v1/", "2.0.0": "/v2/"},
-        "capabilities": [
+        "conformanceLevel": 2,
+        "environment": "production",
+        "authentication": {"schemes": ["Bearer", "API Key"]},
+        "transport": {"endpoint": "https://full-agent.example.com/"},
+        "skills": [
             {
-                "name": "capability-1",
-                "description": "Test capability 1",
+                "id": "echo",
+                "name": "echo",
+                "description": "A test skill",
                 "version": "1.0.0",
-                "isDeterministic": False,
-                "expectedOutputVariability": "medium",
                 "tags": ["test", "demo"],
             },
             {
-                "name": "capability-2",
-                "description": "Test capability 2",
+                "id": "stream",
+                "name": "stream",
+                "description": "Streaming skill",
                 "streaming": True,
+                "streamingFormat": "sse",
             },
         ],
-        "authentication": {"schemes": ["Bearer", "API Key"]},
-        "skills": [
-            {
-                "id": "skill-1",
-                "name": "Test Skill",
-                "description": "A test skill",
-                "tags": ["test"],
-            }
-        ],
-        "defaultInputModes": ["text", "voice"],
-        "defaultOutputModes": ["text", "image"],
     }
 
-    descriptor = parse_descriptor(descriptor_data)
+    descriptor = parse_descriptor(data)
 
-    # Check basic fields
     assert descriptor.name == "full-agent"
     assert descriptor.version == "2.1.0"
     assert descriptor.description == "A test agent with all fields"
-    assert descriptor.url == "agent://full-agent/"
-
-    # Check provider
+    assert descriptor.conformance_level == 2
+    assert descriptor.environment == "production"
     assert descriptor.provider.organization == "Test Org"
-    assert descriptor.provider.url == "https://example.com"
-
-    # Check supported versions
     assert descriptor.supported_versions == {"1.0.0": "/v1/", "2.0.0": "/v2/"}
-
-    # Check capabilities
-    assert len(descriptor.capabilities) == 2
-    assert descriptor.capabilities[0].name == "capability-1"
-    assert descriptor.capabilities[0].description == "Test capability 1"
-    assert descriptor.capabilities[0].tags == ["test", "demo"]
-    assert descriptor.capabilities[1].name == "capability-2"
-    assert descriptor.capabilities[1].streaming is True
-
-    # Check authentication
+    assert descriptor.interaction_model == ["agent2agent"]
+    assert descriptor.transport.endpoint == "https://full-agent.example.com/"
     assert descriptor.authentication.schemes == ["Bearer", "API Key"]
 
-    # Check skills
-    assert len(descriptor.skills) == 1
-    assert descriptor.skills[0].id == "skill-1"
-    assert descriptor.skills[0].name == "Test Skill"
-
-    # Check modes
-    assert descriptor.default_input_modes == ["text", "voice"]
-    assert descriptor.default_output_modes == ["text", "image"]
+    assert len(descriptor.skills) == 2
+    assert descriptor.skills[0].tags == ["test", "demo"]
+    assert descriptor.skills[1].streaming is True
+    assert descriptor.skills[1].streaming_format == "sse"
 
 
 def test_required_fields_missing():
-    """Test that parsing fails when required fields are missing."""
-    # Missing name
     with pytest.raises(ValueError, match="name"):
-        parse_descriptor({"version": "1.0.0", "capabilities": [{"name": "test"}]})
+        parse_descriptor(
+            {
+                "version": "1.0.0",
+                "skills": [{"id": "s", "name": "s", "description": "s"}],
+            }
+        )
 
-    # Missing version
     with pytest.raises(ValueError, match="version"):
-        parse_descriptor({"name": "test", "capabilities": [{"name": "test"}]})
+        parse_descriptor(
+            {"name": "test", "skills": [{"id": "s", "name": "s", "description": "s"}]}
+        )
 
-    # Missing capabilities
-    with pytest.raises(ValueError, match="capabilities"):
+    with pytest.raises(ValueError, match="skills"):
         parse_descriptor({"name": "test", "version": "1.0.0"})
 
 
+def test_skill_requires_id_name_description():
+    """Each skill must have id, name, description."""
+    with pytest.raises(ValueError):
+        parse_descriptor(
+            {"name": "x", "version": "1.0.0", "skills": [{"name": "no-id"}]}
+        )
+
+
 def test_load_from_dict():
-    """Test loading a descriptor from a dictionary."""
-    descriptor_data = {
-        "name": "test-agent",
-        "version": "1.0.0",
-        "capabilities": [{"name": "test-capability"}],
-    }
-
-    descriptor = load_descriptor(descriptor_data)
-
+    descriptor = load_descriptor(_minimal())
     assert descriptor.name == "test-agent"
-    assert descriptor.version == "1.0.0"
-    assert len(descriptor.capabilities) == 1
+    assert len(descriptor.skills) == 1
 
 
 def test_load_from_file():
-    """Test loading a descriptor from a file."""
-    descriptor_data = {
-        "name": "file-agent",
-        "version": "1.0.0",
-        "capabilities": [{"name": "file-capability"}],
-    }
-
-    # Create a temporary file with the descriptor data
     with tempfile.NamedTemporaryFile(mode="w+", suffix=".json", delete=False) as f:
-        json.dump(descriptor_data, f)
+        json.dump(_minimal(), f)
         temp_path = f.name
-
     try:
-        # Load the descriptor from the file
         descriptor = load_descriptor(temp_path)
-
-        assert descriptor.name == "file-agent"
-        assert descriptor.version == "1.0.0"
-        assert len(descriptor.capabilities) == 1
-        assert descriptor.capabilities[0].name == "file-capability"
+        assert descriptor.name == "test-agent"
+        assert descriptor.skills[0].id == "echo"
     finally:
-        # Clean up the temporary file
         if os.path.exists(temp_path):
             os.unlink(temp_path)
 
 
 def test_descriptor_to_dict():
-    """Test converting a descriptor to a dictionary."""
-    # Create a descriptor
     descriptor = AgentDescriptor(
         name="test-agent",
         version="1.0.0",
-        capabilities=[
-            Capability(name="test-capability", description="A test capability")
-        ],
+        skills=[Skill(id="test-skill", name="Test Skill", description="A skill")],
         provider=Provider(organization="Test Org", url="https://example.com"),
-        skills=[Skill(id="test-skill", name="Test Skill")],
         context="https://example.org/agent-context.jsonld",
     )
 
-    # Convert to dictionary
-    descriptor_dict = descriptor_to_dict(descriptor)
-
-    # Check the conversion
-    assert descriptor_dict["name"] == "test-agent"
-    assert descriptor_dict["version"] == "1.0.0"
-    assert len(descriptor_dict["capabilities"]) == 1
-    assert descriptor_dict["capabilities"][0]["name"] == "test-capability"
-    assert descriptor_dict["provider"]["organization"] == "Test Org"
-    assert descriptor_dict["skills"][0]["id"] == "test-skill"
-    assert descriptor_dict["@context"] == "https://example.org/agent-context.jsonld"
+    out = descriptor_to_dict(descriptor)
+    assert out["name"] == "test-agent"
+    assert out["version"] == "1.0.0"
+    assert out["skills"][0]["id"] == "test-skill"
+    assert out["provider"]["organization"] == "Test Org"
+    assert out["@context"] == "https://example.org/agent-context.jsonld"
 
 
 def test_save_descriptor():
-    """Test saving a descriptor to a file."""
-    # Create a descriptor
     descriptor = AgentDescriptor(
         name="save-agent",
         version="1.0.0",
-        capabilities=[Capability(name="save-capability")],
+        skills=[Skill(id="s", name="s", description="save skill")],
     )
 
-    # Create a temporary path for the descriptor file
     with tempfile.TemporaryDirectory() as temp_dir:
-        temp_path = Path(temp_dir) / "agent.json"
-
-        # Save the descriptor
-        save_descriptor(descriptor, str(temp_path))
-
-        # Check that the file was created
-        assert temp_path.exists()
-
-        # Load the descriptor from the file and check its contents
-        with open(temp_path, "r") as f:
-            saved_data = json.load(f)
-
-        assert saved_data["name"] == "save-agent"
-        assert saved_data["version"] == "1.0.0"
-        assert len(saved_data["capabilities"]) == 1
-        assert saved_data["capabilities"][0]["name"] == "save-capability"
+        path = Path(temp_dir) / "agent.json"
+        save_descriptor(descriptor, str(path))
+        assert path.exists()
+        with open(path, "r") as f:
+            saved = json.load(f)
+        assert saved["name"] == "save-agent"
+        assert saved["skills"][0]["id"] == "s"

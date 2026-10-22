@@ -1,8 +1,9 @@
 """
-Request handlers for different transport protocols.
+Request handlers for the agent:// protocol.
 
-This module provides handlers for processing agent capability requests
-over different transport protocols (HTTP, WebSocket, etc.)
+Aligned with draft-narvaneni-agent-uri-03. Handlers route incoming
+skill invocations over different transports (HTTPS, WebSocket) to the
+registered ``Skill`` runtime objects.
 """
 
 import abc
@@ -19,40 +20,28 @@ from typing import (
     Union,
 )
 
-from .capability import Capability
 from .exceptions import (
     AuthenticationError,
-    CapabilityNotFoundError,
     HandlerError,
     InvalidInputError,
+    SkillNotFoundError,
 )
+from .skill import Skill
 
 logger = logging.getLogger(__name__)
 
 
 class BaseHandler(abc.ABC):
-    """
-    Abstract base class for request handlers.
-
-    This class defines the interface for handlers that process capability
-    requests over different transport protocols.
-    """
+    """Abstract base class for transport-specific request handlers."""
 
     def __init__(self) -> None:
-        """Initialize the handler."""
-        self._capabilities: Dict[str, Capability] = {}
+        self._skills: Dict[str, Skill] = {}
         self._authenticator: Optional[Callable] = None
 
-    def register_capability(self, name: str, capability: Capability) -> None:
-        """
-        Register a capability with this handler.
-
-        Args:
-            name: The name/path to register the capability under
-            capability: The capability to register
-        """
-        self._capabilities[name] = capability
-        logger.debug(f"Registered capability at path '{name}'")
+    def register_skill(self, path: str, skill: Skill) -> None:
+        """Register a Skill at the given path."""
+        self._skills[path] = skill
+        logger.debug("Registered skill at path '%s'", path)
 
     def register_authenticator(
         self,
@@ -60,80 +49,48 @@ class BaseHandler(abc.ABC):
             [Dict[str, Any]], Union[bool, Dict[str, Any], Awaitable[Any]]
         ],
     ) -> None:
-        """
-        Register an authenticator function.
-
-        The authenticator is called to validate incoming requests. It may
-        return a boolean (auth succeeded/failed) or a dictionary of
-        authentication metadata to include with the capability.
-
-        Args:
-            authenticator: The authenticator function
-        """
+        """Register an authenticator. May return bool or auth metadata dict."""
         self._authenticator = authenticator
         logger.debug("Registered authenticator")
 
-    def get_capability(self, path: str) -> Capability:
-        """
-        Get a registered capability by path.
+    def get_skill(self, path: str) -> Skill:
+        """Look up a Skill by path.
 
-        Args:
-            path: The path to the capability
-
-        Returns:
-            The capability
+        Falls back to prefix-matching (``a/b/c`` → ``a/b`` → ``a``) so
+        nested routes resolve to their parent skill if registered.
 
         Raises:
-            CapabilityNotFoundError: If no capability is registered at the path
+            SkillNotFoundError: If no skill is registered at the path.
         """
-        # Normalize path
-        normalized_path = path.strip("/")
+        normalized = path.strip("/")
+        if normalized in self._skills:
+            return self._skills[normalized]
 
-        # Try exact match first
-        if normalized_path in self._capabilities:
-            return self._capabilities[normalized_path]
-
-        # Try partial match (e.g., 'a/b/c' -> 'a/b' -> 'a')
-        parts = normalized_path.split("/")
+        parts = normalized.split("/")
         while parts:
             parts.pop()
             candidate = "/".join(parts)
-            if candidate in self._capabilities:
-                return self._capabilities[candidate]
+            if candidate in self._skills:
+                return self._skills[candidate]
 
-        # No capability found
-        raise CapabilityNotFoundError(f"No capability found for path '{path}'")
+        raise SkillNotFoundError(
+            skill_id=path,
+            available_skills=list(self._skills.keys()),
+        )
 
     async def authenticate(
         self, request_data: Dict[str, Any]
     ) -> Union[bool, Dict[str, Any]]:
-        """
-        Authenticate a request.
-
-        Args:
-            request_data: The request data containing auth information
-
-        Returns:
-            True if authenticated, False if not, or a dict of auth metadata
-
-        Raises:
-            AuthenticationError: If authentication fails
-        """
+        """Run the registered authenticator (if any) against a request."""
         if not self._authenticator:
-            # No authenticator registered, authentication succeeds by default
             return True
-
         try:
-            # Call the authenticator
             result = self._authenticator(request_data)
-
-            # Handle async authenticator
             if asyncio.iscoroutine(result):
                 result = await result
-
             return result
         except Exception as e:
-            raise AuthenticationError(f"Authentication failed: {str(e)}")
+            raise AuthenticationError(f"Authentication failed: {e}")
 
     @abc.abstractmethod
     def handle_request(
@@ -141,88 +98,36 @@ class BaseHandler(abc.ABC):
         path: str,
         params: Dict[str, Any],
         headers: Optional[Dict[str, str]] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Union[Coroutine[Any, Any, Any], AsyncGenerator[Any, None]]:
-        """
-        Handle a capability request.
-
-        Args:
-            path: The path to the capability
-            params: The parameters for the capability
-            headers: Optional request headers
-            **kwargs: Additional transport-specific parameters
-
-        Returns:
-            The capability result
-
-        Raises:
-            CapabilityNotFoundError: If no capability is registered at the path
-            HandlerError: If the request cannot be handled
-        """
-        pass
+        """Handle a skill invocation request."""
+        raise NotImplementedError
 
 
 class HTTPHandler(BaseHandler):
-    """
-    Handler for HTTP requests.
-
-    This handler processes capability requests over HTTP, including
-    support for authentication, content negotiation, and error handling.
-    """
-
-    def __init__(self) -> None:
-        """Initialize the HTTP handler."""
-        super().__init__()
+    """Handler for HTTPS skill invocations."""
 
     def handle_request(
         self,
         path: str,
         params: Dict[str, Any],
         headers: Optional[Dict[str, str]] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Coroutine[Any, Any, Any]:
-        """
-        Handle an HTTP capability request.
+        return self._handle(path, params, headers, **kwargs)
 
-        Args:
-            path: The path to the capability
-            params: The parameters for the capability
-            headers: Optional request headers
-            **kwargs: Additional HTTP-specific parameters
-                - session_id: Optional session identifier
-                - context: Optional session context
-                - auth: Optional authentication data
-
-        Returns:
-            A coroutine that yields the capability result
-
-        Raises:
-            CapabilityNotFoundError: If no capability is registered at the path
-            AuthenticationError: If authentication fails
-            HandlerError: If the request cannot be handled
-        """
-        return self._handle_http_request(path, params, headers, **kwargs)
-
-    async def _handle_http_request(
+    async def _handle(
         self,
         path: str,
         params: Dict[str, Any],
         headers: Optional[Dict[str, str]] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Any:
-        """
-        Internal async method to handle HTTP requests.
-        """
         try:
-            # Get the capability
-            capability = self.get_capability(path)
+            skill = self.get_skill(path)
 
-            # Check if authentication is required
-            if capability.metadata.auth_required:
-                # Get auth data from request
+            if skill.metadata.auth_required:
                 auth_data = kwargs.get("auth", {})
-
-                # Authenticate the request
                 auth_result = await self.authenticate(
                     {
                         "path": path,
@@ -231,111 +136,57 @@ class HTTPHandler(BaseHandler):
                         **auth_data,
                     }
                 )
-
                 if not auth_result:
                     raise AuthenticationError("Authentication required")
-
-                # Add auth metadata to kwargs if provided
                 if isinstance(auth_result, dict):
                     kwargs["auth_metadata"] = auth_result
 
-            # Cleanly separate session information from other kwargs
             session_metadata = kwargs.pop("session_metadata", {})
             session_id = session_metadata.get("session_id")
             context = kwargs.pop("context", None)
 
-            # Invoke the capability with session info kept separate from kwargs
-            result = await capability.invoke(
-                params=params, session_id=session_id, context=context, **kwargs
+            return await skill.invoke(
+                params=params,
+                session_id=session_id,
+                context=context,
+                **kwargs,
             )
 
-            return result
-
-        except CapabilityNotFoundError:
-            # Re-raise capability not found errors
-            raise
-        except AuthenticationError:
-            # Re-raise authentication errors
-            raise
-        except InvalidInputError:
-            # Re-raise input validation errors
+        except (SkillNotFoundError, AuthenticationError, InvalidInputError):
             raise
         except Exception as e:
-            # Wrap other exceptions in HandlerError
-            raise HandlerError(f"Error handling HTTP request: {str(e)}")
+            raise HandlerError(f"Error handling HTTP request: {e}")
 
 
 class WebSocketHandler(BaseHandler):
-    """
-    Handler for WebSocket requests.
-
-    This handler processes capability requests over WebSocket, including
-    support for authentication, streaming responses, and error handling.
-    """
-
-    def __init__(self) -> None:
-        """Initialize the WebSocket handler."""
-        super().__init__()
+    """Handler for WebSocket skill invocations (including streaming)."""
 
     def handle_request(
         self,
         path: str,
         params: Dict[str, Any],
         headers: Optional[Dict[str, str]] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> AsyncGenerator[Any, None]:
-        """
-        Handle a WebSocket capability request.
+        return self._handle(path, params, headers, **kwargs)
 
-        Args:
-            path: The path to the capability
-            params: The parameters for the capability
-            headers: Optional request headers
-            **kwargs: Additional WebSocket-specific parameters
-                - session_id: Optional session identifier
-                - context: Optional session context
-                - auth: Optional authentication data
-                - format: Stream format (ndjson, sse, etc.)
-
-        Returns:
-            An async generator that yields response chunks
-
-        Raises:
-            CapabilityNotFoundError: If no capability is registered at the path
-            AuthenticationError: If authentication fails
-            HandlerError: If the request cannot be handled
-        """
-        return self._handle_websocket_request(path, params, headers, **kwargs)
-
-    async def _handle_websocket_request(
+    async def _handle(
         self,
         path: str,
         params: Dict[str, Any],
         headers: Optional[Dict[str, str]] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> AsyncGenerator[Any, None]:
-        """
-        Internal async generator method to handle WebSocket requests.
-        """
         try:
-            # Get the capability
-            capability = self.get_capability(path)
+            skill = self.get_skill(path)
 
-            # Check if streaming is supported
-            if not capability.metadata.streaming:
-                # If not streaming, return a single result
-                result = await self.handle_non_streaming_request(
-                    path, params, headers, **kwargs
-                )
+            if not skill.metadata.streaming:
+                result = await self._non_streaming(path, params, headers, **kwargs)
                 yield result
                 return
 
-            # Check if authentication is required
-            if capability.metadata.auth_required:
-                # Get auth data from request
+            if skill.metadata.auth_required:
                 auth_data = kwargs.get("auth", {})
-
-                # Authenticate the request
                 auth_result = await self.authenticate(
                     {
                         "path": path,
@@ -344,21 +195,16 @@ class WebSocketHandler(BaseHandler):
                         **auth_data,
                     }
                 )
-
                 if not auth_result:
                     raise AuthenticationError("Authentication required")
-
-                # Add auth metadata to kwargs if provided
                 if isinstance(auth_result, dict):
                     kwargs["auth_metadata"] = auth_result
 
-            # Cleanly separate session information from other kwargs
             session_metadata = kwargs.pop("session_metadata", {})
             session_id = session_metadata.get("session_id")
             context = kwargs.pop("context", None)
 
-            # Invoke the capability with streaming
-            result = await capability.invoke(
+            result = await skill.invoke(
                 params=params,
                 session_id=session_id,
                 context=context,
@@ -366,70 +212,33 @@ class WebSocketHandler(BaseHandler):
                 **kwargs,
             )
 
-            # Handle different result types
             if asyncio.iscoroutine(result):
-                # Single awaitable result
-                result = await result
-                yield result
+                yield await result
             elif hasattr(result, "__aiter__"):
-                # Async iterator (streaming)
                 async for chunk in result:
                     yield chunk
-            elif hasattr(result, "__iter__"):
-                # Regular iterator
+            elif hasattr(result, "__iter__") and not isinstance(
+                result, (str, bytes, dict)
+            ):
                 for chunk in result:
                     yield chunk
             else:
-                # Single result
                 yield result
 
-        except CapabilityNotFoundError:
-            # Re-raise capability not found errors
-            raise
-        except AuthenticationError:
-            # Re-raise authentication errors
-            raise
-        except InvalidInputError:
-            # Re-raise input validation errors
+        except (SkillNotFoundError, AuthenticationError, InvalidInputError):
             raise
         except Exception as e:
-            # Wrap other exceptions in HandlerError
-            raise HandlerError(f"Error handling WebSocket request: {str(e)}")
+            raise HandlerError(f"Error handling WebSocket request: {e}")
 
-    async def handle_non_streaming_request(
+    async def _non_streaming(
         self,
         path: str,
         params: Dict[str, Any],
         headers: Optional[Dict[str, str]] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Any:
-        """
-        Handle a non-streaming WebSocket request.
-
-        This is called when a streaming request is made to a non-streaming
-        capability. It invokes the capability normally and returns a single
-        result.
-
-        Args:
-            path: The path to the capability
-            params: The parameters for the capability
-            headers: Optional request headers
-            **kwargs: Additional WebSocket-specific parameters
-
-        Returns:
-            The capability result
-
-        Raises:
-            CapabilityNotFoundError: If no capability is registered at the path
-            AuthenticationError: If authentication fails
-            HandlerError: If the request cannot be handled
-        """
-        # Create an HTTP handler for non-streaming requests
+        """Delegate a non-streaming request to an HTTPHandler."""
         http_handler = HTTPHandler()
-
-        # Copy capabilities and authenticator
-        http_handler._capabilities = self._capabilities
+        http_handler._skills = self._skills
         http_handler._authenticator = self._authenticator
-
-        # Handle request using HTTP handler
         return await http_handler.handle_request(path, params, headers, **kwargs)

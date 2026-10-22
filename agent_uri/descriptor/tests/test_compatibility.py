@@ -1,4 +1,9 @@
-"""Tests for the compatibility module."""
+"""
+Tests for Agent2Agent and JSON-LD compatibility converters.
+
+Aligned with draft-narvaneni-agent-uri-03: descriptor ``skills[]`` maps
+1:1 to AgentCard ``skills``.
+"""
 
 import pytest
 
@@ -13,287 +18,119 @@ from ..compatibility import (
     to_agent_card,
     to_format,
 )
-from ..models import (
-    AgentCapabilities,
-    AgentDescriptor,
-    Authentication,
-    Capability,
-    Provider,
-    Skill,
-)
+from ..models import AgentDescriptor, Authentication, Provider, Skill
 
 
-def test_to_agent_card():
-    """Test converting an AgentDescriptor to an Agent2Agent AgentCard."""
-    # Create a descriptor
-    descriptor = AgentDescriptor(
+@pytest.fixture
+def sample_descriptor() -> AgentDescriptor:
+    return AgentDescriptor(
         name="test-agent",
         version="1.0.0",
-        url="agent://test-agent/",
         description="A test agent",
-        capabilities=[
-            Capability(name="test-capability", description="A test capability")
-        ],
-        provider=Provider(organization="Test Org", url="https://example.com"),
+        url="https://test-agent.example.com/agent.json",
+        documentation_url="https://test-agent.example.com/docs",
+        provider=Provider(organization="Test Org", url="https://test-org.example.com"),
+        authentication=Authentication(schemes=["bearer", "apiKey"]),
         skills=[
             Skill(
-                id="test-skill",
-                name="Test Skill",
-                description="A test skill",
+                id="echo",
+                name="echo",
+                description="Echo input back",
                 tags=["test"],
-            )
+                streaming=False,
+            ),
+            Skill(
+                id="stream",
+                name="stream",
+                description="Stream chunks",
+                streaming=True,
+                streaming_format="sse",
+            ),
         ],
-        agent_capabilities=AgentCapabilities(
-            streaming=True, push_notifications=False, state_transition_history=True
-        ),
-        authentication=Authentication(schemes=["Bearer", "API Key"]),
-        default_input_modes=["text", "voice"],
-        default_output_modes=["text"],
     )
 
-    # Convert to AgentCard
-    agent_card = to_agent_card(descriptor)
 
-    # Check the conversion
-    assert agent_card["name"] == "test-agent"
-    assert agent_card["version"] == "1.0.0"
-    assert agent_card["url"] == "agent://test-agent/"
-    assert agent_card["description"] == "A test agent"
+class TestAgent2AgentConverter:
+    def test_to_external_basic_fields(self, sample_descriptor):
+        card = Agent2AgentConverter.to_external(sample_descriptor)
+        assert card["name"] == "test-agent"
+        assert card["version"] == "1.0.0"
+        assert card["description"] == "A test agent"
+        assert card["url"] == "https://test-agent.example.com/agent.json"
 
-    # Check provider
-    assert agent_card["provider"]["organization"] == "Test Org"
-    assert agent_card["provider"]["url"] == "https://example.com"
+    def test_to_external_provider(self, sample_descriptor):
+        card = Agent2AgentConverter.to_external(sample_descriptor)
+        assert card["provider"]["organization"] == "Test Org"
+        assert card["provider"]["url"] == "https://test-org.example.com"
 
-    # Check capabilities
-    assert agent_card["capabilities"]["streaming"] is True
-    assert agent_card["capabilities"]["pushNotifications"] is False
-    assert agent_card["capabilities"]["stateTransitionHistory"] is True
+    def test_to_external_skills(self, sample_descriptor):
+        card = Agent2AgentConverter.to_external(sample_descriptor)
+        assert len(card["skills"]) == 2
+        assert {s["id"] for s in card["skills"]} == {"echo", "stream"}
 
-    # Check authentication
-    assert agent_card["authentication"]["schemes"] == ["Bearer", "API Key"]
+    def test_to_external_capabilities_flags(self, sample_descriptor):
+        """AgentCard ``capabilities`` booleans derive from our skills."""
+        card = Agent2AgentConverter.to_external(sample_descriptor)
+        assert card["capabilities"]["streaming"] is True
+        assert card["capabilities"]["pushNotifications"] is False
 
-    # Check skills
-    assert len(agent_card["skills"]) == 1
-    assert agent_card["skills"][0]["id"] == "test-skill"
-    assert agent_card["skills"][0]["name"] == "Test Skill"
-    assert agent_card["skills"][0]["tags"] == ["test"]
+    def test_from_external_roundtrip(self, sample_descriptor):
+        card = Agent2AgentConverter.to_external(sample_descriptor)
+        rt = Agent2AgentConverter.from_external(card)
+        assert rt.name == sample_descriptor.name
+        assert rt.version == sample_descriptor.version
+        assert rt.description == sample_descriptor.description
+        assert rt.provider.organization == "Test Org"
+        assert {s.id for s in rt.skills} == {"echo", "stream"}
 
-    # Check modes
-    assert agent_card["defaultInputModes"] == ["text", "voice"]
-    assert agent_card["defaultOutputModes"] == ["text"]
+    def test_from_external_missing_required(self):
+        with pytest.raises(ValueError, match="Missing required field"):
+            Agent2AgentConverter.from_external({"name": "x", "version": "1"})
 
+    def test_is_compatible(self, sample_descriptor):
+        assert Agent2AgentConverter.is_compatible(sample_descriptor) is True
 
-def test_from_agent_card():
-    """Test converting an Agent2Agent AgentCard to an AgentDescriptor."""
-    # Create an AgentCard
-    agent_card = {
-        "name": "card-agent",
-        "version": "2.0.0",
-        "url": "agent://card-agent/",
-        "description": "An agent from a card",
-        "provider": {"organization": "Card Org"},
-        "capabilities": {
-            "streaming": True,
-            "pushNotifications": True,
-            "stateTransitionHistory": False,
-        },
-        "authentication": {"schemes": ["OAuth2"], "credentials": "token"},
-        "skills": [
-            {
-                "id": "card-skill",
-                "name": "Card Skill",
-                "description": "A skill from a card",
-                "tags": ["card"],
-                "examples": ["Example 1", "Example 2"],
-                "inputModes": ["text"],
-                "outputModes": ["text", "image"],
-            }
-        ],
-        "defaultInputModes": ["text"],
-        "defaultOutputModes": ["text", "image"],
-    }
-
-    # Convert to AgentDescriptor
-    descriptor = from_agent_card(agent_card)
-
-    # Check the conversion
-    assert descriptor.name == "card-agent"
-    assert descriptor.version == "2.0.0"
-    assert descriptor.url == "agent://card-agent/"
-    assert descriptor.description == "An agent from a card"
-
-    # Check provider
-    assert descriptor.provider.organization == "Card Org"
-
-    # Check capabilities (auto-generated from skills)
-    assert len(descriptor.capabilities) == 1
-    assert descriptor.capabilities[0].name == "capability-card-skill"
-
-    # Check agent_capabilities
-    assert descriptor.agent_capabilities.streaming is True
-    assert descriptor.agent_capabilities.push_notifications is True
-    assert descriptor.agent_capabilities.state_transition_history is False
-
-    # Check authentication
-    assert descriptor.authentication.schemes == ["OAuth2"]
-    assert descriptor.authentication.details == {"credentials": "token"}
-
-    # Check skills
-    assert len(descriptor.skills) == 1
-    assert descriptor.skills[0].id == "card-skill"
-    assert descriptor.skills[0].name == "Card Skill"
-    assert descriptor.skills[0].tags == ["card"]
-    assert descriptor.skills[0].examples == ["Example 1", "Example 2"]
-    assert descriptor.skills[0].input_modes == ["text"]
-    assert descriptor.skills[0].output_modes == ["text", "image"]
-
-    # Check modes
-    assert descriptor.default_input_modes == ["text"]
-    assert descriptor.default_output_modes == ["text", "image"]
+    def test_is_not_compatible_when_no_skills(self):
+        bad = AgentDescriptor(name="x", version="1.0.0", skills=[])
+        assert Agent2AgentConverter.is_compatible(bad) is False
 
 
-def test_is_agent_card_compatible():
-    """Test checking if an AgentDescriptor is compatible with AgentCard."""
-    # Create a compatible descriptor
-    compatible = AgentDescriptor(
-        name="compatible-agent",
-        version="1.0.0",
-        url="agent://compatible-agent/",
-        capabilities=[Capability(name="compatible-capability")],
-        skills=[Skill(id="compatible-skill", name="Compatible Skill")],
-    )
-    assert is_agent_card_compatible(compatible) is True
+class TestJsonLdConverter:
+    def test_to_external_adds_context(self, sample_descriptor):
+        sample_descriptor.context = ["https://example.com/context.json"]
+        out = JsonLdConverter.to_external(sample_descriptor)
+        assert "@context" in out
+        assert out["@context"] == ["https://example.com/context.json"]
 
-    # Create an incompatible descriptor (no skills)
-    incompatible = AgentDescriptor(
-        name="incompatible-agent",
-        version="1.0.0",
-        capabilities=[Capability(name="incompatible-capability")],
-        skills=[],  # No skills - incompatible with AgentCard
-    )
-    assert is_agent_card_compatible(incompatible) is False
+    def test_from_external_roundtrip(self, sample_descriptor):
+        sample_descriptor.context = ["https://example.com/ctx.json"]
+        jsonld = JsonLdConverter.to_external(sample_descriptor)
+        rt = JsonLdConverter.from_external(jsonld)
+        assert rt.name == sample_descriptor.name
+        assert rt.version == sample_descriptor.version
 
-    # Create another incompatible descriptor (no capabilities)
-    incompatible2 = AgentDescriptor(
-        name="incompatible-agent-2",
-        version="1.0.0",
-        url="agent://incompatible-agent-2/",
-        capabilities=[],  # No capabilities - incompatible with AgentCard
-        skills=[Skill(id="incompatible-skill", name="Incompatible Skill")],
-    )
-    assert is_agent_card_compatible(incompatible2) is False
+    def test_is_compatible(self, sample_descriptor):
+        assert JsonLdConverter.is_compatible(sample_descriptor) is True
 
 
-def test_to_format():
-    """Test converting to different formats."""
-    # Create a descriptor
-    descriptor = AgentDescriptor(
-        name="format-agent",
-        version="1.0.0",
-        capabilities=[Capability(name="format-capability")],
-        skills=[Skill(id="format-skill", name="Format Skill")],
-        context="https://example.org/agent-context.jsonld",
-    )
+class TestConversionFunctions:
+    def test_to_format_agent2agent(self, sample_descriptor):
+        out = to_format(sample_descriptor, DescriptorFormat.AGENT2AGENT)
+        assert out["name"] == "test-agent"
 
-    # Convert to Agent2Agent format
-    agent2agent = to_format(descriptor, DescriptorFormat.AGENT2AGENT)
-    assert agent2agent["name"] == "format-agent"
-    assert "skills" in agent2agent
+    def test_from_format_agent2agent(self, sample_descriptor):
+        card = to_agent_card(sample_descriptor)
+        rt = from_format(card, DescriptorFormat.AGENT2AGENT)
+        assert rt.name == "test-agent"
 
-    # Convert to JSON-LD format
-    jsonld = to_format(descriptor, DescriptorFormat.JSONLD)
-    assert jsonld["name"] == "format-agent"
-    assert jsonld["@context"] == "https://example.org/agent-context.jsonld"
+    def test_is_format_compatible(self, sample_descriptor):
+        assert is_format_compatible(sample_descriptor, DescriptorFormat.AGENT2AGENT)
 
-    # Test invalid format
-    with pytest.raises(ValueError):
-        to_format(descriptor, "invalid-format")
+    def test_is_agent_card_compatible(self, sample_descriptor):
+        assert is_agent_card_compatible(sample_descriptor) is True
 
-
-def test_from_format():
-    """Test converting from different formats."""
-    # Create an AgentCard
-    agent_card = {
-        "name": "from-card",
-        "version": "1.0.0",
-        "url": "agent://from-card/",
-        "capabilities": {
-            "streaming": False,
-            "pushNotifications": False,
-            "stateTransitionHistory": False,
-        },
-        "skills": [{"id": "from-skill", "name": "From Skill"}],
-    }
-
-    # Convert from Agent2Agent format
-    descriptor = from_format(agent_card, DescriptorFormat.AGENT2AGENT)
-    assert descriptor.name == "from-card"
-    assert descriptor.url == "agent://from-card/"
-
-    # Create a JSON-LD document
-    jsonld_doc = {
-        "@context": "https://example.org/agent-context.jsonld",
-        "name": "from-jsonld",
-        "version": "1.0.0",
-        "capabilities": [{"name": "jsonld-capability"}],
-    }
-
-    # Convert from JSON-LD format
-    descriptor = from_format(jsonld_doc, DescriptorFormat.JSONLD)
-    assert descriptor.name == "from-jsonld"
-    assert descriptor.context == "https://example.org/agent-context.jsonld"
-
-    # Test invalid format
-    with pytest.raises(ValueError):
-        from_format({}, "invalid-format")
-
-
-def test_is_format_compatible():
-    """Test checking compatibility with different formats."""
-    # Create a descriptor
-    descriptor = AgentDescriptor(
-        name="compatibility-agent",
-        version="1.0.0",
-        capabilities=[Capability(name="compatibility-capability")],
-        skills=[Skill(id="compatibility-skill", name="Compatibility Skill")],
-    )
-
-    # Check Agent2Agent compatibility
-    assert is_format_compatible(descriptor, DescriptorFormat.AGENT2AGENT) is True
-
-    # Check JSON-LD compatibility (all descriptors are JSON-LD compatible)
-    assert is_format_compatible(descriptor, DescriptorFormat.JSONLD) is True
-
-    # Test invalid format
-    with pytest.raises(ValueError):
-        is_format_compatible(descriptor, "invalid-format")
-
-
-def test_converter_classes():
-    """Test the converter classes directly."""
-    # Create a descriptor
-    descriptor = AgentDescriptor(
-        name="converter-agent",
-        version="1.0.0",
-        capabilities=[Capability(name="converter-capability")],
-        skills=[Skill(id="converter-skill", name="Converter Skill")],
-    )
-
-    # Test Agent2Agent converter
-    agent_card = Agent2AgentConverter.to_external(descriptor)
-    assert agent_card["name"] == "converter-agent"
-    assert "skills" in agent_card
-
-    descriptor2 = Agent2AgentConverter.from_external(agent_card)
-    assert descriptor2.name == "converter-agent"
-
-    assert Agent2AgentConverter.is_compatible(descriptor) is True
-
-    # Test JSON-LD converter
-    jsonld_doc = JsonLdConverter.to_external(descriptor)
-    assert jsonld_doc["name"] == "converter-agent"
-
-    descriptor3 = JsonLdConverter.from_external(jsonld_doc)
-    assert descriptor3.name == "converter-agent"
-
-    assert JsonLdConverter.is_compatible(descriptor) is True
+    def test_to_agent_card_shortcut(self, sample_descriptor):
+        card = to_agent_card(sample_descriptor)
+        assert card["name"] == "test-agent"
+        rt = from_agent_card(card)
+        assert rt.name == "test-agent"

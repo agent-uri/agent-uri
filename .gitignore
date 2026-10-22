@@ -64,6 +64,9 @@ dmypy.json
 .env.test.local
 .env.production.local
 
+# Local working notes (engagement drafts, personal scratch, etc.)
+.local/
+
 # Logs
 *.log
 

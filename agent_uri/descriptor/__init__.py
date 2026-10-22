@@ -12,9 +12,12 @@ from .generator import AgentDescriptorGenerator  # noqa: F401
 from .models import (  # noqa: F401
     AgentDescriptor,
     Authentication,
-    Capability,
+    ContentTypes,
+    Dependency,
+    Example,
     Provider,
     Skill,
+    Transport,
 )
 from .parser import load_descriptor, parse_descriptor  # noqa: F401
 from .validator import (  # noqa: F401

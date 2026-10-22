@@ -93,17 +93,12 @@ class TestFastAPIRouteSetup:
         """Test route setup when no prefix is specified."""
         server = FastAPIAgentServer("test-agent", "1.0.0", prefix="")
 
-        # This tests lines 388-399 - the .well-known/agent.json route setup
-        # when prefix is empty
         assert server.prefix == ""
-
-        # Verify that well-known route was added to the app (not router)
-        # by checking that enable_agent_json is True and prefix is empty
         assert server.enable_agent_json is True
 
-        # The route setup happens in _setup_routes, which we've now covered
+        # Spec uses /.well-known/agents.json (plural index endpoint).
         routes = [route.path for route in server.app.routes]
-        assert "/.well-known/agent.json" in routes
+        assert "/.well-known/agents.json" in routes
 
     def test_route_setup_with_prefix(self):
         """Test route setup when prefix is specified."""
